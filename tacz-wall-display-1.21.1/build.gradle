@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.74'
+}
+version = '0.1.0'
+group = 'dev.kiyo'
+base { archivesName = 'tacz-wall-display-1.21.1' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+repositories { mavenCentral() }
+def instance = providers.gradleProperty('minecraftInstance').getOrElse('E:/GAME/Minecraft/Minecraft 1.21.1/.minecraft')
+dependencies {
+    implementation files("${instance}/mods/tacz-neoforge-1.21.1-1.1.8-hotfix-r6.jar")
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+neoForge {
+    version = '21.1.248'
+    addModdingDependenciesTo sourceSets.test
+    mods { tacz_wall_display { sourceSet sourceSets.main } }
+    runs { client { client(); gameDirectory = file('run-client'); jvmArgument '-Xmx4G'; programArguments.addAll '--width','1280','--height','900' } }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+test { useJUnitPlatform() }
+if (providers.gradleProperty('smoke').isPresent()) {
+    sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
+    configurations.smokeImplementation.extendsFrom(configurations.implementation)
+    neoForge {
+        addModdingDependenciesTo sourceSets.smoke
+        mods { wall_display_smoke { sourceSet sourceSets.smoke } }
+        runs { client { sourceSet = sourceSets.smoke } }
+    }
+}

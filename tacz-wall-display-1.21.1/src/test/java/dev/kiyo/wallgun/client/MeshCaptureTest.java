@@ -1,0 +1,28 @@
+package dev.kiyo.wallgun.client;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class MeshCaptureTest {
+    @Test void preservesArbitraryRotationUvNormalAndEmissiveLight() {
+        MeshCapture capture=new MeshCapture();var out=capture.buffer(null);
+        float angle=(float)Math.toRadians(13.7),x=(float)Math.cos(angle),y=(float)Math.sin(angle);
+        for(int i=0;i<4;i++) out.addVertex(x+i,y,-.8F).setColor(11,22,33,255).setUv(.123F,.987F).setUv2(240,240).setNormal(x,y,0);
+        var vertices=capture.finish().get(null);
+        assertEquals(4,vertices.size());var v=vertices.getFirst();
+        assertEquals(x,v.x());assertEquals(y,v.y());assertEquals(x,v.nx());assertEquals(.123F,v.u());assertEquals(0x00F000F0,v.light());assertEquals(0xFF0B1621,v.color());
+    }
+    @Test void normalizesWallGapWithoutQuantizingAnglesOrUv() {
+        MeshCapture capture=new MeshCapture();var out=capture.buffer(null);
+        for(int i=0;i<4;i++) out.addVertex(-.63F+i*.31F,-.42F+i*.21F,-.25F+i*.015F).setColor(-1).setUv(.12F,.78F).setUv2(0,0).setNormal(.3F,.4F,.866F);
+        var mesh=GunMeshes.normalize(capture.finish());var vertices=mesh.materials().get(null);
+        assertEquals(.0125F,vertices.getFirst().z(),.00001);
+        assertEquals(.31F,vertices.get(1).x()-vertices.get(0).x(),.00001);
+        assertEquals(.12F,vertices.getFirst().u());assertEquals(.866F,vertices.getFirst().nz());
+    }
+    @Test void rejectsIncompleteQuadsAndUnwindsCaptureScope() {
+        MeshCapture capture=new MeshCapture();MeshCapture.begin(capture);
+        try { assertSame(capture,MeshCapture.active());capture.buffer(null).addVertex(1,2,3);assertThrows(IllegalStateException.class,capture::finish); }
+        finally {MeshCapture.end();}
+        assertNull(MeshCapture.active());
+    }
+}
