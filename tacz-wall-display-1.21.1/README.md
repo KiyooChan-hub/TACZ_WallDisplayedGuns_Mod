@@ -1,6 +1,8 @@
-# TACZ Wall Display — 0.2.0
+# TACZ Wall Display — 0.2.1
 
 目标环境：Minecraft 1.21.1、NeoForge 21.1.248、Java 21、TACZ 1.1.8-hotfix-r6。
+
+0.2.1 补齐瞄具外壳与目镜环的独立渲染路径。0.2.0 的装饰枪数据兼容，更新并重启后自动重新捕获，已放置的装饰枪无需重新合成或摆放。
 
 ## 使用
 
@@ -10,7 +12,7 @@
 4. 将装饰枪单独放入任一合成栏，取出原真枪。配件、弹药、膛内子弹、射击模式、自定义名称及其他持久物品组件随原枪保存和还原。
 5. 正反向都是一个输入换一个输出。装饰枪不可堆叠，不会额外生成真枪或配件。更换输入会更新预览；关闭合成界面仅返还尚未使用的输入。
 
-已移除旧版创造标签和 gun-id 预设功能。新方块 ID 为 `tacz_wall_display:decorative_gun`；旧 `wall_gun` 方块、物品及 `gun_id` 组件不注册、不迁移，旧装饰内容废弃。旧方块不能兑换真枪。更新需移出旧 JAR 并完全重启游戏。
+自 0.2.0 起已移除 0.1.x 的创造标签和 gun-id 预设功能。新方块 ID 为 `tacz_wall_display:decorative_gun`；旧 `wall_gun` 方块、物品及 `gun_id` 组件不注册、不迁移，旧装饰内容废弃。旧方块不能兑换真枪。更新需移出旧 JAR 并完全重启游戏。
 
 这是包含方块、数据组件和配方的模组，多人游戏客户端与服务端均需安装匹配版本和 TACZ。动态配方由服务端计算，适用于原版两种合成栏；不需要切石机。配方是特殊动态配方，不为每个枪型生成配方书条目。
 
@@ -37,7 +39,7 @@
 
 `gradlew.bat build --offline` 运行几何和批次测试并构建发布 JAR。
 
-`gradlew.bat runClient -Psmoke --offline` 在 `run-client` 新建独立测试世界，验证真实合成菜单、数据持久化及网络编解码、四面放置和掉落、配件模型与 TACZ 展示框的几何一致性，并进行 100 把枪的静态／运动／编辑压力测试。记录保存在 `run-client/verification`。必须检查新生成的 `SUCCESS.txt`，启动任务退出码不能代替测试结果。
+`gradlew.bat runClient -Psmoke --offline` 在 `run-client` 新建独立测试世界，验证真实合成菜单、数据持久化及网络编解码、四面放置和掉落、配件模型与独立记录的 TACZ 实际缓冲提交数据的一致性（参考过程不启用产品捕获器），并截图比较三种瞄具的真实展示框外观，并进行 100 把枪的静态／运动／编辑压力测试。记录保存在 `run-client/verification`。必须检查新生成的 `SUCCESS.txt`，启动任务退出码不能代替测试结果。
 
 测试代码在 `src/smoke`，不会打入发布 JAR。测试实例复制了正式实例的枪包及 Sodium、Iris、Complementary v4.7.2、RuOK、Cloth Config 和相关配置。
 

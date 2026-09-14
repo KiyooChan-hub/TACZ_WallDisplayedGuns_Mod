@@ -5,3 +5,6 @@ license="GPL-3.0-only"
 modId="wall_display_smoke"
 version="1"
 displayName="Development-only wall display verification"
+
+[[mixins]]
+config="wall_display_smoke.mixins.json"

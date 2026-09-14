@@ -2,6 +2,14 @@
   "required": true,
   "package": "dev.kiyo.wallgun.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["BedrockCaptureMixin", "GunDisplayAccessor", "GunTransformInvoker", "AccelerationCaptureMixin"],
-  "injectors": {"defaultRequire": 1}
+  "client": [
+    "BedrockCaptureMixin",
+    "GunDisplayAccessor",
+    "GunTransformInvoker",
+    "AccelerationCaptureMixin",
+    "AttachmentCaptureMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }

@@ -110,7 +110,22 @@ public class WallSmoke {
                 var dir=mc.gameDirectory.toPath().resolve("verification");
                 Files.writeString(dir.resolve("equipped-frames.csv"),equippedFrames);
                 Files.writeString(dir.resolve("equipped-stress.txt"),"100 equipped SCAR-L guns, 4 materials each, 120 bounded batches; stable and 360-tick near motion upload delta=0; "+WallBatches.stats()+"\n");
-                phase=8;mc.setScreen(new Icons());return;
+                mc.getSingleplayerServer().execute(()->{
+                    try {
+                        var world=mc.getSingleplayerServer().overworld();
+                        for(int x=1;x<=10;x++)for(int y=-60;y<=-51;y++)world.setBlock(new BlockPos(x,y,1),Blocks.AIR.defaultBlockState(),3);
+                        world.getEntitiesOfClass(net.minecraft.world.entity.decoration.ItemFrame.class,new net.minecraft.world.phys.AABB(0,-64,0,12,-48,3)).forEach(net.minecraft.world.entity.Entity::discard);
+                        for(int i=0;i<ScopeFixtures.SCOPES.length;i++) {
+                            var gun=ScopeFixtures.gun(world.registryAccess(),ScopeFixtures.SCOPES[i]);
+                            var pos=new BlockPos(3,-54-i*2,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
+                            ((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(new GunSnapshot(gun));
+                            var frame=new net.minecraft.world.entity.decoration.ItemFrame(world,new BlockPos(7,-54-i*2,1),Direction.SOUTH);
+                            frame.setItem(gun);world.addFreshEntity(frame);
+                        }
+                        mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-55.2,5.8,180,0);
+                    }catch(Throwable e){serverFailure=e;}
+                });
+                phase=13;ticks=0;return;
             }
             if(phase==6) {
                 mc.player.setPos(5.5+3*Math.sin(ticks*.045),-57.2,3.5);
@@ -212,6 +227,14 @@ public class WallSmoke {
                     }catch(Throwable e){serverFailure=e;}
                 });
                 phase=11;ticks=0;
+            } else if(phase>=13 && phase<=15) {
+                screenshot("scope-"+ScopeFixtures.SCOPES[phase-13].replace(':','-')+".png");
+                if(phase==15) {phase=8;mc.setScreen(new Icons());}
+                else {
+                    int index=phase-12;
+                    mc.getSingleplayerServer().execute(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-55.2-index*2,5.8,180,0));
+                    phase++;ticks=0;
+                }
             } else if(phase==11) {
                 if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=120)throw new AssertionError("Equipped stress material batches: "+WallBatches.stats());
                 screenshot("100-equipped.png");stableUploads=WallBatches.uploads;phase=12;ticks=0;
@@ -227,14 +250,14 @@ public class WallSmoke {
     }
     private void verifyFrameGeometry(Path output)throws Exception {
         var mc=Minecraft.getInstance();StringBuilder result=new StringBuilder();
-        for(String name:new String[]{"tacz:scar_l","tacz:ak47","mk16:m4urgi10","equipped"}) {
-            var id=ResourceLocation.parse(name.equals("equipped")?"tacz:scar_l":name);
-            var referenceStack=name.equals("equipped")?ConversionChecks.equipped(mc.level.registryAccess()):sourceStack(id);
+        for(String name:new String[]{"tacz:scar_l","tacz:ak47","mk16:m4urgi10","equipped","scope/tacz:sight_exp3","scope/mk16:553_g43","scope/tacz:scope_elcan_4x"}) {
+            var id=ResourceLocation.parse(name.startsWith("scope/")?"suffuse:n4":name.equals("equipped")?"tacz:scar_l":name);
+            var referenceStack=name.startsWith("scope/")?ScopeFixtures.gun(mc.level.registryAccess(),name.substring(6)):name.equals("equipped")?ConversionChecks.equipped(mc.level.registryAccess()):sourceStack(id);
             var capture=new MeshCapture();var pose=new com.mojang.blaze3d.vertex.PoseStack();
             pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180));pose.scale(.5F,.5F,.5F);
-            MeshCapture.begin(capture);
+            ReferenceCapture.begin(capture);
             try {mc.getItemRenderer().renderStatic(referenceStack,net.minecraft.world.item.ItemDisplayContext.FIXED,0,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,pose,mc.renderBuffers().bufferSource(),mc.level,0);}
-            finally {MeshCapture.end();}
+            finally {ReferenceCapture.end();}
             var referenceMaterials=MeshCapture.withoutDegenerateQuads(capture.finish());
             if(!referenceMaterials.keySet().equals(GunMeshes.get(new GunSnapshot(referenceStack)).materials().keySet()))throw new AssertionError(name+" material/texture mismatch");
             var reference=referenceMaterials.values().stream().flatMap(List::stream).toList();
