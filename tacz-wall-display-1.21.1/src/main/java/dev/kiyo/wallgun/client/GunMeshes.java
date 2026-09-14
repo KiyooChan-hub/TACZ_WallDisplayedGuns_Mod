@@ -1,6 +1,7 @@
 package dev.kiyo.wallgun.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.client.resource.GunDisplayInstance;
@@ -32,6 +33,10 @@ public final class GunMeshes {
             var stack = GunItemBuilder.create().setId(id).setAmmoCount(data.getAmmoAmount()).setAmmoInBarrel(true)
                     .setFireMode(data.getFireModeSet().getFirst()).build(Minecraft.getInstance().level.registryAccess());
             PoseStack pose = new PoseStack();
+            // ItemFrameRenderer applies these OUTSIDE the FIXED item renderer.
+            // A south-facing frame turns the item 180 degrees and halves its size.
+            pose.mulPose(Axis.YP.rotationDegrees(180));
+            pose.scale(.5F,.5F,.5F);
             pose.scale(-1,-1,1);
             GunTransformInvoker.wallgun$position(ItemDisplayContext.FIXED, detached.getTransform().getScale(), model, pose);
             GunTransformInvoker.wallgun$scale(ItemDisplayContext.FIXED, detached.getTransform().getScale(), pose);
@@ -58,11 +63,10 @@ public final class GunMeshes {
             maxX=Math.max(maxX,v.x());maxY=Math.max(maxY,v.y());maxZ=Math.max(maxZ,v.z());count++;
         }
         if (count==0 || count>2_000_000) throw new IllegalStateException("Invalid vertex count: "+count);
-        float scale=Math.min(1,Math.min(2.8F/Math.max(.001F,maxX-minX),Math.min(1.8F/Math.max(.001F,maxY-minY),.7F/Math.max(.001F,maxZ-minZ))));
         float cx=(minX+maxX)/2, cy=(minY+maxY)/2, front=minZ;
-        final float s=scale;
         Map<RenderType,List<Vertex>> result=new LinkedHashMap<>();
-        source.forEach((type,list)->result.put(type,list.stream().map(v->v.at(.5F+(v.x()-cx)*s,.5F+(v.y()-cy)*s,.0125F+(v.z()-front)*s)).toList()));
+        // Translation only: retain each gun pack's item-frame scale, including large guns.
+        source.forEach((type,list)->result.put(type,list.stream().map(v->v.at(.5F+v.x()-cx,.5F+v.y()-cy,.0125F+v.z()-front)).toList()));
         return new Mesh(Collections.unmodifiableMap(result),count,false);
     }
     private static Mesh missing() {

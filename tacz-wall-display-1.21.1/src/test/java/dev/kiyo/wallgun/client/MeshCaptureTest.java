@@ -25,4 +25,11 @@ class MeshCaptureTest {
         finally {MeshCapture.end();}
         assertNull(MeshCapture.active());
     }
+    @Test void retainsGunPackScaleForOversizedFrameModels() {
+        MeshCapture capture=new MeshCapture();var out=capture.buffer(null);
+        for(int i=0;i<4;i++)out.addVertex(i*2F,i,0).setNormal(0,0,1);
+        var vertices=GunMeshes.normalize(capture.finish()).materials().get(null);
+        assertEquals(6F,vertices.getLast().x()-vertices.getFirst().x(),.00001);
+        assertEquals(3F,vertices.getLast().y()-vertices.getFirst().y(),.00001);
+    }
 }

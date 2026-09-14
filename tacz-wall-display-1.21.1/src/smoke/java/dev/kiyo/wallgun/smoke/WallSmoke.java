@@ -24,8 +24,18 @@ public class WallSmoke {
     private boolean opened,placed,reloading;
     private int ticks,phase,stableUploads,initialTicks;
     private volatile Throwable serverFailure;
+    private long lastFrame;
+    private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
-    public WallSmoke() { NeoForge.EVENT_BUS.addListener(this::tick); }
+    public WallSmoke() {
+        NeoForge.EVENT_BUS.addListener(this::tick);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RenderLevelStageEvent e)->{
+            if(e.getStage()!=net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_LEVEL)return;
+            long now=System.nanoTime();
+            if(phase==6 && lastFrame!=0)motionFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append('\n');
+            lastFrame=now;
+        });
+    }
     private void tick(ClientTickEvent.Post event) {
         var mc=Minecraft.getInstance();
         try {
@@ -34,6 +44,8 @@ public class WallSmoke {
                 Files.deleteIfExists(mc.gameDirectory.toPath().resolve("SMOKE_FAILED.txt"));
                 Files.deleteIfExists(mc.gameDirectory.toPath().resolve("verification/SUCCESS.txt"));
                 mc.options.pauseOnLostFocus=false;
+                // Match the user's 999-block high-detail setting; defaults use low-poly LOD even at zero distance.
+                com.tacz.guns.config.client.RenderConfig.GUN_LOD_RENDER_DISTANCE.set(999);
                 mc.options.renderDistance().set(5);mc.options.framerateLimit().set(60);
                 var settings=new LevelSettings("Wall gun prototype verification",GameType.CREATIVE,false,Difficulty.PEACEFUL,true,new GameRules(),WorldDataConfiguration.DEFAULT);
                 mc.createWorldOpenFlows().createFreshLevel("wallgun-smoke-"+System.currentTimeMillis(),settings,new WorldOptions(42,false,false),
@@ -84,6 +96,27 @@ public class WallSmoke {
                 });
                 return;
             }
+            if(phase==6) {
+                mc.player.setPos(5.5+3*Math.sin(ticks*.045),-57.2,3.5);
+                mc.player.setYRot((float)(180+65*Math.sin(ticks*.065)));mc.player.setXRot(0);
+                if(++ticks<360)return;
+                Path output=mc.gameDirectory.toPath().resolve("verification");
+                Files.writeString(output.resolve("motion-frames.csv"),motionFrames);
+                // Screenshot readback is intentionally outside the sampled motion interval.
+                screenshot("near-motion.png");
+                Files.writeString(output.resolve("motion.txt"),"360 ticks near-wall translation and yaw: upload delta="+(WallBatches.uploads-stableUploads)+"; "+WallBatches.stats());
+                if(WallBatches.uploads!=stableUploads)throw new AssertionError("Camera motion rebuilt static geometry: "+(WallBatches.uploads-stableUploads));
+                mc.getSingleplayerServer().execute(()->{
+                    var world=mc.getSingleplayerServer().overworld();
+                    for(int x=-6;x<=12;x++)for(int y=-61;y<=-49;y++)world.setBlock(new BlockPos(x,y,1),Blocks.AIR.defaultBlockState(),3);
+                    var pos=new BlockPos(3,-56,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
+                    ((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
+                    var frame=new net.minecraft.world.entity.decoration.ItemFrame(world,new BlockPos(7,-56,1),Direction.SOUTH);
+                    frame.setItem(sourceStack(ResourceLocation.parse("tacz:scar_l")));world.addFreshEntity(frame);
+                    mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,8,180,0);
+                });
+                phase=7;ticks=0;return;
+            }
             if(++ticks<180)return;
             if(GunMeshes.failures!=0)throw new AssertionError("Model capture failures: "+GunMeshes.failures);
             Path output=mc.gameDirectory.toPath().resolve("verification");Files.createDirectories(output);
@@ -108,6 +141,7 @@ public class WallSmoke {
                 Set<ResourceLocation> expected=new HashSet<>();TimelessAPI.getAllCommonGunIndex().forEach(e->expected.add(e.getKey()));
                 if(!ids.equals(expected))throw new AssertionError("Creative catalog mismatch");
                 Files.writeString(output.resolve("catalog.txt"),"Catalog="+ids.size()+"; "+WallBatches.stats()+"\nReload, static cache stability, NBT identity, wall support and pick block verified.\n");
+                verifyFrameGeometry(output);
                 mc.getSingleplayerServer().execute(()->{
                     var world=mc.getSingleplayerServer().overworld();
                     for(int x=-6;x<=12;x++)for(int y=-61;y<=-49;y++) {
@@ -116,7 +150,7 @@ public class WallSmoke {
                     }
                     for(int x=1;x<=10;x++)for(int y=-60;y<=-51;y++) {
                         var pos=new BlockPos(x,y,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
-                        ((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:ak47"));
+                        ((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
                     }
                     mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,19.5,180,0);
                 });
@@ -127,11 +161,46 @@ public class WallSmoke {
             } else if(phase==5) {
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Dense static scene rebuilt mesh");
                 Files.writeString(output.resolve("checks.txt"),Files.readString(output.resolve("catalog.txt"))+"100 same-material guns, one section: "+WallBatches.stats()+"\nNo uploads during 180 stable ticks. Four placement orientations and support removal verified.\n");
-                phase=6;mc.setScreen(new Icons());
+                phase=6;ticks=0;
+                mc.getSingleplayerServer().execute(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,3.5,180,0));
+            } else if(phase==7) {
+                if(WallBatches.lastGuns!=1)throw new AssertionError("Removed guns retained in batches: "+WallBatches.stats());
+                screenshot("item-frame-comparison.png");
+                phase=8;mc.setScreen(new Icons());
             }
         } catch(Throwable failure) {
             failure.printStackTrace();try{screenshot("failure.png");Files.writeString(mc.gameDirectory.toPath().resolve("SMOKE_FAILED.txt"),failure.toString());}catch(Exception ignored){}mc.stop();
         }
+    }
+    private net.minecraft.world.item.ItemStack sourceStack(ResourceLocation id) {
+        var data=TimelessAPI.getCommonGunIndex(id).orElseThrow().getGunData();
+        return com.tacz.guns.api.item.builder.GunItemBuilder.create().setId(id).setAmmoCount(data.getAmmoAmount()).setAmmoInBarrel(true)
+                .setFireMode(data.getFireModeSet().getFirst()).build(Minecraft.getInstance().level.registryAccess());
+    }
+    private void verifyFrameGeometry(Path output)throws Exception {
+        var mc=Minecraft.getInstance();StringBuilder result=new StringBuilder();
+        for(String name:new String[]{"tacz:scar_l","tacz:ak47","mk16:m4urgi10"}) {
+            var id=ResourceLocation.parse(name);var capture=new MeshCapture();var pose=new com.mojang.blaze3d.vertex.PoseStack();
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180));pose.scale(.5F,.5F,.5F);
+            MeshCapture.begin(capture);
+            try {mc.getItemRenderer().renderStatic(sourceStack(id),net.minecraft.world.item.ItemDisplayContext.FIXED,0,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,pose,mc.renderBuffers().bufferSource(),mc.level,0);}
+            finally {MeshCapture.end();}
+            var reference=capture.finish().values().stream().flatMap(List::stream).toList();
+            var actual=GunMeshes.get(id).materials().values().stream().flatMap(List::stream).toList();
+            if(reference.size()!=actual.size())throw new AssertionError(name+" item-frame vertex count "+reference.size()+" != "+actual.size());
+            // A wall placement may translate the mesh. Every relative position, normal and UV must match the real item renderer.
+            var r0=reference.getFirst();var a0=actual.getFirst();double maxError=0;
+            for(int i=0;i<reference.size();i++) {
+                var r=reference.get(i);var a=actual.get(i);
+                maxError=Math.max(maxError,Math.abs((r.x()-r0.x())-(a.x()-a0.x())));
+                maxError=Math.max(maxError,Math.abs((r.y()-r0.y())-(a.y()-a0.y())));
+                maxError=Math.max(maxError,Math.abs((r.z()-r0.z())-(a.z()-a0.z())));
+                if(Math.abs(r.nx()-a.nx())>.0001 || Math.abs(r.ny()-a.ny())>.0001 || Math.abs(r.nz()-a.nz())>.0001 || r.u()!=a.u() || r.v()!=a.v())throw new AssertionError(name+" frame normal/UV mismatch "+i);
+            }
+            if(maxError>.0001)throw new AssertionError(name+" item-frame geometry mismatch "+maxError);
+            result.append(name).append(": ").append(actual.size()).append(" vertices; maximum relative position error=").append(maxError).append('\n');
+        }
+        Files.writeString(output.resolve("frame-geometry.txt"),result);
     }
     private void screenshot(String name)throws Exception {
         var mc=Minecraft.getInstance();try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(mc.gameDirectory.toPath().resolve("verification").resolve(name));}
@@ -154,7 +223,7 @@ public class WallSmoke {
                 try {
                     screenshot("inventory.png");
                     var dir=minecraft.gameDirectory.toPath().resolve("verification");
-                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("checks.txt"))+"12 source-pack item icons rendered.\n");
+                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("checks.txt"))+Files.readString(dir.resolve("frame-geometry.txt"))+Files.readString(dir.resolve("motion.txt"))+"\nRemoved 99 guns without stale geometry; 12 source-pack item icons rendered.\n");
                 }catch(Exception e){throw new RuntimeException(e);}
                 minecraft.stop();
             }
