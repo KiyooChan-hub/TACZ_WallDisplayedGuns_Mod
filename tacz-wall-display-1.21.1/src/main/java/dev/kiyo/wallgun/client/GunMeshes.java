@@ -3,36 +3,33 @@ package dev.kiyo.wallgun.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.tacz.guns.api.TimelessAPI;
-import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.client.resource.GunDisplayInstance;
 import dev.kiyo.wallgun.WallGuns;
+import dev.kiyo.wallgun.GunSnapshot;
 import dev.kiyo.wallgun.mixin.*;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.*;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import java.util.*;
 import static dev.kiyo.wallgun.client.MeshCapture.Vertex;
 
 public final class GunMeshes {
     public static final float WALL_GAP=.001F;
-    private static final Map<ResourceLocation, Mesh> CACHE = new HashMap<>();
+    private static final Map<GunSnapshot, Mesh> CACHE = new HashMap<>();
     public static int bakes, failures;
     public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing) {}
-    public static Mesh get(ResourceLocation id) { return CACHE.computeIfAbsent(id, GunMeshes::bake); }
+    public static Mesh get(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.computeIfAbsent(snapshot, GunMeshes::bake); }
     public static void clear() { CACHE.clear(); }
-    private static Mesh bake(ResourceLocation id) {
+    private static Mesh bake(GunSnapshot snapshot) {
         long start = System.nanoTime();
+        var stack = snapshot.copyGun();
+        var id = com.tacz.guns.api.item.IGun.getIGunOrNull(stack).getGunId(stack);
         try {
-            var original = TimelessAPI.getClientGunIndex(id).orElseThrow().getDefaultDisplay();
+            var original = TimelessAPI.getGunDisplay(stack).orElseThrow();
             // A separate display owns the mutable gun model; never capture the player's live animated model.
-            var detached = GunDisplayInstance.create(id, ((GunDisplayAccessor) original).wallgun$display());
+            var detached = GunDisplayInstance.create(((GunDisplayAccessor) original).wallgun$displayId(), ((GunDisplayAccessor) original).wallgun$display());
             var model = detached.getGunModel();
             if (model == null) throw new IllegalStateException("Missing gun model");
-            var data = TimelessAPI.getCommonGunIndex(id).orElseThrow().getGunData();
-            var stack = GunItemBuilder.create().setId(id).setAmmoCount(data.getAmmoAmount()).setAmmoInBarrel(true)
-                    .setFireMode(data.getFireModeSet().getFirst()).build(Minecraft.getInstance().level.registryAccess());
             PoseStack pose = new PoseStack();
             // ItemFrameRenderer applies these OUTSIDE the FIXED item renderer.
             // A south-facing frame turns the item 180 degrees and halves its size.
@@ -52,7 +49,7 @@ public final class GunMeshes {
         } catch (Exception | LinkageError failure) {
             failures++;
             WallGuns.LOG.error("Wall gun snapshot failed for {}; retaining visible missing marker", id, failure);
-            return missing();
+            return MissingHolder.MESH;
         }
     }
     static Mesh normalize(Map<RenderType,List<Vertex>> source) {
@@ -71,6 +68,7 @@ public final class GunMeshes {
         source.forEach((type,list)->result.put(type,list.stream().map(v->v.at(.5F+v.x()-cx,.5F+v.y()-cy,WALL_GAP+v.z()-front)).toList()));
         return new Mesh(Collections.unmodifiableMap(result),count,false);
     }
+    private static final class MissingHolder { private static final Mesh MESH = missing(); }
     private static Mesh missing() {
         RenderType type=RenderType.entityCutoutNoCull(MissingTextureAtlasSprite.getLocation());
         List<Vertex> vertices=List.of(new Vertex(.1F,.25F,.04F,-1,0,1,0,0,0,1),new Vertex(.9F,.25F,.04F,-1,1,1,0,0,0,1),new Vertex(.9F,.75F,.04F,-1,1,0,0,0,0,1),new Vertex(.1F,.75F,.04F,-1,0,0,0,0,0,1));

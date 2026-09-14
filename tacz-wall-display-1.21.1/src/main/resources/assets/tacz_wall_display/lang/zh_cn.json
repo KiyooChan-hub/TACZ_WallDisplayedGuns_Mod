@@ -1,1 +1,6 @@
-{"itemGroup.tacz_wall_display":"TACZ 装饰枪（原型）","block.tacz_wall_display.wall_gun":"装饰枪","item.tacz_wall_display.named":"装饰枪 · %s","tooltip.tacz_wall_display.place":"右击墙面放置；中键复制保留枪型。"}
+{
+  "block.tacz_wall_display.decorative_gun": "装饰枪",
+  "item.tacz_wall_display.named": "装饰枪 · %s",
+  "tooltip.tacz_wall_display.place": "右击墙面放置；拆下保留原枪与配件。",
+  "tooltip.tacz_wall_display.restore": "单独放入背包／工作台合成栏，还原原枪。"
+}

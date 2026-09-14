@@ -5,5 +5,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(value = GunDisplayInstance.class, remap = false)
 public interface GunDisplayAccessor {
+    @Accessor("displayId") net.minecraft.resources.ResourceLocation wallgun$displayId();
     @Accessor("display") GunDisplay wallgun$display();
 }

@@ -32,7 +32,7 @@ public final class WallBatches {
     }
     public static void enqueue(WallGunEntity gun, int light) {
         if (world!=gun.getLevel()) { clear();world=(ClientLevel)gun.getLevel(); }
-        RESIDENTS.put(gun.getBlockPos(), new Entry(gun,gun.getBlockPos(),gun.getBlockState().getValue(WallGunBlock.FACING),GunMeshes.get(gun.gunId()),light));
+        RESIDENTS.put(gun.getBlockPos(), new Entry(gun,gun.getBlockPos(),gun.getBlockState().getValue(WallGunBlock.FACING),GunMeshes.get(gun.snapshot()),light));
     }
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage()!=RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) return;

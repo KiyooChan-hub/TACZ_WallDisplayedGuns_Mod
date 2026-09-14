@@ -20,7 +20,7 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING); }
     @Override public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         Direction face = ctx.getClickedFace();
-        if (!face.getAxis().isHorizontal()) return null;
+        if (WallGuns.snapshot(ctx.getItemInHand()) == null || !face.getAxis().isHorizontal()) return null;
         BlockState state = defaultBlockState().setValue(FACING, face);
         return state.canSurvive(ctx.getLevel(), ctx.getClickedPos()) ? state : null;
     }
@@ -44,10 +44,10 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override public BlockEntity newBlockEntity(BlockPos pos, BlockState state) { return new WallGunEntity(pos, state); }
     @Override public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity entity, ItemStack stack) {
         super.setPlacedBy(level, pos, state, entity, stack);
-        if (level.getBlockEntity(pos) instanceof WallGunEntity gun) gun.setGunId(WallGuns.gunId(stack));
+        if (level.getBlockEntity(pos) instanceof WallGunEntity gun) gun.setSnapshot(WallGuns.snapshot(stack));
     }
     @Override public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
-        return level.getBlockEntity(pos) instanceof WallGunEntity gun ? WallGuns.stack(gun.gunId()) : new ItemStack(WallGuns.ITEM.get());
+        return level.getBlockEntity(pos) instanceof WallGunEntity gun ? WallGuns.stack(gun.snapshot()) : ItemStack.EMPTY;
     }
     @Override protected BlockState rotate(BlockState state, Rotation rotation) { return state.setValue(FACING, rotation.rotate(state.getValue(FACING))); }
     @Override protected BlockState mirror(BlockState state, Mirror mirror) { return state.rotate(mirror.getRotation(state.getValue(FACING))); }

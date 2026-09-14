@@ -25,6 +25,7 @@ public class WallSmoke {
     private int ticks,phase,stableUploads,initialTicks;
     private volatile Throwable serverFailure;
     private long lastFrame;
+    private final StringBuilder equippedFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private final StringBuilder editFrames=new StringBuilder("tick,frameMs,uploads,draws,guns,uploadedVertices\n");
     private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
@@ -33,6 +34,7 @@ public class WallSmoke {
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RenderLevelStageEvent e)->{
             if(e.getStage()!=net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_LEVEL)return;
             long now=System.nanoTime();
+            if(phase==12 && lastFrame!=0)equippedFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append('\n');
             if(phase==6 && lastFrame!=0)motionFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append('\n');
             if(phase==9 && lastFrame!=0)editFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append(',').append(WallBatches.lastUploadedVertices).append('\n');
             lastFrame=now;
@@ -43,6 +45,7 @@ public class WallSmoke {
         try {
             if(!opened && mc.screen instanceof TitleScreen && mc.getOverlay()==null) {
                 opened=true;
+                Files.createDirectories(mc.gameDirectory.toPath().resolve("verification"));
                 Files.deleteIfExists(mc.gameDirectory.toPath().resolve("SMOKE_FAILED.txt"));
                 Files.deleteIfExists(mc.gameDirectory.toPath().resolve("verification/SUCCESS.txt"));
                 mc.options.pauseOnLostFocus=false;
@@ -72,20 +75,21 @@ public class WallSmoke {
                             var id=ResourceLocation.parse(GUNS[i]);
                             if(TimelessAPI.getCommonGunIndex(id).isEmpty())throw new AssertionError("Missing fixture gun "+id);
                             var state=WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,Direction.SOUTH);
-                            world.setBlock(pos,state,3);var gun=(WallGunEntity)world.getBlockEntity(pos);gun.setGunId(id);
+                            world.setBlock(pos,state,3);var gun=(WallGunEntity)world.getBlockEntity(pos);gun.setSnapshot(new GunSnapshot(sourceStack(id)));
                             var saved=gun.saveWithFullMetadata(world.registryAccess());
                             var restored=new WallGunEntity(pos,state);restored.loadWithComponents(saved,world.registryAccess());
-                            if(!restored.gunId().equals(id))throw new AssertionError("Gun ID save/load failed");
-                            if(!WallGuns.gunId(WallGuns.BLOCK.get().getCloneItemStack(world,pos,state)).equals(id))throw new AssertionError("Pick block ID failed");
+                            if(!restored.snapshot().equals(gun.snapshot()))throw new AssertionError("Gun ID save/load failed");
+                            if(!WallGuns.snapshot(WallGuns.BLOCK.get().getCloneItemStack(world,pos,state)).equals(gun.snapshot()))throw new AssertionError("Pick block ID failed");
                             if(!state.canSurvive(world,pos))throw new AssertionError("Wall support failed");
                         }
                         var player=server.getPlayerList().getPlayers().getFirst();
+                        ConversionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
                         for(Direction direction:Direction.Plane.HORIZONTAL) {
                             var wall=new BlockPos(30+direction.get2DDataValue()*4,-56,10);
                             var target=wall.relative(direction);
                             world.setBlock(wall,Blocks.QUARTZ_BLOCK.defaultBlockState(),3);
                             var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(wall),direction,wall,false);
-                            var context=new net.minecraft.world.item.context.BlockPlaceContext(player,net.minecraft.world.InteractionHand.MAIN_HAND,WallGuns.stack(ResourceLocation.parse("tacz:ak47")),hit);
+                            var context=new net.minecraft.world.item.context.BlockPlaceContext(player,net.minecraft.world.InteractionHand.MAIN_HAND,WallGuns.decorate(sourceStack(ResourceLocation.parse("tacz:ak47"))),hit);
                             var state=WallGuns.BLOCK.get().getStateForPlacement(context);
                             if(state==null || state.getValue(WallGunBlock.FACING)!=direction)throw new AssertionError("Placement orientation "+direction);
                             world.setBlock(target,state,3);
@@ -97,6 +101,16 @@ public class WallSmoke {
                     }catch(Throwable e){serverFailure=e;}
                 });
                 return;
+            }
+            if(phase==12) {
+                mc.player.setPos(5.5+3*Math.sin(ticks*.045),-57.2,3.5);
+                mc.player.setYRot((float)(180+65*Math.sin(ticks*.065)));mc.player.setXRot(0);
+                if(++ticks<360)return;
+                if(WallBatches.uploads!=stableUploads)throw new AssertionError("Equipped wall motion rebuilt geometry");
+                var dir=mc.gameDirectory.toPath().resolve("verification");
+                Files.writeString(dir.resolve("equipped-frames.csv"),equippedFrames);
+                Files.writeString(dir.resolve("equipped-stress.txt"),"100 equipped SCAR-L guns, 4 materials each, 120 bounded batches; stable and 360-tick near motion upload delta=0; "+WallBatches.stats()+"\n");
+                phase=8;mc.setScreen(new Icons());return;
             }
             if(phase==6) {
                 mc.player.setPos(5.5+3*Math.sin(ticks*.045),-57.2,3.5);
@@ -118,11 +132,11 @@ public class WallSmoke {
                     mc.getSingleplayerServer().execute(()->{
                         var world=mc.getSingleplayerServer().overworld();var pos=new BlockPos(5,-56,1);
                         world.setBlock(pos,remove?Blocks.AIR.defaultBlockState():WallGuns.BLOCK.get().defaultBlockState(),3);
-                        if(!remove)((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
+                        if(!remove)((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(new GunSnapshot(sourceStack(ResourceLocation.parse("tacz:scar_l"))));
                     });
                 }
                 if(WallBatches.maxBatchGuns>4)throw new AssertionError("Wall edit rebuilt more than four guns: "+WallBatches.stats());
-                if(WallBatches.lastUploadedVertices>4*GunMeshes.get(ResourceLocation.parse("tacz:scar_l")).vertices())throw new AssertionError("Edit upload exceeded one local cell: "+WallBatches.stats());
+                if(WallBatches.lastUploadedVertices>4*GunMeshes.get(new GunSnapshot(sourceStack(ResourceLocation.parse("tacz:scar_l")))).vertices())throw new AssertionError("Edit upload exceeded one local cell: "+WallBatches.stats());
                 if(++ticks<420)return;
                 Path output=mc.gameDirectory.toPath().resolve("verification");
                 Files.writeString(output.resolve("edit-frames.csv"),editFrames);
@@ -131,9 +145,9 @@ public class WallSmoke {
                     var world=mc.getSingleplayerServer().overworld();
                     for(int x=-6;x<=12;x++)for(int y=-61;y<=-49;y++)world.setBlock(new BlockPos(x,y,1),Blocks.AIR.defaultBlockState(),3);
                     var pos=new BlockPos(3,-56,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
-                    ((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
+                    ((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(new GunSnapshot(ConversionChecks.equipped(world.registryAccess())));
                     var frame=new net.minecraft.world.entity.decoration.ItemFrame(world,new BlockPos(7,-56,1),Direction.SOUTH);
-                    frame.setItem(sourceStack(ResourceLocation.parse("tacz:scar_l")));world.addFreshEntity(frame);
+                    frame.setItem(ConversionChecks.equipped(world.registryAccess()));world.addFreshEntity(frame);
                     mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,8,180,0);
                 });
                 phase=7;ticks=0;return;
@@ -156,12 +170,7 @@ public class WallSmoke {
             } else if(phase==3) {
                 if(WallBatches.lastGuns==0)throw new AssertionError("No geometry after reload");
                 screenshot("reloaded.png");
-                // Validate the creative tab contents against the live, successfully loaded common index.
-                var tab=WallGuns.TAB.get();tab.buildContents(new net.minecraft.world.item.CreativeModeTab.ItemDisplayParameters(mc.level.enabledFeatures(),true,mc.level.registryAccess()));
-                Set<ResourceLocation> ids=new HashSet<>();for(var stack:tab.getDisplayItems())ids.add(WallGuns.gunId(stack));
-                Set<ResourceLocation> expected=new HashSet<>();TimelessAPI.getAllCommonGunIndex().forEach(e->expected.add(e.getKey()));
-                if(!ids.equals(expected))throw new AssertionError("Creative catalog mismatch");
-                Files.writeString(output.resolve("catalog.txt"),"Catalog="+ids.size()+"; "+WallBatches.stats()+"\nReload, static cache stability, NBT identity, wall support and pick block verified.\n");
+                Files.writeString(output.resolve("catalog.txt"),"Generic snapshot block; no preset creative catalog. " + WallBatches.stats()+"\n");
                 verifyFrameGeometry(output);
                 mc.getSingleplayerServer().execute(()->{
                     var world=mc.getSingleplayerServer().overworld();
@@ -171,7 +180,7 @@ public class WallSmoke {
                     }
                     for(int x=1;x<=10;x++)for(int y=-60;y<=-51;y++) {
                         var pos=new BlockPos(x,y,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
-                        ((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
+                        ((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(new GunSnapshot(sourceStack(ResourceLocation.parse("tacz:scar_l"))));
                     }
                     mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,19.5,180,0);
                 });
@@ -191,7 +200,21 @@ public class WallSmoke {
                 phase=10;ticks=0;
             } else if(phase==10) {
                 screenshot("wall-contact-side.png");
-                phase=8;mc.setScreen(new Icons());
+                mc.getSingleplayerServer().execute(()->{
+                    try {
+                        var world=mc.getSingleplayerServer().overworld();
+                        var snapshot=new GunSnapshot(ConversionChecks.equipped(world.registryAccess()));
+                        for(int x=1;x<=10;x++)for(int y=-60;y<=-51;y++) {
+                            var pos=new BlockPos(x,y,1);world.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState(),3);
+                            ((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(snapshot);
+                        }
+                        mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,19.5,180,0);
+                    }catch(Throwable e){serverFailure=e;}
+                });
+                phase=11;ticks=0;
+            } else if(phase==11) {
+                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=120)throw new AssertionError("Equipped stress material batches: "+WallBatches.stats());
+                screenshot("100-equipped.png");stableUploads=WallBatches.uploads;phase=12;ticks=0;
             }
         } catch(Throwable failure) {
             failure.printStackTrace();try{screenshot("failure.png");Files.writeString(mc.gameDirectory.toPath().resolve("SMOKE_FAILED.txt"),failure.toString());}catch(Exception ignored){}mc.stop();
@@ -204,14 +227,24 @@ public class WallSmoke {
     }
     private void verifyFrameGeometry(Path output)throws Exception {
         var mc=Minecraft.getInstance();StringBuilder result=new StringBuilder();
-        for(String name:new String[]{"tacz:scar_l","tacz:ak47","mk16:m4urgi10"}) {
-            var id=ResourceLocation.parse(name);var capture=new MeshCapture();var pose=new com.mojang.blaze3d.vertex.PoseStack();
+        for(String name:new String[]{"tacz:scar_l","tacz:ak47","mk16:m4urgi10","equipped"}) {
+            var id=ResourceLocation.parse(name.equals("equipped")?"tacz:scar_l":name);
+            var referenceStack=name.equals("equipped")?ConversionChecks.equipped(mc.level.registryAccess()):sourceStack(id);
+            var capture=new MeshCapture();var pose=new com.mojang.blaze3d.vertex.PoseStack();
             pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180));pose.scale(.5F,.5F,.5F);
             MeshCapture.begin(capture);
-            try {mc.getItemRenderer().renderStatic(sourceStack(id),net.minecraft.world.item.ItemDisplayContext.FIXED,0,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,pose,mc.renderBuffers().bufferSource(),mc.level,0);}
+            try {mc.getItemRenderer().renderStatic(referenceStack,net.minecraft.world.item.ItemDisplayContext.FIXED,0,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,pose,mc.renderBuffers().bufferSource(),mc.level,0);}
             finally {MeshCapture.end();}
-            var reference=MeshCapture.withoutDegenerateQuads(capture.finish()).values().stream().flatMap(List::stream).toList();
-            var actual=GunMeshes.get(id).materials().values().stream().flatMap(List::stream).toList();
+            var referenceMaterials=MeshCapture.withoutDegenerateQuads(capture.finish());
+            if(!referenceMaterials.keySet().equals(GunMeshes.get(new GunSnapshot(referenceStack)).materials().keySet()))throw new AssertionError(name+" material/texture mismatch");
+            var reference=referenceMaterials.values().stream().flatMap(List::stream).toList();
+            var actual=GunMeshes.get(new GunSnapshot(referenceStack)).materials().values().stream().flatMap(List::stream).toList();
+            if(name.equals("equipped")) {
+                var plain=GunMeshes.get(new GunSnapshot(sourceStack(id)));
+                if(plain.vertices()==actual.size())throw new AssertionError("Equipped gun has no added attachment geometry");
+                var snap=new GunSnapshot(referenceStack);int bakes=GunMeshes.bakes;
+                if(GunMeshes.get(snap)!=GunMeshes.get(new GunSnapshot(referenceStack.copy())) || GunMeshes.bakes!=bakes)throw new AssertionError("Equivalent equipment does not share mesh");
+            }
             double nearest=actual.stream().mapToDouble(MeshCapture.Vertex::z).min().orElseThrow();
             if(Math.abs(nearest-.001)>.00001)throw new AssertionError(name+" visible wall gap "+nearest);
             if(name.equals("tacz:scar_l")) {
@@ -245,7 +278,7 @@ public class WallSmoke {
             graphics.drawString(font,"TACZ wall guns - original slot textures",12,12,-1);
             for(int i=0;i<GUNS.length;i++) {
                 int x=12+(i%4)*(width/4), y=42+(i/4)*80;
-                var stack=WallGuns.stack(ResourceLocation.parse(GUNS[i]));
+                var stack=WallGuns.decorate(sourceStack(ResourceLocation.parse(GUNS[i])));
                 graphics.pose().pushPose();graphics.pose().translate(x,y,0);graphics.pose().scale(3,3,3);graphics.renderItem(stack,0,0);graphics.pose().popPose();
                 graphics.drawString(font,GUNS[i],x,y+54,-1);
                 if(stack.getHoverName().getString().isBlank())throw new AssertionError("Missing item name");
@@ -255,7 +288,7 @@ public class WallSmoke {
                 try {
                     screenshot("inventory.png");
                     var dir=minecraft.gameDirectory.toPath().resolve("verification");
-                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("checks.txt"))+Files.readString(dir.resolve("frame-geometry.txt"))+Files.readString(dir.resolve("motion.txt"))+"\n"+Files.readString(dir.resolve("edits.txt"))+"\nRemoved 99 guns without stale geometry; 12 source-pack item icons rendered.\n");
+                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("conversion.txt"))+Files.readString(dir.resolve("equipped-stress.txt"))+Files.readString(dir.resolve("checks.txt"))+Files.readString(dir.resolve("frame-geometry.txt"))+Files.readString(dir.resolve("motion.txt"))+"\n"+Files.readString(dir.resolve("edits.txt"))+"\nRemoved 99 guns without stale geometry; 12 source-pack item icons rendered.\n");
                 }catch(Exception e){throw new RuntimeException(e);}
                 minecraft.stop();
             }
