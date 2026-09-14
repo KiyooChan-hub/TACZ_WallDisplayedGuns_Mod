@@ -16,6 +16,7 @@ import java.util.*;
 import static dev.kiyo.wallgun.client.MeshCapture.Vertex;
 
 public final class GunMeshes {
+    public static final float WALL_GAP=.001F;
     private static final Map<ResourceLocation, Mesh> CACHE = new HashMap<>();
     public static int bakes, failures;
     public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing) {}
@@ -55,6 +56,7 @@ public final class GunMeshes {
         }
     }
     static Mesh normalize(Map<RenderType,List<Vertex>> source) {
+        source=MeshCapture.withoutDegenerateQuads(source);
         float minX=Float.POSITIVE_INFINITY,minY=minX,minZ=minX,maxX=-minX,maxY=-minX,maxZ=-minX;
         int count=0;
         for (var list:source.values()) for (Vertex v:list) {
@@ -66,7 +68,7 @@ public final class GunMeshes {
         float cx=(minX+maxX)/2, cy=(minY+maxY)/2, front=minZ;
         Map<RenderType,List<Vertex>> result=new LinkedHashMap<>();
         // Translation only: retain each gun pack's item-frame scale, including large guns.
-        source.forEach((type,list)->result.put(type,list.stream().map(v->v.at(.5F+v.x()-cx,.5F+v.y()-cy,.0125F+v.z()-front)).toList()));
+        source.forEach((type,list)->result.put(type,list.stream().map(v->v.at(.5F+v.x()-cx,.5F+v.y()-cy,WALL_GAP+v.z()-front)).toList()));
         return new Mesh(Collections.unmodifiableMap(result),count,false);
     }
     private static Mesh missing() {

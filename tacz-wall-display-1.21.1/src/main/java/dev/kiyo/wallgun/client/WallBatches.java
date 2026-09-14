@@ -20,8 +20,9 @@ public final class WallBatches {
     private static ClientLevel world;
     private static int frame;
     public static int uploads, lastDraws, lastGuns;
+    public static int lastUploadedVertices, maxBatchGuns;
     private record Entry(WallGunEntity gun, BlockPos pos, Direction facing, GunMeshes.Mesh mesh, int light) {}
-    private record Key(long section, RenderType type) {}
+    private record Key(long section, int cell, RenderType type) {}
     private static final class Batch implements AutoCloseable {
         VertexBuffer buffer;
         List<Entry> entries = List.of();
@@ -36,12 +37,12 @@ public final class WallBatches {
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage()!=RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) return;
         if (world!=Minecraft.getInstance().level) { clear();world=Minecraft.getInstance().level; }
-        frame++;lastDraws=0;lastGuns=0;
+        frame++;lastDraws=0;lastGuns=0;lastUploadedVertices=0;
         Map<Key,List<Entry>> groups=new HashMap<>();
         RESIDENTS.values().removeIf(entry -> entry.gun.isRemoved() || !world.hasChunkAt(entry.pos)
                 || world.getBlockEntity(entry.pos)!=entry.gun);
         for (Entry entry:RESIDENTS.values()) {
-            for (RenderType type:entry.mesh.materials().keySet()) groups.computeIfAbsent(new Key(SectionPos.asLong(entry.pos),type),ignored->new ArrayList<>()).add(entry);
+            for (RenderType type:entry.mesh.materials().keySet()) groups.computeIfAbsent(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type),ignored->new ArrayList<>()).add(entry);
         }
         var camera=event.getCamera().getPosition();
         Set<BlockPos> drawnGuns=new HashSet<>();
@@ -68,12 +69,15 @@ public final class WallBatches {
         while(iterator.hasNext()) { Batch batch=iterator.next();if(frame-batch.lastFrame>120){batch.close();iterator.remove();} }
     }
     private static void rebuild(Key key, Batch batch, List<Entry> entries) {
+        if(entries.size()>BatchLayout.MAX_GUNS)throw new IllegalStateException("Oversized wall gun batch");
+        maxBatchGuns=Math.max(maxBatchGuns,entries.size());
         batch.close();
         double minX=Double.POSITIVE_INFINITY,minY=minX,minZ=minX,maxX=-minX,maxY=-minX,maxZ=-minX;
         try (ByteBufferBuilder storage=new ByteBufferBuilder(65536)) {
             BufferBuilder out=new BufferBuilder(storage,VertexFormat.Mode.QUADS,DefaultVertexFormat.NEW_ENTITY);
             for (Entry entry:entries) {
                 for (MeshCapture.Vertex v:entry.mesh.materials().get(key.type)) {
+                    lastUploadedVertices++;
                     float x=v.x(),z=v.z(),nx=v.nx(),nz=v.nz();
                     switch(entry.facing) {
                         case NORTH -> { x=1-v.x();z=1-v.z();nx=-v.nx();nz=-v.nz(); }
@@ -101,5 +105,5 @@ public final class WallBatches {
     public static void clear() {
         BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();world=null;
     }
-    public static String stats() { return "bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size(); }
+    public static String stats() { return "bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns; }
 }

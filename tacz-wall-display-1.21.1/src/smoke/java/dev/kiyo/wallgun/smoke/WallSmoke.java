@@ -25,6 +25,7 @@ public class WallSmoke {
     private int ticks,phase,stableUploads,initialTicks;
     private volatile Throwable serverFailure;
     private long lastFrame;
+    private final StringBuilder editFrames=new StringBuilder("tick,frameMs,uploads,draws,guns,uploadedVertices\n");
     private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
     public WallSmoke() {
@@ -33,6 +34,7 @@ public class WallSmoke {
             if(e.getStage()!=net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_LEVEL)return;
             long now=System.nanoTime();
             if(phase==6 && lastFrame!=0)motionFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append('\n');
+            if(phase==9 && lastFrame!=0)editFrames.append(ticks).append(',').append((now-lastFrame)/1_000_000.0).append(',').append(WallBatches.uploads).append(',').append(WallBatches.lastDraws).append(',').append(WallBatches.lastGuns).append(',').append(WallBatches.lastUploadedVertices).append('\n');
             lastFrame=now;
         });
     }
@@ -106,6 +108,25 @@ public class WallSmoke {
                 screenshot("near-motion.png");
                 Files.writeString(output.resolve("motion.txt"),"360 ticks near-wall translation and yaw: upload delta="+(WallBatches.uploads-stableUploads)+"; "+WallBatches.stats());
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Camera motion rebuilt static geometry: "+(WallBatches.uploads-stableUploads));
+                phase=9;ticks=0;stableUploads=WallBatches.uploads;
+                mc.getSingleplayerServer().execute(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,3.5,180,0));
+                return;
+            }
+            if(phase==9) {
+                if(ticks>=20 && ticks<400 && ticks%20==0) {
+                    boolean remove=ticks%40==20;
+                    mc.getSingleplayerServer().execute(()->{
+                        var world=mc.getSingleplayerServer().overworld();var pos=new BlockPos(5,-56,1);
+                        world.setBlock(pos,remove?Blocks.AIR.defaultBlockState():WallGuns.BLOCK.get().defaultBlockState(),3);
+                        if(!remove)((WallGunEntity)world.getBlockEntity(pos)).setGunId(ResourceLocation.parse("tacz:scar_l"));
+                    });
+                }
+                if(WallBatches.maxBatchGuns>4)throw new AssertionError("Wall edit rebuilt more than four guns: "+WallBatches.stats());
+                if(WallBatches.lastUploadedVertices>4*GunMeshes.get(ResourceLocation.parse("tacz:scar_l")).vertices())throw new AssertionError("Edit upload exceeded one local cell: "+WallBatches.stats());
+                if(++ticks<420)return;
+                Path output=mc.gameDirectory.toPath().resolve("verification");
+                Files.writeString(output.resolve("edit-frames.csv"),editFrames);
+                Files.writeString(output.resolve("edits.txt"),"19 alternating edits among 100 SCAR-L guns; upload delta="+(WallBatches.uploads-stableUploads)+"; "+WallBatches.stats());
                 mc.getSingleplayerServer().execute(()->{
                     var world=mc.getSingleplayerServer().overworld();
                     for(int x=-6;x<=12;x++)for(int y=-61;y<=-49;y++)world.setBlock(new BlockPos(x,y,1),Blocks.AIR.defaultBlockState(),3);
@@ -156,7 +177,7 @@ public class WallSmoke {
                 });
                 phase=4;ticks=0;
             } else if(phase==4) {
-                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=1)throw new AssertionError("Expected 100 same-material guns in one draw: "+WallBatches.stats());
+                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=30)throw new AssertionError("Expected 100 guns in 30 bounded cells: "+WallBatches.stats());
                 screenshot("100-guns.png");stableUploads=WallBatches.uploads;phase=5;ticks=0;
             } else if(phase==5) {
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Dense static scene rebuilt mesh");
@@ -166,6 +187,10 @@ public class WallSmoke {
             } else if(phase==7) {
                 if(WallBatches.lastGuns!=1)throw new AssertionError("Removed guns retained in batches: "+WallBatches.stats());
                 screenshot("item-frame-comparison.png");
+                mc.getSingleplayerServer().execute(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(1.9,-57.1,1.3,-90,0));
+                phase=10;ticks=0;
+            } else if(phase==10) {
+                screenshot("wall-contact-side.png");
                 phase=8;mc.setScreen(new Icons());
             }
         } catch(Throwable failure) {
@@ -185,8 +210,15 @@ public class WallSmoke {
             MeshCapture.begin(capture);
             try {mc.getItemRenderer().renderStatic(sourceStack(id),net.minecraft.world.item.ItemDisplayContext.FIXED,0,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,pose,mc.renderBuffers().bufferSource(),mc.level,0);}
             finally {MeshCapture.end();}
-            var reference=capture.finish().values().stream().flatMap(List::stream).toList();
+            var reference=MeshCapture.withoutDegenerateQuads(capture.finish()).values().stream().flatMap(List::stream).toList();
             var actual=GunMeshes.get(id).materials().values().stream().flatMap(List::stream).toList();
+            double nearest=actual.stream().mapToDouble(MeshCapture.Vertex::z).min().orElseThrow();
+            if(Math.abs(nearest-.001)>.00001)throw new AssertionError(name+" visible wall gap "+nearest);
+            if(name.equals("tacz:scar_l")) {
+                StringBuilder meshCsv=new StringBuilder("x,y,z,u,v,nx,ny,nz\n");
+                for(var a:actual)meshCsv.append(a.x()).append(',').append(a.y()).append(',').append(a.z()).append(',').append(a.u()).append(',').append(a.v()).append(',').append(a.nx()).append(',').append(a.ny()).append(',').append(a.nz()).append('\n');
+                Files.writeString(output.resolve("scar-l-vertices.csv"),meshCsv);
+            }
             if(reference.size()!=actual.size())throw new AssertionError(name+" item-frame vertex count "+reference.size()+" != "+actual.size());
             // A wall placement may translate the mesh. Every relative position, normal and UV must match the real item renderer.
             var r0=reference.getFirst();var a0=actual.getFirst();double maxError=0;
@@ -198,7 +230,7 @@ public class WallSmoke {
                 if(Math.abs(r.nx()-a.nx())>.0001 || Math.abs(r.ny()-a.ny())>.0001 || Math.abs(r.nz()-a.nz())>.0001 || r.u()!=a.u() || r.v()!=a.v())throw new AssertionError(name+" frame normal/UV mismatch "+i);
             }
             if(maxError>.0001)throw new AssertionError(name+" item-frame geometry mismatch "+maxError);
-            result.append(name).append(": ").append(actual.size()).append(" vertices; maximum relative position error=").append(maxError).append('\n');
+            result.append(name).append(": ").append(actual.size()).append(" vertices; maximum relative position error=").append(maxError).append("; visible wall gap=").append(nearest).append('\n');
         }
         Files.writeString(output.resolve("frame-geometry.txt"),result);
     }
@@ -223,7 +255,7 @@ public class WallSmoke {
                 try {
                     screenshot("inventory.png");
                     var dir=minecraft.gameDirectory.toPath().resolve("verification");
-                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("checks.txt"))+Files.readString(dir.resolve("frame-geometry.txt"))+Files.readString(dir.resolve("motion.txt"))+"\nRemoved 99 guns without stale geometry; 12 source-pack item icons rendered.\n");
+                    Files.writeString(dir.resolve("SUCCESS.txt"),Files.readString(dir.resolve("checks.txt"))+Files.readString(dir.resolve("frame-geometry.txt"))+Files.readString(dir.resolve("motion.txt"))+"\n"+Files.readString(dir.resolve("edits.txt"))+"\nRemoved 99 guns without stale geometry; 12 source-pack item icons rendered.\n");
                 }catch(Exception e){throw new RuntimeException(e);}
                 minecraft.stop();
             }
