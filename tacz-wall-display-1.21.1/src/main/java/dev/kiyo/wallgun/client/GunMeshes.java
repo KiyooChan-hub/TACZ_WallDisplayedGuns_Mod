@@ -21,6 +21,8 @@ public final class GunMeshes {
         public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing) { this(materials,vertices,missing,false); }
     }
     public static Mesh get(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.computeIfAbsent(snapshot, GunMeshes::bake); }
+    /** Cache lookup only. World rendering must never synchronously capture a missing appearance. */
+    public static Mesh peek(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.get(snapshot); }
     public static void clear() { CACHE.clear(); GunOrientation.clear(); }
     private static Mesh bake(GunSnapshot snapshot) {
         long start = System.nanoTime();

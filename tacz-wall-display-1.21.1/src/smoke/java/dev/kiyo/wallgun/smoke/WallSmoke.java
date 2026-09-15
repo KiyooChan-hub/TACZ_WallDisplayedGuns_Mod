@@ -30,6 +30,7 @@ public class WallSmoke {
     private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
     public WallSmoke() {
+        if (Boolean.getBoolean("wallgun.warmupSmoke")) {new WarmupSmoke();return;}
         if (Boolean.getBoolean("wallgun.pose")) {new PoseSmoke();return;}
         if (Boolean.getBoolean("wallgun.audit")) {new CatalogAudit();return;}
         NeoForge.EVENT_BUS.addListener(this::tick);
