@@ -1,0 +1,7 @@
+.gradle/
+build/
+run-client/
+run-server/
+disabled-test-mods/
+.idea/
+*.iml

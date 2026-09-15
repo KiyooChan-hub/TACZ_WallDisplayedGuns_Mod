@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.kiyo.wallgun.smoke.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "ReferenceBufferMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

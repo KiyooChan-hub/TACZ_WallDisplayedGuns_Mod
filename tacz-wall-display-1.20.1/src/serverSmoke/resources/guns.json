@@ -1,0 +1,2002 @@
+[
+  {
+    "number": 1,
+    "row": 1,
+    "column": 1,
+    "gun_id": "bf1:mg0815",
+    "name": "MG08/15",
+    "position": [
+      -14,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "bf1:grip_trench_bipods",
+      "MUZZLE": "tacz:muzzle_silencer_knight_qd",
+      "SCOPE": "suffuse:scope_sig_tango_msr_1_6"
+    },
+    "vertices": 7776,
+    "materials": 4
+  },
+  {
+    "number": 2,
+    "row": 1,
+    "column": 2,
+    "gun_id": "bo6:aek973",
+    "name": "§6AEK-973 Marksman Rifle",
+    "position": [
+      -11,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_brake_cthulhu",
+      "SCOPE": "bf1:sight_okp8",
+      "STOCK": "suffuse:stock_colt"
+    },
+    "vertices": 15008,
+    "materials": 4
+  },
+  {
+    "number": 3,
+    "row": 1,
+    "column": 3,
+    "gun_id": "bo7:m8a1",
+    "name": "§6M8A1 Marksman Rifle",
+    "position": [
+      -8,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_military",
+      "SCOPE": "mk16:553_g43f",
+      "STOCK": "tacz:stock_tactical_ar"
+    },
+    "vertices": 22076,
+    "materials": 4
+  },
+  {
+    "number": 4,
+    "row": 1,
+    "column": 4,
+    "gun_id": "ccrp:ddm4",
+    "name": "§3Daniel Defense | DDM4 V7",
+    "position": [
+      -5,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td",
+      "MUZZLE": "ccrp:muzzle_dtk_1",
+      "STOCK": "tacz:stock_militech_b5"
+    },
+    "vertices": 20888,
+    "materials": 4
+  },
+  {
+    "number": 5,
+    "row": 1,
+    "column": 5,
+    "gun_id": "classicr:mk18_mod1",
+    "name": "MK18 Mod1",
+    "position": [
+      -2,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_ftac_ripper_56_tb",
+      "MUZZLE": "jak:muzzle_silencer_quartermaster",
+      "SCOPE": "tacz:sight_uh1"
+    },
+    "vertices": 17592,
+    "materials": 5
+  },
+  {
+    "number": 6,
+    "row": 1,
+    "column": 6,
+    "gun_id": "ghost:arx160",
+    "name": "§fARX-160 突击步枪",
+    "position": [
+      1,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_brake_pioneer",
+      "SCOPE": "mk16:1p87",
+      "STOCK": "classicr:b5_stock_sand"
+    },
+    "vertices": 16024,
+    "materials": 4
+  },
+  {
+    "number": 7,
+    "row": 1,
+    "column": 7,
+    "gun_id": "hamster:smle_mk3",
+    "name": "Lee-Enfield No.1 MKIII Rifle",
+    "position": [
+      4,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_tiger",
+      "SCOPE": "bf1:sight_nydar",
+      "STOCK": "hamster:rifle_grip"
+    },
+    "vertices": 20096,
+    "materials": 3
+  },
+  {
+    "number": 8,
+    "row": 1,
+    "column": 8,
+    "gun_id": "jak:jak_maglift",
+    "name": "§cHaymaker §f§lJAK Maglift Kit",
+    "position": [
+      7,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_rvg",
+      "MUZZLE": "tacz:muzzle_choke_sg",
+      "STOCK": "ccrp:stock_b5_precision_stock_sand"
+    },
+    "vertices": 20772,
+    "materials": 4
+  },
+  {
+    "number": 9,
+    "row": 1,
+    "column": 9,
+    "gun_id": "mk16:sr25",
+    "name": "KAC SR25",
+    "position": [
+      10,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:grip_192",
+      "MUZZLE": "nmw2:muzzle_silencer_fss_covert_v_ug",
+      "SCOPE": "tacz:scope_acog_ta31"
+    },
+    "vertices": 18928,
+    "materials": 4
+  },
+  {
+    "number": 10,
+    "row": 1,
+    "column": 10,
+    "gun_id": "nmw1:m4a1_twos",
+    "name": "§fM4A1 §c§lThe Wages of Sin",
+    "position": [
+      13,
+      -39,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "ccrp:muzzle_silencer_192",
+      "SCOPE": "nmw2:sight_cronen_mini_reddot",
+      "STOCK": "suffuse:stock_elf_ultralight"
+    },
+    "vertices": 23808,
+    "materials": 4
+  },
+  {
+    "number": 11,
+    "row": 2,
+    "column": 1,
+    "gun_id": "nmw2:m13b",
+    "name": "§aM13B Assault Rifle",
+    "position": [
+      -14,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_agent_crater_maker",
+      "SCOPE": "tacz:sight_srs_02",
+      "STOCK": "suffuse:stock_vltor_emod_desert"
+    },
+    "vertices": 16768,
+    "materials": 4
+  },
+  {
+    "number": 12,
+    "row": 2,
+    "column": 2,
+    "gun_id": "nmw3:holger26",
+    "name": "§cHolger 26 Light Machine Gun",
+    "position": [
+      -11,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_cqr",
+      "MUZZLE": "tacz:muzzle_silencer_ursus",
+      "STOCK": "ccrp:stock_b5_precision_stock"
+    },
+    "vertices": 18524,
+    "materials": 4
+  },
+  {
+    "number": 13,
+    "row": 2,
+    "column": 3,
+    "gun_id": "suffuse:qjb951",
+    "name": "QJB-95-1 Squad Automated Weapon",
+    "position": [
+      -8,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw1:grip_tf_ziptie",
+      "MUZZLE": "tacz:muzzle_brake_trex",
+      "SCOPE": "tacz:sight_552"
+    },
+    "vertices": 17408,
+    "materials": 4
+  },
+  {
+    "number": 14,
+    "row": 2,
+    "column": 4,
+    "gun_id": "tacz:fn_evolys",
+    "name": "FN EVOLYS Machine Gun",
+    "position": [
+      -5,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "classicr:muzzle_creaky_silencer",
+      "SCOPE": "tacz:sight_pk06_rifle",
+      "STOCK": "tacz:stock_m4ss"
+    },
+    "vertices": 18320,
+    "materials": 4
+  },
+  {
+    "number": 15,
+    "row": 2,
+    "column": 5,
+    "gun_id": "bf1:vg15",
+    "name": "Volkssturmgewehr 1-5",
+    "position": [
+      -2,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_precision_40_ug",
+      "SCOPE": "suffuse:scope_vzor3",
+      "STOCK": "suffuse:stock_colt_plus"
+    },
+    "vertices": 11996,
+    "materials": 4
+  },
+  {
+    "number": 16,
+    "row": 2,
+    "column": 6,
+    "gun_id": "bo6:cr56_amax",
+    "name": "§6CR-56 AMAX Assault Rifle",
+    "position": [
+      1,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_td",
+      "MUZZLE": "nmw1:muzzle_mb_twos",
+      "STOCK": "suffuse:stock_vltor_emod_green"
+    },
+    "vertices": 13944,
+    "materials": 4
+  },
+  {
+    "number": 17,
+    "row": 2,
+    "column": 7,
+    "gun_id": "bo7:akita_eos",
+    "name": "§eAKT-40S§e§l「Tooth Piercer」§6Shotgun",
+    "position": [
+      4,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw1:grip_cf_twos",
+      "MUZZLE": "tacz:muzzle_brake_mastiff_sg",
+      "SCOPE": "bo7:sight_mms"
+    },
+    "vertices": 17220,
+    "materials": 4
+  },
+  {
+    "number": 18,
+    "row": 2,
+    "column": 8,
+    "gun_id": "ccrp:rd704",
+    "name": "§3Rifle Dynamics | RD704",
+    "position": [
+      7,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_silencer_phantom_s1",
+      "SCOPE": "mk16:m2",
+      "STOCK": "nmw1:stock_sai_ziptie"
+    },
+    "vertices": 28112,
+    "materials": 4
+  },
+  {
+    "number": 19,
+    "row": 2,
+    "column": 9,
+    "gun_id": "classicr:tec_9",
+    "name": "Intratec Tec-9",
+    "position": [
+      10,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_kac_sand",
+      "SCOPE": "tacz:sight_sro_dot",
+      "STOCK": "nmw3:stock_bllp"
+    },
+    "vertices": 6924,
+    "materials": 4
+  },
+  {
+    "number": 20,
+    "row": 2,
+    "column": 10,
+    "gun_id": "ghost:honeybadger",
+    "name": "§fHoneyBadger 突击步枪",
+    "position": [
+      13,
+      -41,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_usgi_m249",
+      "SCOPE": "nmw2:sight_op_v4_ug",
+      "STOCK": "suffuse:stock_sig_desert"
+    },
+    "vertices": 21664,
+    "materials": 4
+  },
+  {
+    "number": 21,
+    "row": 3,
+    "column": 1,
+    "gun_id": "hamster:luger1906",
+    "name": "Luger M1906 Rifle",
+    "position": [
+      -14,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_se_5",
+      "MUZZLE": "classicr:muzzle_silencer_aac",
+      "SCOPE": "tacz:sight_exp3"
+    },
+    "vertices": 19092,
+    "materials": 4
+  },
+  {
+    "number": 22,
+    "row": 3,
+    "column": 2,
+    "gun_id": "jak:jak_patriot",
+    "name": "§aM16 §f§lJAK Patriot",
+    "position": [
+      -11,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_brake_cyclone_d2",
+      "SCOPE": "tacz:scope_hamr",
+      "STOCK": "nmw2:stock_dpef"
+    },
+    "vertices": 19056,
+    "materials": 4
+  },
+  {
+    "number": 23,
+    "row": 3,
+    "column": 3,
+    "gun_id": "mk16:ak15k",
+    "name": "AK15k ",
+    "position": [
+      -8,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_cobra",
+      "SCOPE": "suffuse:scope_compm4",
+      "STOCK": "ccrp:stock_haenel"
+    },
+    "vertices": 20008,
+    "materials": 4
+  },
+  {
+    "number": 24,
+    "row": 3,
+    "column": 4,
+    "gun_id": "nmw1:m4a1_ziptie",
+    "name": "§fM4A1 §d§lZip Tie",
+    "position": [
+      -5,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk1_b25u",
+      "MUZZLE": "tacz:muzzle_compensator_trident",
+      "STOCK": "tacz:stock_ak12"
+    },
+    "vertices": 19848,
+    "materials": 4
+  },
+  {
+    "number": 25,
+    "row": 3,
+    "column": 5,
+    "gun_id": "nmw2:m13b_bm20",
+    "name": "§aM13B Assault Rifle",
+    "position": [
+      -2,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_magpul_afg_2",
+      "MUZZLE": "ccrp:muzzle_tacfire_mz1202",
+      "SCOPE": "tacz:sight_acro_rifle"
+    },
+    "vertices": 16148,
+    "materials": 4
+  },
+  {
+    "number": 26,
+    "row": 3,
+    "column": 6,
+    "gun_id": "nmw3:sidewinder",
+    "name": "nmw3.gun.sidewinder.name",
+    "position": [
+      1,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "ccrp:muzzle_silencer_hel_e4a",
+      "SCOPE": "bo7:sight_elo",
+      "STOCK": "tacz:stock_hk_slim_line"
+    },
+    "vertices": 19384,
+    "materials": 4
+  },
+  {
+    "number": 27,
+    "row": 3,
+    "column": 7,
+    "gun_id": "suffuse:ump45",
+    "name": "UMP45 Submachine Gun",
+    "position": [
+      4,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_shift",
+      "SCOPE": "tacz:sight_okp7",
+      "STOCK": "suffuse:stock_sig_blue_grey"
+    },
+    "vertices": 15644,
+    "materials": 4
+  },
+  {
+    "number": 28,
+    "row": 3,
+    "column": 8,
+    "gun_id": "tacz:m16a4",
+    "name": "M16A4 Service Rifle",
+    "position": [
+      7,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk6",
+      "MUZZLE": "ccrp:muzzle_rotex5c",
+      "STOCK": "nmw2:stock_ravage_10"
+    },
+    "vertices": 20956,
+    "materials": 4
+  },
+  {
+    "number": 29,
+    "row": 3,
+    "column": 9,
+    "gun_id": "bf1:model10",
+    "name": "Model 10-A",
+    "position": [
+      10,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_bt10vbatlas",
+      "MUZZLE": "bf1:bayonet_general",
+      "SCOPE": "ccrp:sight_camg_frameless"
+    },
+    "vertices": 9456,
+    "materials": 3
+  },
+  {
+    "number": 30,
+    "row": 3,
+    "column": 10,
+    "gun_id": "bo6:xm4_bug",
+    "name": "§6XM4 §2§lBug Smasher",
+    "position": [
+      13,
+      -43,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "mk16:sr25s",
+      "SCOPE": "suffuse:scope_acogta01",
+      "STOCK": "tacz:stock_ripstock"
+    },
+    "vertices": 18756,
+    "materials": 4
+  },
+  {
+    "number": 31,
+    "row": 4,
+    "column": 1,
+    "gun_id": "bo7:m15mod0",
+    "name": "§bM15-MOD0 §6Assault Rifle",
+    "position": [
+      -14,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:grip_cqr",
+      "SCOPE": "nmw2:sight_slimlinepro_reddot",
+      "STOCK": "nmw2:stock_elite"
+    },
+    "vertices": 24468,
+    "materials": 4
+  },
+  {
+    "number": 32,
+    "row": 4,
+    "column": 2,
+    "gun_id": "ccrp:keltec_p50",
+    "name": "§3KelTec | P50",
+    "position": [
+      -11,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_flashlight",
+      "MUZZLE": "nmw2:muzzle_silencer_harbinger_d20_tb",
+      "STOCK": "nmw2:stock_a60"
+    },
+    "vertices": 12324,
+    "materials": 4
+  },
+  {
+    "number": 33,
+    "row": 4,
+    "column": 3,
+    "gun_id": "classicr:ngsw_r_renewed",
+    "name": "M7 Battle Rifle",
+    "position": [
+      -8,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_rvg_railless",
+      "MUZZLE": "classicr:xm7_silencer",
+      "SCOPE": "bo:scope_acog_bo1"
+    },
+    "vertices": 12248,
+    "materials": 5
+  },
+  {
+    "number": 34,
+    "row": 4,
+    "column": 4,
+    "gun_id": "ghost:vector_crb",
+    "name": "§fVector CRB 冲锋枪",
+    "position": [
+      -5,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "mk16:aeg",
+      "SCOPE": "ccrp:scope_g28",
+      "STOCK": "nmw2:stock_ravage_8"
+    },
+    "vertices": 15096,
+    "materials": 4
+  },
+  {
+    "number": 35,
+    "row": 4,
+    "column": 5,
+    "gun_id": "hamster:p17",
+    "name": "hamster.gun.p17.name",
+    "position": [
+      -2,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_green",
+      "MUZZLE": "tacz:muzzle_silencer_phantom_s1",
+      "SCOPE": "suffuse:sight_rmr"
+    },
+    "vertices": 15220,
+    "materials": 4
+  },
+  {
+    "number": 36,
+    "row": 4,
+    "column": 6,
+    "gun_id": "jak:jak_harbinger",
+    "name": "§aM4 §f§lJAK Harbinger Kit",
+    "position": [
+      1,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw3:grip_paracord_grip",
+      "MUZZLE": "tacz:muzzle_silencer_vulture",
+      "STOCK": "tacz:stock_moe"
+    },
+    "vertices": 20464,
+    "materials": 4
+  },
+  {
+    "number": 37,
+    "row": 4,
+    "column": 7,
+    "gun_id": "mk16:sr16",
+    "name": "KAC SR16 ",
+    "position": [
+      4,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "bo6:grip_vertical_foregrip_bug",
+      "MUZZLE": "tacz:muzzle_brake_cthulhu",
+      "SCOPE": "ccrp:scope_xm157"
+    },
+    "vertices": 27548,
+    "materials": 4
+  },
+  {
+    "number": 38,
+    "row": 4,
+    "column": 8,
+    "gun_id": "nmw2:kastov762_skl",
+    "name": "§aKastov 762 Assault Rifle",
+    "position": [
+      7,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_silencer_ursus",
+      "SCOPE": "nmw2:sight_cd00_crater_maker",
+      "STOCK": "ccrp:stock_hk_e1"
+    },
+    "vertices": 14612,
+    "materials": 4
+  },
+  {
+    "number": 39,
+    "row": 4,
+    "column": 9,
+    "gun_id": "nmw3:sva545",
+    "name": "§cSVA545 Assault Rifle",
+    "position": [
+      10,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_osovets_black",
+      "SCOPE": "tacz:scope_mk5hd",
+      "STOCK": "suffuse:stock_n4"
+    },
+    "vertices": 17572,
+    "materials": 4
+  },
+  {
+    "number": 40,
+    "row": 4,
+    "column": 10,
+    "gun_id": "suffuse:qbz951b",
+    "name": "QBZ-95B-1 Assault Carbine",
+    "position": [
+      13,
+      -45,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk0",
+      "MUZZLE": "tacz:muzzle_compensator_trident",
+      "STOCK": "suffuse:stock_comb_jiazhou"
+    },
+    "vertices": 15036,
+    "materials": 4
+  },
+  {
+    "number": 41,
+    "row": 5,
+    "column": 1,
+    "gun_id": "tacz:m4a1",
+    "name": "M4A1 卡宾枪",
+    "position": [
+      -14,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_blue_grey",
+      "MUZZLE": "tacz:bayonet_m9",
+      "SCOPE": "tacz:sight_t2"
+    },
+    "vertices": 17796,
+    "materials": 4
+  },
+  {
+    "number": 42,
+    "row": 5,
+    "column": 2,
+    "gun_id": "bf1:vp1915",
+    "name": "Villar·Perosa",
+    "position": [
+      -11,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:bayonet_6h3",
+      "SCOPE": "mk16:phone",
+      "STOCK": "ccrp:stock_dd_stock"
+    },
+    "vertices": 9212,
+    "materials": 4
+  },
+  {
+    "number": 43,
+    "row": 5,
+    "column": 3,
+    "gun_id": "bo6:cr56_amax_cibr",
+    "name": "§6CR-56 AMAX §c§lCIB:R",
+    "position": [
+      -8,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_talon",
+      "SCOPE": "bf1:sight_fusion_holo",
+      "STOCK": "tacz:stock_sba3"
+    },
+    "vertices": 14156,
+    "materials": 4
+  },
+  {
+    "number": 44,
+    "row": 5,
+    "column": 4,
+    "gun_id": "bo7:m8a1_fullauto",
+    "name": "§bM8A1 AutoStrike-X8 Conversion",
+    "position": [
+      -5,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "jak:grip_jak_slash",
+      "MUZZLE": "ccrp:muzzle_silencer_hel_e4a",
+      "STOCK": "suffuse:stock_sig_black"
+    },
+    "vertices": 20236,
+    "materials": 4
+  },
+  {
+    "number": 45,
+    "row": 5,
+    "column": 5,
+    "gun_id": "ccrp:sig277",
+    "name": "§3M7A1",
+    "position": [
+      -2,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_black",
+      "MUZZLE": "classicr:xm7_silencer",
+      "SCOPE": "nmw3:sight_mk3_reflector_reflex"
+    },
+    "vertices": 24992,
+    "materials": 4
+  },
+  {
+    "number": 46,
+    "row": 5,
+    "column": 6,
+    "gun_id": "classicr:mk47",
+    "name": "MK47 Assault Rifle",
+    "position": [
+      1,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "jak:muzzle_silencer_quartermaster",
+      "SCOPE": "ccrp:sight_romeo_8t",
+      "STOCK": "suffuse:stock_bcm_mod2_sopmod"
+    },
+    "vertices": 12672,
+    "materials": 4
+  },
+  {
+    "number": 47,
+    "row": 5,
+    "column": 7,
+    "gun_id": "hamster:type4",
+    "name": "hamster.gun.type4.name",
+    "position": [
+      4,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_talon",
+      "MUZZLE": "hamster:bayonettype30",
+      "SCOPE": "suffuse:sight_cobra_ekp_818"
+    },
+    "vertices": 15176,
+    "materials": 4
+  },
+  {
+    "number": 48,
+    "row": 5,
+    "column": 8,
+    "gun_id": "jak:jak_harbinger_bflb",
+    "name": "§aM4 §f§lJAK Harbinger Kit",
+    "position": [
+      7,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_black",
+      "MUZZLE": "tacz:muzzle_brake_trex",
+      "STOCK": "tacz:stock_carbon_bone_c5"
+    },
+    "vertices": 20076,
+    "materials": 4
+  },
+  {
+    "number": 49,
+    "row": 5,
+    "column": 9,
+    "gun_id": "mk16:ppk20",
+    "name": "mk16.gun.ppk20.name",
+    "position": [
+      10,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_osovets_black",
+      "MUZZLE": "tacz:muzzle_silencer_ptilopsis",
+      "SCOPE": "jak:sight_jak_gl"
+    },
+    "vertices": 19520,
+    "materials": 4
+  },
+  {
+    "number": 50,
+    "row": 5,
+    "column": 10,
+    "gun_id": "nmw2:m16_292cs",
+    "name": "§aM16 Assault Rifle",
+    "position": [
+      13,
+      -47,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "nmw1:muzzle_mb_twos",
+      "SCOPE": "suffuse:scope_m2a1",
+      "STOCK": "nmw2:stock_cpf"
+    },
+    "vertices": 16712,
+    "materials": 4
+  },
+  {
+    "number": 51,
+    "row": 6,
+    "column": 1,
+    "gun_id": "nmw3:longbow",
+    "name": "§cLongbow Sniper Rifle",
+    "position": [
+      -14,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_usgi_m249",
+      "SCOPE": "ccrp:scope_xm157_black",
+      "STOCK": "ccrp:stock_haenel_sand"
+    },
+    "vertices": 30808,
+    "materials": 4
+  },
+  {
+    "number": 52,
+    "row": 6,
+    "column": 2,
+    "gun_id": "suffuse:qbz951",
+    "name": "QBZ-95-1 Assault Rifle",
+    "position": [
+      -11,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw1:grip_tf_ziptie",
+      "MUZZLE": "nmw2:muzzle_silencer_harbinger_d20_tb",
+      "STOCK": "suffuse:stock_comb_redsight"
+    },
+    "vertices": 17892,
+    "materials": 4
+  },
+  {
+    "number": 53,
+    "row": 6,
+    "column": 3,
+    "gun_id": "tacz:mk14",
+    "name": "MK14 EBR",
+    "position": [
+      -8,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_military",
+      "MUZZLE": "classicr:muzzle_creaky_silencer",
+      "SCOPE": "nmw1:sight_cchs_ziptie"
+    },
+    "vertices": 15300,
+    "materials": 4
+  },
+  {
+    "number": 54,
+    "row": 6,
+    "column": 4,
+    "gun_id": "bf1:liu",
+    "name": "General Liu",
+    "position": [
+      -5,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_flashlight",
+      "MUZZLE": "bf1:bayonet_general",
+      "SCOPE": "bo6:sight_accu_spot_reflex_bug"
+    },
+    "vertices": 7476,
+    "materials": 3
+  },
+  {
+    "number": 55,
+    "row": 6,
+    "column": 5,
+    "gun_id": "bo6:aek973_fa",
+    "name": "§6AEK-971 Assault Rifle",
+    "position": [
+      -2,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_precision_40_ug",
+      "SCOPE": "nmw3:sight_nydar_model2023_reflex",
+      "STOCK": "suffuse:stock_vltor_emod_black"
+    },
+    "vertices": 16460,
+    "materials": 4
+  },
+  {
+    "number": 56,
+    "row": 6,
+    "column": 6,
+    "gun_id": "bo7:akita",
+    "name": "§bAkita §6Shotgun",
+    "position": [
+      1,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_blue_grey",
+      "MUZZLE": "tacz:muzzle_silencer_sg",
+      "STOCK": "nmw2:stock_a60"
+    },
+    "vertices": 15640,
+    "materials": 4
+  },
+  {
+    "number": 57,
+    "row": 6,
+    "column": 7,
+    "gun_id": "ccrp:mk17",
+    "name": "§3FN | MK17 Mod0 Battle Rifle",
+    "position": [
+      4,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:grip_cqr",
+      "MUZZLE": "ccrp:muzzle_dtk_1",
+      "SCOPE": "tacz:scope_elcan_4x"
+    },
+    "vertices": 19328,
+    "materials": 4
+  },
+  {
+    "number": 58,
+    "row": 6,
+    "column": 8,
+    "gun_id": "classicr:qbz191_renewed",
+    "name": "QBZ-192 Assault Rifle",
+    "position": [
+      7,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "mk16:aeg",
+      "SCOPE": "bf1:scope_nvk_nxt",
+      "STOCK": "tacz:stock_sba3"
+    },
+    "vertices": 14624,
+    "materials": 4
+  },
+  {
+    "number": 59,
+    "row": 6,
+    "column": 9,
+    "gun_id": "hamster:gew98",
+    "name": "Gew.98 Rifle",
+    "position": [
+      10,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_tiger",
+      "MUZZLE": "hamster:bayonet9805",
+      "SCOPE": "nmw3:sight_aw1"
+    },
+    "vertices": 20224,
+    "materials": 4
+  },
+  {
+    "number": 60,
+    "row": 6,
+    "column": 10,
+    "gun_id": "jak:jak_requiem_545",
+    "name": "§aKastov 545 §f§lJAK Requiem",
+    "position": [
+      13,
+      -49,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_ftac_ripper_56_tb",
+      "MUZZLE": "mk16:sr25s",
+      "STOCK": "nmw2:stock_m_r7"
+    },
+    "vertices": 17268,
+    "materials": 3
+  },
+  {
+    "number": 61,
+    "row": 7,
+    "column": 1,
+    "gun_id": "mk16:m4urgi10",
+    "name": "M4 URG-I （11.5) ",
+    "position": [
+      -14,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_green",
+      "MUZZLE": "classicr:muzzle_silencer_aac",
+      "SCOPE": "nmw2:sight_corio_enforcer_tb"
+    },
+    "vertices": 18836,
+    "materials": 4
+  },
+  {
+    "number": 62,
+    "row": 7,
+    "column": 2,
+    "gun_id": "nmw2:m4",
+    "name": "§aM4 Assault Rifle",
+    "position": [
+      -11,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "nmw2:muzzle_silencer_fss_covert_v_ug",
+      "SCOPE": "mk16:m2l",
+      "STOCK": "nmw2:stock_p80"
+    },
+    "vertices": 20412,
+    "materials": 3
+  },
+  {
+    "number": 63,
+    "row": 7,
+    "column": 3,
+    "gun_id": "nmw3:dm56",
+    "name": "§cDM56 Marksman Rifle",
+    "position": [
+      -8,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_agent_crater_maker",
+      "SCOPE": "tacz:scope_qmk152",
+      "STOCK": "tacz:stock_militech_b5"
+    },
+    "vertices": 18888,
+    "materials": 4
+  },
+  {
+    "number": 64,
+    "row": 7,
+    "column": 4,
+    "gun_id": "suffuse:kacpdw",
+    "name": "KAC PDW",
+    "position": [
+      -5,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_bt10vbatlas",
+      "MUZZLE": "tacz:muzzle_silencer_knight_qd",
+      "STOCK": "ccrp:stock_b5_precision_stock_sand"
+    },
+    "vertices": 24068,
+    "materials": 4
+  },
+  {
+    "number": 65,
+    "row": 7,
+    "column": 5,
+    "gun_id": "tacz:spr15hb",
+    "name": "SPR-15 HB \"Sagittarius\"",
+    "position": [
+      -2,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_td",
+      "MUZZLE": "tacz:muzzle_brake_cyclone_d2",
+      "SCOPE": "tacz:sight_deltapoint_rifle"
+    },
+    "vertices": 17016,
+    "materials": 4
+  },
+  {
+    "number": 66,
+    "row": 7,
+    "column": 6,
+    "gun_id": "bf1:martini",
+    "name": "Martini-Henry",
+    "position": [
+      1,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "bf1:grip_light_bipods",
+      "MUZZLE": "ccrp:muzzle_rotex5c",
+      "SCOPE": "classicr:sight_red_dot"
+    },
+    "vertices": 9616,
+    "materials": 3
+  },
+  {
+    "number": 67,
+    "row": 7,
+    "column": 7,
+    "gun_id": "bo6:xm4",
+    "name": "§6XM4 Assault Rifle",
+    "position": [
+      4,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:grip_192",
+      "SCOPE": "tacz:scope_contender",
+      "STOCK": "tacz:oem_stock_heavy"
+    },
+    "vertices": 14416,
+    "materials": 3
+  },
+  {
+    "number": 68,
+    "row": 7,
+    "column": 8,
+    "gun_id": "ccrp:camg_m4_sopmod2",
+    "name": "§3CAMG | M4 SOPMOD II",
+    "position": [
+      7,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:weapon_m203",
+      "MUZZLE": "tacz:muzzle_brake_pioneer",
+      "STOCK": "suffuse:stock_colt_plus"
+    },
+    "vertices": 23960,
+    "materials": 3
+  },
+  {
+    "number": 69,
+    "row": 7,
+    "column": 9,
+    "gun_id": "classicr:spr_15",
+    "name": "SPR 5.56",
+    "position": [
+      10,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_kac_sand",
+      "MUZZLE": "ccrp:muzzle_silencer_192",
+      "SCOPE": "jak:sight_jak_bullseye"
+    },
+    "vertices": 12472,
+    "materials": 4
+  },
+  {
+    "number": 70,
+    "row": 7,
+    "column": 10,
+    "gun_id": "hamster:m1903",
+    "name": "Springfield M1903A1 Rifle",
+    "position": [
+      13,
+      -51,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw3:grip_paracord_grip",
+      "MUZZLE": "tacz:muzzle_silencer_ursus",
+      "SCOPE": "bo6:scope_amr_mod4"
+    },
+    "vertices": 21376,
+    "materials": 4
+  },
+  {
+    "number": 71,
+    "row": 8,
+    "column": 1,
+    "gun_id": "jak:jak_harbinger_m50sb",
+    "name": "§aM4 §f§lJAK Harbinger Kit",
+    "position": [
+      -14,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw1:grip_cf_twos",
+      "SCOPE": "suffuse:scope_romeo4t",
+      "STOCK": "jak:stock_jak_cutthroat"
+    },
+    "vertices": 26544,
+    "materials": 3
+  },
+  {
+    "number": 72,
+    "row": 8,
+    "column": 2,
+    "gun_id": "mk16:ak74n",
+    "name": "AK74N ",
+    "position": [
+      -11,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_cqr",
+      "MUZZLE": "mk16:6x5",
+      "STOCK": "tacz:oem_stock_tactical"
+    },
+    "vertices": 23660,
+    "materials": 3
+  },
+  {
+    "number": 73,
+    "row": 8,
+    "column": 3,
+    "gun_id": "nmw2:iso45",
+    "name": "§aISO 45 Submachine Gun",
+    "position": [
+      -8,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_rvg",
+      "MUZZLE": "nmw2:muzzle_comp_bruen_tri_port",
+      "SCOPE": "tacz:scope_vudu"
+    },
+    "vertices": 18852,
+    "materials": 4
+  },
+  {
+    "number": 74,
+    "row": 8,
+    "column": 4,
+    "gun_id": "nmw3:mtz556",
+    "name": "§cMTZ-556 Assault Rifle",
+    "position": [
+      -5,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "ccrp:muzzle_tacfire_mz1202",
+      "SCOPE": "bo6:sight_warmachine",
+      "STOCK": "nmw2:stock_elite"
+    },
+    "vertices": 16956,
+    "materials": 4
+  },
+  {
+    "number": 75,
+    "row": 8,
+    "column": 5,
+    "gun_id": "suffuse:l119a2",
+    "name": "L119A2 Assault Rifle",
+    "position": [
+      -2,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_se_5",
+      "SCOPE": "mk16:553_g43",
+      "STOCK": "ccrp:stock_hk_e1"
+    },
+    "vertices": 29792,
+    "materials": 4
+  },
+  {
+    "number": 76,
+    "row": 8,
+    "column": 6,
+    "gun_id": "tacz:g36k",
+    "name": "G36K",
+    "position": [
+      1,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk1_b25u",
+      "MUZZLE": "ccrp:muzzle_tacfire_mz1202",
+      "STOCK": "suffuse:stock_vltor_emod_desert"
+    },
+    "vertices": 17176,
+    "materials": 4
+  },
+  {
+    "number": 77,
+    "row": 8,
+    "column": 7,
+    "gun_id": "bf1:rsc1917",
+    "name": "RSC 1917",
+    "position": [
+      4,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "jak:grip_jak_slash",
+      "MUZZLE": "bf1:bayonet_general",
+      "SCOPE": "ghost:scope_l115"
+    },
+    "vertices": 11056,
+    "materials": 3
+  },
+  {
+    "number": 78,
+    "row": 8,
+    "column": 8,
+    "gun_id": "bo6:ksv",
+    "name": "§6KSV Submachine Gun",
+    "position": [
+      7,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_cobra",
+      "MUZZLE": "nmw2:muzzle_silencer_harbinger_d20_tb",
+      "SCOPE": "mk16:553"
+    },
+    "vertices": 20324,
+    "materials": 4
+  },
+  {
+    "number": 79,
+    "row": 8,
+    "column": 9,
+    "gun_id": "ccrp:m4_cqbr",
+    "name": "§3NSWC | Mk.18 Mod 0 CQBR",
+    "position": [
+      10,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk6",
+      "SCOPE": "tacz:sight_fastfire_rifle",
+      "STOCK": "suffuse:stock_n4"
+    },
+    "vertices": 15416,
+    "materials": 4
+  },
+  {
+    "number": 80,
+    "row": 8,
+    "column": 10,
+    "gun_id": "classicr:hk416_a5",
+    "name": "HK416 A5",
+    "position": [
+      13,
+      -53,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk0",
+      "MUZZLE": "classicr:muzzle_creaky_silencer",
+      "STOCK": "ccrp:stock_hera_cqr_gen2"
+    },
+    "vertices": 15328,
+    "materials": 4
+  },
+  {
+    "number": 81,
+    "row": 9,
+    "column": 1,
+    "gun_id": "jak:jak_atlas",
+    "name": "§cAMR9 §f§lJAK Atlas Kit",
+    "position": [
+      -14,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_magpul_afg_2",
+      "MUZZLE": "nmw2:muzzle_silencer_fss_covert_v_ug",
+      "SCOPE": "tacz:sight_coyote"
+    },
+    "vertices": 20868,
+    "materials": 4
+  },
+  {
+    "number": 82,
+    "row": 9,
+    "column": 2,
+    "gun_id": "mk16:ak203",
+    "name": "AK203 ",
+    "position": [
+      -11,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "jak:muzzle_silencer_quartermaster",
+      "SCOPE": "nmw3:sight_slate_reflector_mini_reddot",
+      "STOCK": "tacz:stock_hk_slim_line"
+    },
+    "vertices": 15640,
+    "materials": 4
+  },
+  {
+    "number": 83,
+    "row": 9,
+    "column": 3,
+    "gun_id": "nmw2:fss_race",
+    "name": "§aFSS Hurricane §c§lRace",
+    "position": [
+      -8,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "bo6:grip_vertical_foregrip_bug",
+      "SCOPE": "bf1:sight_reflector",
+      "STOCK": "nmw2:stock_cpf"
+    },
+    "vertices": 15072,
+    "materials": 4
+  },
+  {
+    "number": 84,
+    "row": 9,
+    "column": 4,
+    "gun_id": "nmw3:haymaker",
+    "name": "§cHaymaker Shotgun",
+    "position": [
+      -5,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td",
+      "MUZZLE": "tacz:muzzle_brake_mastiff_sg",
+      "STOCK": "suffuse:stock_sig_desert"
+    },
+    "vertices": 18196,
+    "materials": 4
+  },
+  {
+    "number": 85,
+    "row": 9,
+    "column": 5,
+    "gun_id": "suffuse:tec9",
+    "name": "Tec9 Machine Pistol",
+    "position": [
+      -2,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_shift",
+      "MUZZLE": "tacz:muzzle_silencer_mirage",
+      "SCOPE": "nmw2:sight_sz_sigma_iv"
+    },
+    "vertices": 8340,
+    "materials": 4
+  },
+  {
+    "number": 86,
+    "row": 9,
+    "column": 6,
+    "gun_id": "tacz:vector45",
+    "name": "Vector SMG",
+    "position": [
+      1,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_silencer_wraith",
+      "SCOPE": "suffuse:scope_compm4",
+      "STOCK": "tacz:stock_tactical_ar"
+    },
+    "vertices": 8564,
+    "materials": 4
+  },
+  {
+    "number": 87,
+    "row": 9,
+    "column": 7,
+    "gun_id": "bf1:m1916",
+    "name": "Selbstlader M1916",
+    "position": [
+      4,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw2:grip_ftac_ripper_56_tb",
+      "MUZZLE": "mk16:sr25s",
+      "SCOPE": "tacz:scope_standard_8x"
+    },
+    "vertices": 11476,
+    "materials": 4
+  },
+  {
+    "number": 88,
+    "row": 9,
+    "column": 8,
+    "gun_id": "bo6:hdr",
+    "name": "§6HDR Sniper Rifle",
+    "position": [
+      7,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_silencer_vulture",
+      "SCOPE": "tacz:scope_lpvo_1_6",
+      "STOCK": "ccrp:stock_haenel"
+    },
+    "vertices": 18648,
+    "materials": 4
+  },
+  {
+    "number": 89,
+    "row": 9,
+    "column": 9,
+    "gun_id": "ccrp:car_15",
+    "name": "§3Colt | CAR-15",
+    "position": [
+      10,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "classicr:grip_shift",
+      "MUZZLE": "ccrp:muzzle_dtk_1",
+      "SCOPE": "tacz:scope_qmk152"
+    },
+    "vertices": 19516,
+    "materials": 4
+  },
+  {
+    "number": 90,
+    "row": 9,
+    "column": 10,
+    "gun_id": "classicr:udp_9",
+    "name": "UDP-9 PDW",
+    "position": [
+      13,
+      -55,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "MUZZLE": "tacz:muzzle_brake_pioneer",
+      "SCOPE": "suffuse:scope_romeo4t",
+      "STOCK": "suffuse:stock_colt"
+    },
+    "vertices": 15748,
+    "materials": 4
+  },
+  {
+    "number": 91,
+    "row": 10,
+    "column": 1,
+    "gun_id": "jak:jak_requiem_762",
+    "name": "§aKastov 762 §f§lJAK Requiem",
+    "position": [
+      -14,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk1_b25u",
+      "SCOPE": "ccrp:sight_romeo_8t",
+      "STOCK": "nmw2:stock_k_rama"
+    },
+    "vertices": 16832,
+    "materials": 3
+  },
+  {
+    "number": 92,
+    "row": 10,
+    "column": 2,
+    "gun_id": "mk16:ak205",
+    "name": "AK205 ",
+    "position": [
+      -11,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_black",
+      "MUZZLE": "tacz:muzzle_brake_cthulhu",
+      "STOCK": "suffuse:stock_vltor_emod_black"
+    },
+    "vertices": 13780,
+    "materials": 4
+  },
+  {
+    "number": 93,
+    "row": 10,
+    "column": 3,
+    "gun_id": "nmw2:m4_nv4",
+    "name": "§eNV4 §e§lFlatline",
+    "position": [
+      -8,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_osovets_black",
+      "MUZZLE": "tacz:muzzle_brake_trex",
+      "SCOPE": "ccrp:scope_g28"
+    },
+    "vertices": 24672,
+    "materials": 4
+  },
+  {
+    "number": 94,
+    "row": 10,
+    "column": 4,
+    "gun_id": "nmw3:dtir3006",
+    "name": "§cDTIR 30-06 Battle Rifle",
+    "position": [
+      -5,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_rk6",
+      "MUZZLE": "ccrp:muzzle_silencer_192",
+      "SCOPE": "tacz:sight_deltapoint_rifle"
+    },
+    "vertices": 15336,
+    "materials": 4
+  },
+  {
+    "number": 95,
+    "row": 10,
+    "column": 5,
+    "gun_id": "suffuse:gen12",
+    "name": "TTI Gen-12 Auto Shotgun",
+    "position": [
+      -2,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "suffuse:grip_td_green",
+      "SCOPE": "tacz:sight_t2",
+      "STOCK": "tacz:stock_m4ss"
+    },
+    "vertices": 20768,
+    "materials": 4
+  },
+  {
+    "number": 96,
+    "row": 10,
+    "column": 6,
+    "gun_id": "tacz:hk_g3",
+    "name": "G3 战斗步枪",
+    "position": [
+      1,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_talon",
+      "MUZZLE": "tacz:muzzle_compensator_trident",
+      "STOCK": "tacz:oem_stock_light"
+    },
+    "vertices": 7696,
+    "materials": 3
+  },
+  {
+    "number": 97,
+    "row": 10,
+    "column": 7,
+    "gun_id": "bf1:zk383",
+    "name": "ZK-383",
+    "position": [
+      4,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "bf1:grip_light_bipods",
+      "MUZZLE": "nmw1:muzzle_mb_twos",
+      "SCOPE": "bf1:sight_nydar"
+    },
+    "vertices": 10584,
+    "materials": 3
+  },
+  {
+    "number": 98,
+    "row": 10,
+    "column": 8,
+    "gun_id": "bo6:saug",
+    "name": "§6Saug Submachine Gun",
+    "position": [
+      7,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "tacz:grip_vertical_military",
+      "MUZZLE": "tacz:muzzle_silencer_phantom_s1",
+      "SCOPE": "mk16:1p87"
+    },
+    "vertices": 10604,
+    "materials": 4
+  },
+  {
+    "number": 99,
+    "row": 10,
+    "column": 9,
+    "gun_id": "ccrp:scar_sc",
+    "name": "§3FN | SCAR SC",
+    "position": [
+      10,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "ccrp:grip_192",
+      "SCOPE": "jak:sight_jak_gl",
+      "STOCK": "ccrp:stock_scar_sc_extend"
+    },
+    "vertices": 14628,
+    "materials": 4
+  },
+  {
+    "number": 100,
+    "row": 10,
+    "column": 10,
+    "gun_id": "classicr:fn_fal_tac",
+    "name": "DSA SA58",
+    "position": [
+      13,
+      -57,
+      1
+    ],
+    "visible_attachment_count": 3,
+    "attachments": {
+      "GRIP": "nmw1:grip_tf_ziptie",
+      "MUZZLE": "classicr:muzzle_silencer_aac",
+      "STOCK": "tacz:oem_stock_heavy"
+    },
+    "vertices": 11736,
+    "materials": 3
+  }
+]

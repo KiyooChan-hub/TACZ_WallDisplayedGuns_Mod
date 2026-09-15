@@ -1,0 +1,7 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="GPL-3.0-only"
+[[mods]]
+modId="wall_display_smoke"
+version="1"
+displayName="Development-only wall display verification"

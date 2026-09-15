@@ -1,0 +1,60 @@
+plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
+version = '0.4.0'
+group = 'dev.kiyo'
+base { archivesName = 'tacz-wall-display-1.20.1-forge' }
+java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+def instance = providers.gradleProperty('minecraftInstance').getOrElse('E:/GAME/Minecraft/Minecraft 1.20.1/.minecraft')
+repositories { mavenCentral(); flatDir { dirs "${instance}/mods" } }
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.21'
+    implementation fg.deobf('local:tacz-1.20.1:1.1.8-hotfix')
+    runtimeOnly fg.deobf('local:packetfixer:3.3.2-1.18-1.20.4-merged')
+    if (!providers.gradleProperty('serverSmoke').isPresent()) runtimeOnly fg.deobf('local:embeddium:0.3.31+mc1.20.1')
+    runtimeOnly fg.deobf('local:cloth-config:11.1.136-forge')
+    if (!providers.gradleProperty('serverSmoke').isPresent()) runtimeOnly fg.deobf('local:ruok-forge_1.20.1:1.7.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+    runs {
+        configureEach {
+            workingDirectory project.file('run-client')
+            property 'forge.logging.console.level', 'info'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', project.file('build/createSrgToMcp/output.srg').absolutePath
+            args '-mixin.config=tacz_wall_display.mixins.json'
+            mods { tacz_wall_display { source sourceSets.main } }
+        }
+        client { jvmArgs '-Xmx6G'; if (providers.gradleProperty('pose').isPresent()) jvmArgs '-Dwallgun.pose=true'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgs '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgs '-Dwallgun.audit=true'; args '--width','1280','--height','900' }
+        server { workingDirectory project.file('run-server'); args '--nogui' }
+    }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17; options.compilerArgs += ['-proc:none'] }
+test { useJUnitPlatform() }
+jar { manifest { attributes 'MixinConfigs':'tacz_wall_display.mixins.json' }; finalizedBy 'reobfJar' }
+if (providers.gradleProperty('smoke').isPresent()) {
+    sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
+    configurations.smokeImplementation.extendsFrom(configurations.implementation)
+    minecraft.runs.client { args '-mixin.config=wall_display_smoke.mixins.json'; mods { wall_display_smoke { source sourceSets.smoke } } }
+    tasks.register('smokeJar', Jar) {
+        archiveClassifier = 'test-only'
+        from sourceSets.smoke.output
+        // Production pose/warmup tests do not need the dev-only reference-render mixin.
+        exclude 'wall_display_smoke.mixins.json', 'dev/kiyo/wallgun/smoke/mixin/**'
+    }
+    reobf { smokeJar {} }
+    def mainMappingJar = tasks.register('mainMappingJar', Jar) {
+        archiveClassifier = 'mapping-only'
+        destinationDirectory = layout.buildDirectory.dir('verification')
+        from sourceSets.main.output
+    }
+    tasks.named('reobfSmokeJar') { libraries.from(mainMappingJar) }
+    tasks.named('smokeJar') { finalizedBy 'reobfSmokeJar' }
+}
+
+if (providers.gradleProperty('serverSmoke').isPresent()) {
+    sourceSets { serverSmoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
+    configurations.serverSmokeImplementation.extendsFrom(configurations.implementation)
+    minecraft.runs.server { mods { wall_display_server_smoke { source sourceSets.serverSmoke } } }
+}

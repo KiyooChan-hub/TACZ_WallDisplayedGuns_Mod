@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="GPL-3.0-only"
+[[mods]]
+modId="tacz_wall_display"
+version="0.4.0"
+displayName="TACZ Wall Display"
+authors="Kiyo"
+description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a stick, and recover the original gun in survival.'''
+[[dependencies.tacz_wall_display]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.21,48)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.tacz_wall_display]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
+[[dependencies.tacz_wall_display]]
+modId="tacz"
+mandatory=true
+versionRange="[1.1.8-hotfix]"
+ordering="AFTER"
+side="BOTH"
