@@ -30,6 +30,8 @@ public class WallSmoke {
     private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
     public WallSmoke() {
+        if (Boolean.getBoolean("wallgun.pose")) {new PoseSmoke();return;}
+        if (Boolean.getBoolean("wallgun.audit")) {new CatalogAudit();return;}
         NeoForge.EVENT_BUS.addListener(this::tick);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RenderLevelStageEvent e)->{
             if(e.getStage()!=net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_LEVEL)return;
@@ -84,8 +86,9 @@ public class WallSmoke {
                         }
                         var player=server.getPlayerList().getPlayers().getFirst();
                         ConversionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
-                        for(Direction direction:Direction.Plane.HORIZONTAL) {
-                            var wall=new BlockPos(30+direction.get2DDataValue()*4,-56,10);
+                        InteractionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
+                        for(Direction direction:Direction.values()) {
+                            var wall=new BlockPos(30+direction.get3DDataValue()*4,-56,10);
                             var target=wall.relative(direction);
                             world.setBlock(wall,Blocks.QUARTZ_BLOCK.defaultBlockState(),3);
                             var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(wall),direction,wall,false);
@@ -94,7 +97,8 @@ public class WallSmoke {
                             if(state==null || state.getValue(WallGunBlock.FACING)!=direction)throw new AssertionError("Placement orientation "+direction);
                             world.setBlock(target,state,3);
                             world.setBlock(wall,Blocks.AIR.defaultBlockState(),3);
-                            if(!world.getBlockState(target).isAir())throw new AssertionError("Wall removal left gun behind "+direction);
+                            if(!world.getBlockState(target).is(WallGuns.BLOCK.get()))throw new AssertionError("Support removal destroyed floating gun "+direction);
+                            world.setBlock(target,Blocks.AIR.defaultBlockState(),3);
                         }
                         player.getAbilities().flying=true;player.onUpdateAbilities();player.teleportTo(.5,-57.2,12.5);player.setYRot(180);player.setXRot(0);
                         player.connection.teleport(.5,-57.2,12.5,180,0);
@@ -205,7 +209,7 @@ public class WallSmoke {
                 screenshot("100-guns.png");stableUploads=WallBatches.uploads;phase=5;ticks=0;
             } else if(phase==5) {
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Dense static scene rebuilt mesh");
-                Files.writeString(output.resolve("checks.txt"),Files.readString(output.resolve("catalog.txt"))+"100 same-material guns, one section: "+WallBatches.stats()+"\nNo uploads during 180 stable ticks. Four placement orientations and support removal verified.\n");
+                Files.writeString(output.resolve("checks.txt"),Files.readString(output.resolve("catalog.txt"))+"100 same-material guns, one section: "+WallBatches.stats()+"\nNo uploads during 180 stable ticks. Six placement faces and survival without support verified.\n");
                 phase=6;ticks=0;
                 mc.getSingleplayerServer().execute(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().connection.teleport(5.5,-57.2,3.5,180,0));
             } else if(phase==7) {
@@ -261,7 +265,12 @@ public class WallSmoke {
             var referenceMaterials=MeshCapture.withoutDegenerateQuads(capture.finish());
             if(!referenceMaterials.keySet().equals(GunMeshes.get(new GunSnapshot(referenceStack)).materials().keySet()))throw new AssertionError(name+" material/texture mismatch");
             var reference=referenceMaterials.values().stream().flatMap(List::stream).toList();
-            var actual=GunMeshes.get(new GunSnapshot(referenceStack)).materials().values().stream().flatMap(List::stream).toList();
+            var product=GunMeshes.get(new GunSnapshot(referenceStack));
+            var actual=product.materials().values().stream().flatMap(List::stream).toList();
+            if(product.canonicalFlipped()) {
+                float depth=actual.stream().map(MeshCapture.Vertex::z).max(Float::compare).orElseThrow()+GunMeshes.WALL_GAP;
+                actual=actual.stream().map(v->new MeshCapture.Vertex(1-v.x(),v.y(),depth-v.z(),v.color(),v.u(),v.v(),v.light(),-v.nx(),v.ny(),-v.nz())).toList();
+            }
             if(name.equals("equipped")) {
                 var plain=GunMeshes.get(new GunSnapshot(sourceStack(id)));
                 if(plain.vertices()==actual.size())throw new AssertionError("Equipped gun has no added attachment geometry");

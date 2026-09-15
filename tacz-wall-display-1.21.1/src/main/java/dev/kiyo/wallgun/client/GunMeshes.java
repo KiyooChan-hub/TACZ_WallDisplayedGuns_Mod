@@ -17,9 +17,11 @@ public final class GunMeshes {
     public static final float WALL_GAP=.001F;
     private static final Map<GunSnapshot, Mesh> CACHE = new HashMap<>();
     public static int bakes, failures;
-    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing) {}
+    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped) {
+        public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing) { this(materials,vertices,missing,false); }
+    }
     public static Mesh get(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.computeIfAbsent(snapshot, GunMeshes::bake); }
-    public static void clear() { CACHE.clear(); }
+    public static void clear() { CACHE.clear(); GunOrientation.clear(); }
     private static Mesh bake(GunSnapshot snapshot) {
         long start = System.nanoTime();
         var stack = snapshot.copyGun();
@@ -30,6 +32,7 @@ public final class GunMeshes {
             var detached = GunDisplayInstance.create(((GunDisplayAccessor) original).wallgun$displayId(), ((GunDisplayAccessor) original).wallgun$display());
             var model = detached.getGunModel();
             if (model == null) throw new IllegalStateException("Missing gun model");
+            GunOrientation.prepareModel(((GunDisplayAccessor) original).wallgun$displayId(),model);
             PoseStack pose = new PoseStack();
             // ItemFrameRenderer applies these OUTSIDE the FIXED item renderer.
             // A south-facing frame turns the item 180 degrees and halves its size.
@@ -42,7 +45,8 @@ public final class GunMeshes {
             MeshCapture.begin(capture);
             try { model.render(pose, stack, ItemDisplayContext.FIXED, RenderType.entityCutout(detached.getModelTexture()), 0, OverlayTexture.NO_OVERLAY); }
             finally { MeshCapture.end(); }
-            Mesh mesh = normalize(capture.finish());
+            var raw = capture.finish();
+            Mesh mesh = GunOrientation.canonical(normalize(raw), raw, ((GunDisplayAccessor) original).wallgun$displayId(), model, pose);
             bakes++;
             WallGuns.LOG.info("Wall gun baked {}: {} vertices, {} materials, {} ms", id, mesh.vertices, mesh.materials.size(), (System.nanoTime()-start)/1_000_000);
             return mesh;

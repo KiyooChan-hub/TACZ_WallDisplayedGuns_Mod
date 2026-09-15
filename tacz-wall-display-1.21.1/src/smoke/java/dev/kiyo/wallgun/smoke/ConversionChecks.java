@@ -92,8 +92,8 @@ final class ConversionChecks {
             require(cancelled.size()==1,"Cancel duplicated or lost gun");same(cancelled.getFirst(),original,"Cancel returns input only");player.getInventory().clearContent();
         }
         // Place using the actual BlockItem path, then save/load, clone and harvest through vanilla loot.
-        for(Direction direction:Direction.Plane.HORIZONTAL) {
-            BlockPos wall=new BlockPos(50+direction.get2DDataValue()*6,-56,10),pos=wall.relative(direction);
+        for(Direction direction:Direction.values()) {
+            BlockPos wall=new BlockPos(60+direction.get3DDataValue()*6,-56,10),pos=wall.relative(direction);
             world.setBlock(wall,Blocks.QUARTZ_BLOCK.defaultBlockState(),3);
             var hit=new BlockHitResult(Vec3.atCenterOf(wall),direction,wall,false);
             var context=new BlockPlaceContext(player,InteractionHand.MAIN_HAND,decor.copy(),hit);
@@ -102,15 +102,17 @@ final class ConversionChecks {
             var restored=new WallGunEntity(pos,entity.getBlockState());restored.loadWithComponents(entity.saveWithFullMetadata(lookup),lookup);
             same(restored.snapshot().copyGun(),original,"BE disk round trip");
             same(WallGuns.BLOCK.get().getCloneItemStack(world,pos,entity.getBlockState()),decor,"Creative clone");
-            var drops=net.minecraft.world.level.block.Block.getDrops(entity.getBlockState(),world,pos,entity);require(drops.size()==1,"Loot count");same(drops.getFirst(),decor,"Loot snapshot");
-            // Two normal break drops, two wall support removal drops; no separate real gun.
-            if(direction.get2DDataValue()%2==0)world.destroyBlock(pos,true,player);else world.destroyBlock(wall,false,player);
+            var drops=net.minecraft.world.level.block.Block.getDrops(entity.getBlockState(),world,pos,entity);require(drops.size()==1,"Loot count");same(drops.getFirst(),original,"Loot original gun snapshot");
+            // Removing the support preserves the display, then a normal destruction yields exactly the original gun.
+            world.destroyBlock(wall,false,player);
+            require(world.getBlockState(pos).is(WallGuns.BLOCK.get()),"Floating gun lost support");
+            world.destroyBlock(pos,true,player);
             require(world.getBlockState(pos).isAir(),"Break/support left block");
             var entities=world.getEntitiesOfClass(ItemEntity.class,new AABB(pos).inflate(2));require(entities.size()==1,"Break duplicated/lost drop "+direction+" count="+entities.size());
-            same(entities.getFirst().getItem(),decor,"Dropped item after removal");entities.forEach(ItemEntity::discard);
+            same(entities.getFirst().getItem(),original,"Dropped original after removal");entities.forEach(ItemEntity::discard);
         }
         Files.createDirectories(output);
-        Files.writeString(output.resolve("conversion.txt"),"PASS: 13 grid positions in 2x2/3x3; complete gun/components/3 attachments/7+1 rounds/name/custom tag round trips; item disk + network codecs; immutable snapshots; live output swap, normal take, forward/reverse shift craft, full inventory, cancel; actual placement on four wall faces, BE disk persistence, clone, loot, breaking and support-removal drops. No preset registry migration.\n");
+        Files.writeString(output.resolve("conversion.txt"),"PASS: 13 grid positions in 2x2/3x3; complete gun/components/3 attachments/7+1 rounds/name/custom tag round trips; item disk + network codecs; immutable snapshots; live output swap, normal take, forward/reverse shift craft, full inventory, cancel; actual placement on six faces, BE disk persistence, clone, loot, original-gun breaking drops and survival without support. No preset registry migration.\n");
     }
     private static void same(ItemStack actual,ItemStack expected,String label) {require(ItemStack.matches(actual,expected),label+" mismatch: "+actual+" expected "+expected);}
     private static void require(boolean ok,String message) {if(!ok)throw new AssertionError(message);}

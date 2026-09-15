@@ -21,7 +21,7 @@ public final class WallBatches {
     private static int frame;
     public static int uploads, lastDraws, lastGuns;
     public static int lastUploadedVertices, maxBatchGuns;
-    private record Entry(WallGunEntity gun, BlockPos pos, Direction facing, GunMeshes.Mesh mesh, int light) {}
+    private record Entry(WallGunEntity gun, BlockPos pos, Direction facing, int roll, boolean flipped, GunMeshes.Mesh mesh, int light) {}
     private record Key(long section, int cell, RenderType type) {}
     private static final class Batch implements AutoCloseable {
         VertexBuffer buffer;
@@ -32,7 +32,7 @@ public final class WallBatches {
     }
     public static void enqueue(WallGunEntity gun, int light) {
         if (world!=gun.getLevel()) { clear();world=(ClientLevel)gun.getLevel(); }
-        RESIDENTS.put(gun.getBlockPos(), new Entry(gun,gun.getBlockPos(),gun.getBlockState().getValue(WallGunBlock.FACING),GunMeshes.get(gun.snapshot()),light));
+        RESIDENTS.put(gun.getBlockPos(), new Entry(gun,gun.getBlockPos(),gun.getBlockState().getValue(WallGunBlock.FACING),gun.mountRoll()+gun.roll(),gun.flipped(),GunMeshes.get(gun.snapshot()),light));
     }
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage()!=RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) return;
@@ -76,21 +76,19 @@ public final class WallBatches {
         try (ByteBufferBuilder storage=new ByteBufferBuilder(65536)) {
             BufferBuilder out=new BufferBuilder(storage,VertexFormat.Mode.QUADS,DefaultVertexFormat.NEW_ENTITY);
             for (Entry entry:entries) {
+                float maxDepth=entry.mesh.materials().values().stream().flatMap(List::stream).map(v->v.z()).max(Float::compare).orElse(GunMeshes.WALL_GAP);
+                DisplayPose pose=new DisplayPose(entry.facing,entry.roll,entry.flipped,GunMeshes.WALL_GAP,maxDepth);
                 for (MeshCapture.Vertex v:entry.mesh.materials().get(key.type)) {
                     lastUploadedVertices++;
-                    float x=v.x(),z=v.z(),nx=v.nx(),nz=v.nz();
-                    switch(entry.facing) {
-                        case NORTH -> { x=1-v.x();z=1-v.z();nx=-v.nx();nz=-v.nz(); }
-                        case EAST -> { x=v.z();z=1-v.x();nx=v.nz();nz=-v.nx(); }
-                        case WEST -> { x=1-v.z();z=v.x();nx=-v.nz();nz=v.nx(); }
-                        default -> {}
-                    }
+                    var point=pose.point(v.x(),v.y(),v.z());
+                    var normal=pose.normal(v.nx(),v.ny(),v.nz());
+                    float x=point.x(), y=point.y(), z=point.z();
                     minX=Math.min(minX,(double)x+entry.pos.getX());maxX=Math.max(maxX,(double)x+entry.pos.getX());
-                    minY=Math.min(minY,(double)v.y()+entry.pos.getY());maxY=Math.max(maxY,(double)v.y()+entry.pos.getY());
+                    minY=Math.min(minY,(double)y+entry.pos.getY());maxY=Math.max(maxY,(double)y+entry.pos.getY());
                     minZ=Math.min(minZ,(double)z+entry.pos.getZ());maxZ=Math.max(maxZ,(double)z+entry.pos.getZ());
-                    out.addVertex(x+(entry.pos.getX()&15),v.y()+(entry.pos.getY()&15),z+(entry.pos.getZ()&15))
+                    out.addVertex(x+(entry.pos.getX()&15),y+(entry.pos.getY()&15),z+(entry.pos.getZ()&15))
                             .setColor(v.color()).setUv(v.u(),v.v()).setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(v.light()==0?entry.light:v.light()).setNormal(nx,v.ny(),nz);
+                            .setLight(v.light()==0?entry.light:v.light()).setNormal(normal.x(),normal.y(),normal.z());
                 }
             }
             MeshData mesh=out.build();

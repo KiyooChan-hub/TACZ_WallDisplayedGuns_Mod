@@ -3,10 +3,10 @@ loaderVersion="[4,)"
 license="GPL-3.0-only"
 [[mods]]
 modId="tacz_wall_display"
-version="0.2.1"
-displayName="TACZ Wall Display (Prototype)"
+version="0.3.0"
+displayName="TACZ Wall Display"
 authors="Kiyo"
-description='''Static wall-mounted TACZ guns, shared original textures, cached material batches. Prototype for TACZ 1.1.8-hotfix-r6.'''
+description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a stick, and recover the original gun in survival.'''
 [[mixins]]
 config="tacz_wall_display.mixins.json"
 [[dependencies.tacz_wall_display]]
