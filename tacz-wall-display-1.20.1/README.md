@@ -1,15 +1,27 @@
 # TACZ Wall Display — Forge 1.20.1
 
-从 1.21.1 / NeoForge 0.4.0 完整移植的独立版本。目标为 Minecraft 1.20.1、Forge 47.4.21、TACZ 1.1.8-hotfix，产物为 Java 17 字节码。
+与 1.21.1 / NeoForge 0.4.1 完整功能对齐的独立版本。目标为 Minecraft 1.20.1、Forge 47.4.21、TACZ 1.1.8-hotfix，产物为 Java 17 字节码。
 
 ## 使用
 
 - 将一支 TACZ 真枪单独放进背包或工作台合成栏，得到装饰枪；装饰枪单独放进合成栏可还原真枪。
 - 保存整支枪的 ItemStack NBT，包括配件、弹药、名称、自定义标签和可序列化 Forge capabilities。每次转换只处理一支枪。
 - 装饰枪支持六面放置，无需依附支撑方块。默认枪托在左、枪口在右；沿用已有枪包朝向校准。
-- 手持木棍右键：顺时针旋转 22.5°。按住 Shift 右键：沿贴面竖直轴翻面；支持创造飞行。每次有效操作播放一次展示框放入物品音效。
+- 手持配置的调整工具（默认木棍）右键：顺时针旋转 22.5°。按住 Shift 右键：沿贴面竖直轴翻面；支持创造飞行。每次有效操作播放一次展示框放入物品音效。
 - 硬度 0.5，无需工具。生存破坏直接掉落原枪；创造破坏按默认逻辑不返还。
 - 物品图标、模型和贴图直接复用已安装 TACZ / 枪包资源。只注册一个通用方块，不生成枪包预设目录。
+
+## 调整工具配置（0.4.1）
+
+采用 Forge SERVER 配置，由服务端同步给客户端。进入存档后，实际配置文件为 `saves/<存档名>/serverconfig/tacz-wall-display-server.toml`；独立服务器对应 `<世界目录>/serverconfig/tacz-wall-display-server.toml`。
+
+```toml
+adjustmentItem = "minecraft:stick"
+```
+
+改成 `minecraft:feather` 后，羽毛负责旋转和翻面，木棍不再调整；物品提示同步显示工具名称。只匹配物品 ID，格式合法但未注册的 ID 不匹配任何物品，空手不能调整。不适配所选物品自身的右键行为。
+
+`defaultconfigs/tacz-wall-display-server.toml` 是默认模板：当存档尚无该配置时，Forge 用它初始化配置。已有存档配置请直接修改该存档的 `serverconfig` 文件。建议退出存档后修改，再重新进入。这与 1.21.1 NeoForge 默认使用实例 `config` 目录的行为不同。
 
 ## 静态渲染和进入世界预加载
 
@@ -31,3 +43,5 @@
 测试源码不进入发布 JAR。`run-client`、`run-server` 和构建缓存均不提交。测试所需枪包不随源码或发布包分发。
 
 本版本适配 1.20.1 自身的物品数据与存档格式，不提供 1.21.1 世界降级转换。
+
+调整工具专项验证：在隔离实例设置默认配置模板后，使用 `gradlew.bat -Psmoke -PtoolItem=minecraft:stick runClient`，或将模板和参数均改为 `minecraft:feather`。验证配置读取、提示文本、旧工具失效、六面实际交互和音效。

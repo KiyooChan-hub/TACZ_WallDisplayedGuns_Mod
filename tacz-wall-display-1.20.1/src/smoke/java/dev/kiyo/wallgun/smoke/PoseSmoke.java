@@ -20,6 +20,7 @@ import java.nio.file.*;
 
 /** Actual client/server input plus rendered pose and bounded-edit checks, isolated from user saves. */
 final class PoseSmoke {
+    private final boolean toolSmoke=Boolean.getBoolean("wallgun.toolSmoke");
     private boolean opened,initialized;
     private volatile boolean ready;
     private volatile Throwable failure;
@@ -39,7 +40,7 @@ final class PoseSmoke {
             lastFrame=now;
         });
     }
-    private Path out(){return Minecraft.getInstance().gameDirectory.toPath().resolve("pose-verification");}
+    private Path out(){return Minecraft.getInstance().gameDirectory.toPath().resolve(toolSmoke?"tool-verification-"+System.getProperty("wallgun.toolItem").replace(':','-'):"pose-verification");}
     private void require(boolean condition,String message){if(!condition)throw new AssertionError(message);}
     private void server(Runnable action) {
         ready=false;
@@ -63,6 +64,14 @@ final class PoseSmoke {
             if(!initialized) {
                 if(++ticks<100)return;
                 initialized=true;ticks=0;mc.setScreen(null);
+                if(toolSmoke) {
+                    require(WallGunConfig.SPEC.isLoaded(),"Server config loaded");
+                    require(WallGunConfig.adjustmentItemId().toString().equals(System.getProperty("wallgun.toolItem")),"Item loaded from config file");
+                    var tooltip=new java.util.ArrayList<net.minecraft.network.chat.Component>();
+                    WallGuns.ITEM.get().appendHoverText(new ItemStack(WallGuns.ITEM.get()),mc.level,tooltip,TooltipFlag.NORMAL);
+                    require(tooltip.get(1).getString().contains(WallGunConfig.adjustmentItemName().getString()),"Tooltip names configured item");
+                    phase=3;prepareFace();return;
+                }
                 server(()->{
                     var level=mc.getSingleplayerServer().overworld();var original=ConversionChecks.equipped(level.registryAccess());
                     try {InteractionChecks.run(mc.getSingleplayerServer().getPlayerList().getPlayers().get(0),out());}catch(Exception ex){throw new RuntimeException(ex);}
@@ -100,6 +109,13 @@ final class PoseSmoke {
             } else if(phase==3) {
                 var face=Direction.values()[faceIndex];var eye=Vec3.atCenterOf(target).add(Vec3.atLowerCornerOf(face.getNormal()).scale(3));
                 mc.player.setPos(eye.x,eye.y-mc.player.getEyeHeight(),eye.z);mc.player.setDeltaMovement(Vec3.ZERO);
+                if(toolSmoke && ticks==10)server(()->mc.getSingleplayerServer().getPlayerList().getPlayers().get(0).setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(WallGunConfig.adjustmentItemId().toString().equals("minecraft:stick")?Items.FEATHER:Items.STICK)));
+                if(toolSmoke && ticks==20) {
+                    var hit=new BlockHitResult(Vec3.atCenterOf(target),face,target,false);
+                    require(!mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,hit).consumesAction(),"Non-configured tool rejected");
+                }
+                if(toolSmoke && ticks==25)checkPose(0,false);
+                if(toolSmoke && ticks==26)server(()->mc.getSingleplayerServer().getPlayerList().getPlayers().get(0).setItemInHand(InteractionHand.MAIN_HAND,configuredTool()));
                 if(ticks==40){click(face);}
                 if(ticks==60){checkPose(1,false);mc.options.keyShift.setDown(true);}
                 if(ticks==70){require(mc.player.isShiftKeyDown()&&!mc.player.isCrouching(),"Client flight Shift input versus pose");click(face);}
@@ -111,7 +127,7 @@ final class PoseSmoke {
                 require(sounds==(faceIndex+1)*3,"Exactly one sound per real client action: "+sounds);
                 if(++faceIndex<6){ticks=0;prepareFace();}
                 else {
-                    Files.writeString(out().resolve("SUCCESS.txt"),Files.readString(out().resolve("stress.txt"))+"PASS: all six faces received actual client use-item packets; creative flight Shift worked without crouching; occupied offhand; 18 actions produced exactly 18 item-frame insertion sounds; client block entities synchronized expected poses; all face screenshots captured.\n");mc.stop();
+                    Files.writeString(out().resolve("SUCCESS.txt"),(toolSmoke?"Configured item "+WallGunConfig.adjustmentItemId()+": loaded from server config; tooltip updated; other item rejected on all six faces.\n":Files.readString(out().resolve("stress.txt")))+"PASS: all six faces received actual client use-item packets; creative flight Shift worked without crouching; occupied offhand; 18 actions produced exactly 18 item-frame insertion sounds; client block entities synchronized expected poses; all face screenshots captured.\n");mc.stop();
                 }
             }
         }catch(Throwable ex){ex.printStackTrace();mc.options.keyShift.setDown(false);try{Files.writeString(out().resolve("FAILED.txt"),ex.toString());}catch(Exception ignored){}mc.stop();}
@@ -126,7 +142,7 @@ final class PoseSmoke {
             level.setBlock(target,Blocks.AIR.defaultBlockState(),3);level.setBlock(target,WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,face),3);
             var display=(WallGunEntity)level.getBlockEntity(target);display.setSnapshot(new GunSnapshot(ConversionChecks.equipped(level.registryAccess())));
             if(face.getAxis().isVertical())display.setMountRoll(face==Direction.UP?4:12);
-            var player=mc.getSingleplayerServer().getPlayerList().getPlayers().get(0);player.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.STICK));player.setItemInHand(InteractionHand.OFF_HAND,new ItemStack(Items.STONE));
+            var player=mc.getSingleplayerServer().getPlayerList().getPlayers().get(0);player.setItemInHand(InteractionHand.MAIN_HAND,toolSmoke?configuredTool():new ItemStack(Items.STICK));player.setItemInHand(InteractionHand.OFF_HAND,new ItemStack(Items.STONE));
             var eye=Vec3.atCenterOf(target).add(Vec3.atLowerCornerOf(face.getNormal()).scale(3));
             float yaw=switch(face){case SOUTH->180;case NORTH->0;case EAST->90;case WEST->-90;default->-90;};
             player.connection.teleport(eye.x,eye.y-player.getEyeHeight(),eye.z,yaw,face==Direction.UP?90:face==Direction.DOWN?-90:0);
@@ -136,6 +152,7 @@ final class PoseSmoke {
         var gun=(WallGunEntity)Minecraft.getInstance().level.getBlockEntity(target);
         require(gun.roll()==roll&&gun.flipped()==flipped,"Network pose face="+Direction.values()[faceIndex]+" actual="+gun.roll()+"/"+gun.flipped());
     }
+    private ItemStack configuredTool(){return new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(WallGunConfig.adjustmentItemId()));}
     private void click(Direction face) {
         var mc=Minecraft.getInstance();var hit=new BlockHitResult(Vec3.atCenterOf(target),face,target,false);
         require(mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,hit).consumesAction(),"Client stick use consumes action");

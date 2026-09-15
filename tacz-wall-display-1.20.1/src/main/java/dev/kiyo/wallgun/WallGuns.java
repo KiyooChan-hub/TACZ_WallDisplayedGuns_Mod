@@ -23,9 +23,10 @@ public final class WallGuns {
     public static final RegistryObject<BlockEntityType<WallGunEntity>> ENTITY=ENTITIES.register("decorative_gun",()->BlockEntityType.Builder.of(WallGunEntity::new,BLOCK.get()).build(null));
     public static final RegistryObject<SimpleCraftingRecipeSerializer<GunConversionRecipe>> CONVERSION=RECIPES.register("gun_conversion",()->new SimpleCraftingRecipeSerializer<>(GunConversionRecipe::new));
     public WallGuns() {
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.SERVER,WallGunConfig.SPEC,WallGunConfig.FILE_NAME);
         var bus=FMLJavaModLoadingContext.get().getModEventBus();BLOCKS.register(bus);ITEMS.register(bus);ENTITIES.register(bus);RECIPES.register(bus);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event)->{
-            if(event.getItemStack().is(Items.STICK) && event.getLevel().getBlockState(event.getPos()).is(BLOCK.get()))event.setUseBlock(Event.Result.ALLOW);
+            if(WallGunConfig.isAdjustmentItem(event.getItemStack()) && event.getLevel().getBlockState(event.getPos()).is(BLOCK.get()))event.setUseBlock(Event.Result.ALLOW);
         });
     }
     public static ItemStack stack(GunSnapshot snapshot) {

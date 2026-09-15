@@ -30,7 +30,7 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override public net.minecraft.world.InteractionResult use(BlockState state, Level level, BlockPos pos,
             net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
         ItemStack stack=player.getItemInHand(hand);
-        if (!stack.is(Items.STICK)) return net.minecraft.world.InteractionResult.PASS;
+        if (!WallGunConfig.isAdjustmentItem(stack)) return net.minecraft.world.InteractionResult.PASS;
         if (!(level.getBlockEntity(pos) instanceof WallGunEntity gun) || gun.snapshot() == null) return net.minecraft.world.InteractionResult.FAIL;
         if (!level.isClientSide) {
             Direction face = state.getValue(FACING);
