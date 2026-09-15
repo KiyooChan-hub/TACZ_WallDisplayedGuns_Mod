@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[47,)"
+loaderVersion="[0,)"
 license="GPL-3.0-only"
 [[mods]]
 modId="tacz_wall_display"
@@ -7,11 +7,13 @@ version="0.4.1"
 displayName="TACZ Wall Display"
 authors="Kiyo"
 description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a configurable item, and recover the original gun in survival.
-Requires Minecraft 1.20.1, Forge 47.4.21 or later in the 47 series, and TACZ 1.1.8-hotfix (exact version). Install this mod and TACZ on both client and server.'''
+Requires Minecraft 1.20.1, Forge, and TACZ 1.1.8-hotfix (exact version). Recommended Forge: 47.4.21; no platform version requirement is imposed by this addon. Install this mod and TACZ on both client and server.'''
+# Require the correct platform, but do not gate its version.
+# [0,) also works on old Forge; an empty range is not accepted there.
 [[dependencies.tacz_wall_display]]
 modId="forge"
 mandatory=true
-versionRange="[47.4.21,48)"
+versionRange="[0,)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.tacz_wall_display]]

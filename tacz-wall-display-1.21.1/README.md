@@ -4,9 +4,11 @@ Minecraft 1.21.1 / NeoForge 21.1.248 / TACZ 1.1.8-hotfix-r6 / Java 21。
 
 ## 前置与发布说明
 
-唯一需要另行安装的模组前置是对应版本的 TACZ；本模组和 TACZ 都需要装在客户端及服务端。当前加载器下限是已验证的支持基线，不代表已经验证过所有更高补丁版本。
+唯一需要另行安装的模组前置是对应版本的 TACZ；本模组和 TACZ 都需要装在客户端及服务端。Forge／NeoForge 的版本号只作推荐，本附属模组不再按平台版本号阻止加载。
 
-硬性限制：Minecraft `[1.21.1]`、NeoForge `[21.1.248,21.2)`、TACZ `[1.1.8-hotfix-r6]`。使用 Java 21。TACZ 必须来自 **[UNOFFICIAL] TaCZ NeoForge Port**，不是官方 Forge 版。
+硬性限制：Minecraft `[1.21.1]`、TACZ `[1.1.8-hotfix-r6]`，必须使用 NeoForge。NeoForge **21.1.248 仅为推荐版本**，不是最低版本。使用 Java 21。TACZ 必须来自 **[UNOFFICIAL] TaCZ NeoForge Port**，不是官方 Forge 版。
+
+平台依赖与 `loaderVersion` 使用 `[0,)`，取消本模组施加的平台版本门槛；TACZ 或整合包内其他模组的要求仍由它们自己决定。低版本验证边界见下方依赖评估，不宣称所有历史版本都兼容。
 
 TACZ 的版本是精确限制：静态捕获 Mixin 调用了其内部渲染接口，未验证其他版本前不放宽。TACZ 自带 SimpleBedrockModel 等库，无需单独安装 GeckoLib。Cloth Config、Sodium／Embeddium、Iris、RuOK、Packet Fixer 均不是本附属模组的硬性前置；枪包自身的依赖由枪包决定。
 
