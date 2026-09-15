@@ -1,6 +1,16 @@
 # TACZ Wall Display — Forge 1.20.1
 
-与 1.21.1 / NeoForge 0.4.1 完整功能对齐的独立版本。目标为 Minecraft 1.20.1、Forge 47.4.21、TACZ 1.1.8-hotfix，产物为 Java 17 字节码。
+与 1.21.1 / NeoForge 0.4.2 完整功能对齐的独立版本。目标为 Minecraft 1.20.1、Forge 47.4.21、TACZ 1.1.8-hotfix，产物为 Java 17 字节码。
+
+## 0.4.2：装饰枪始终捕获高精度模型
+
+修复部分瞄具在首次静态捕获时选到 TACZ 低模、随后被缓存的问题。仅在 `MeshCapture` 生效期间覆盖 TACZ 的高模距离判断；由 TACZ 同时选择高模及对应贴图。继续使用静态 `FIXED` 捕获，不运行第一人称瞄准渲染，不改写 TACZ 配置。正常真枪渲染仍遵循 TACZ 的原有距离判断。
+
+升级后重启游戏即可让已有装饰枪重新生成模型缓存，无需重新合成、破坏重放或迁移存档数据。
+
+本轮验证：13 项单元测试通过；使用实际发布 JAR，在独立正式客户端中测试 EXP3、ACOG TA31、Elcan 4× 三种瞄具。按 TACZ 距离设置 0 → 8 → 9999 分别清空缓存后捕获，三组模型的顶点、材质、贴图及全部顶点属性完全一致，均无 LOD 贴图。另验证捕获前后普通 TACZ 远距离判断不变、静态缓存复用，以及设置为 0 时三支已装配装饰枪正常摆放渲染。此次未重做大规模帧率基准测试。
+
+复现回归：`gradlew --offline test build -Psmoke smokeJar` 生成正式 JAR 及独立测试 JAR；在隔离实例中搭配对应 TACZ，以 JVM 参数 `-Dwallgun.lodSmoke=true` 启动，结果写入 `lod-verification/SUCCESS.txt` 和截图。测试 JAR 仅用于隔离实例，不能随正式模组部署。开发环境也支持 `gradlew --offline -Psmoke -PlodSmoke runClient`。
 
 ## 前置与发布说明
 

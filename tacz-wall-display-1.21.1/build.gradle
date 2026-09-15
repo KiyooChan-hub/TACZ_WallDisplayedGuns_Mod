@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'net.neoforged.moddev' version '2.0.74'
 }
-version = '0.4.1'
+version = '0.4.2'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -17,7 +17,7 @@ neoForge {
     version = '21.1.248'
     addModdingDependenciesTo sourceSets.test
     mods { tacz_wall_display { sourceSet sourceSets.main } }
-    runs { client { client(); if (providers.gradleProperty('toolItem').isPresent()) { jvmArgument '-Dwallgun.toolSmoke=true'; jvmArgument '-Dwallgun.toolItem='+providers.gradleProperty('toolItem').get() }; gameDirectory = file('run-client'); jvmArgument '-Xmx6G'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgument '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgument '-Dwallgun.audit=true'; if (providers.gradleProperty('pose').isPresent()) jvmArgument '-Dwallgun.pose=true'; if (providers.gradleProperty('auditOnly').isPresent()) jvmArgument '-Dwallgun.auditOnly='+providers.gradleProperty('auditOnly').get(); programArguments.addAll '--width','1280','--height','900' } }
+    runs { client { client(); if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgument '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('toolItem').isPresent()) { jvmArgument '-Dwallgun.toolSmoke=true'; jvmArgument '-Dwallgun.toolItem='+providers.gradleProperty('toolItem').get() }; gameDirectory = file('run-client'); jvmArgument '-Xmx6G'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgument '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgument '-Dwallgun.audit=true'; if (providers.gradleProperty('pose').isPresent()) jvmArgument '-Dwallgun.pose=true'; if (providers.gradleProperty('auditOnly').isPresent()) jvmArgument '-Dwallgun.auditOnly='+providers.gradleProperty('auditOnly').get(); programArguments.addAll '--width','1280','--height','900' } }
 }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 test { useJUnitPlatform() }
@@ -28,5 +28,14 @@ if (providers.gradleProperty('smoke').isPresent()) {
         addModdingDependenciesTo sourceSets.smoke
         mods { wall_display_smoke { sourceSet sourceSets.smoke } }
         runs { client { sourceSet = sourceSets.smoke } }
+    }
+}
+
+if (providers.gradleProperty('smoke').isPresent()) {
+    tasks.register('smokeJar', Jar) {
+        archiveClassifier = 'test-only'
+        from sourceSets.smoke.output
+        filesMatching('META-INF/neoforge.mods.toml') { filter { line -> line.trim() == '[[mixins]]' || line.trim() == 'config="wall_display_smoke.mixins.json"' ? null : line } }
+        exclude 'wall_display_smoke.mixins.json', 'dev/kiyo/wallgun/smoke/mixin/**'
     }
 }

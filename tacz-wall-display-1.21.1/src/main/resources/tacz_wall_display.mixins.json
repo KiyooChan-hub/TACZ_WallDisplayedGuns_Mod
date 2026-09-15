@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "BedrockCaptureMixin",
+    "HighDetailCaptureMixin",
     "GunDisplayAccessor",
     "GunTransformInvoker",
     "AccelerationCaptureMixin",
