@@ -6,7 +6,8 @@ modId="tacz_wall_display"
 version="0.4.1"
 displayName="TACZ Wall Display"
 authors="Kiyo"
-description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a configurable item, and recover the original gun in survival.'''
+description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a configurable item, and recover the original gun in survival.
+Requires Minecraft 1.20.1, Forge 47.4.21 or later in the 47 series, and TACZ 1.1.8-hotfix (exact version). Install this mod and TACZ on both client and server.'''
 [[dependencies.tacz_wall_display]]
 modId="forge"
 mandatory=true
@@ -19,6 +20,8 @@ mandatory=true
 versionRange="[1.20.1]"
 ordering="NONE"
 side="BOTH"
+# Exact TACZ pin: static capture mixins use internal rendering classes and methods.
+# Keep required on BOTH sides: recipes and saved original guns also need TACZ.
 [[dependencies.tacz_wall_display]]
 modId="tacz"
 mandatory=true

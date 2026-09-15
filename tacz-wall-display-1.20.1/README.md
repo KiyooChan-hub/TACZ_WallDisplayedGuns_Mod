@@ -2,6 +2,16 @@
 
 与 1.21.1 / NeoForge 0.4.1 完整功能对齐的独立版本。目标为 Minecraft 1.20.1、Forge 47.4.21、TACZ 1.1.8-hotfix，产物为 Java 17 字节码。
 
+## 前置与发布说明
+
+唯一需要另行安装的模组前置是对应版本的 TACZ；本模组和 TACZ 都需要装在客户端及服务端。当前加载器下限是已验证的支持基线，不代表已经验证过所有更高补丁版本。
+
+硬性限制：Minecraft `[1.20.1]`、Forge `[47.4.21,48)`、TACZ `[1.1.8-hotfix]`。Java 最低 17，使用兼容的运行时。TACZ 使用官方 Forge 版。
+
+TACZ 的版本是精确限制：静态捕获 Mixin 调用了其内部渲染接口，未验证其他版本前不放宽。TACZ 自带 SimpleBedrockModel 等库，无需单独安装 GeckoLib。Cloth Config、Sodium／Embeddium、Iris、RuOK、Packet Fixer 均不是本附属模组的硬性前置；枪包自身的依赖由枪包决定。
+
+可直接复制的英文页面见 [CurseForge 说明](../tacz-wall-display-1.21.1/CURSEFORGE.md)，依赖审查依据及分文件发布关系见 [依赖评估](../tacz-wall-display-1.21.1/DEPENDENCIES.md)。
+
 ## 使用
 
 - 将一支 TACZ 真枪单独放进背包或工作台合成栏，得到装饰枪；装饰枪单独放进合成栏可还原真枪。
