@@ -27,11 +27,12 @@ public final class WallGuns {
     public static final DeferredItem<WallGunItem> ITEM = ITEMS.register("decorative_gun", () -> new WallGunItem(BLOCK.get(), new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WallGunEntity>> ENTITY = ENTITIES.register("decorative_gun", () -> BlockEntityType.Builder.of(WallGunEntity::new, BLOCK.get()).build(null));
     public static final DeferredHolder<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<GunConversionRecipe>> CONVERSION = RECIPES.register("gun_conversion", () -> new SimpleCraftingRecipeSerializer<>(GunConversionRecipe::new));
-    public WallGuns(IEventBus bus) {
+    public WallGuns(IEventBus bus, net.neoforged.fml.ModContainer container) {
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, WallGunConfig.SPEC, WallGunConfig.FILE_NAME);
         COMPONENTS.register(bus); BLOCKS.register(bus); ITEMS.register(bus); ENTITIES.register(bus); RECIPES.register(bus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) -> {
-            // Shift normally bypasses block use. Opt in only for our block and the interacting stick.
-            if (event.getItemStack().is(Items.STICK) && event.getLevel().getBlockState(event.getPos()).is(BLOCK.get()))
+            // Shift normally bypasses block use. Opt in only for our block and the configured tool.
+            if (WallGunConfig.isAdjustmentItem(event.getItemStack()) && event.getLevel().getBlockState(event.getPos()).is(BLOCK.get()))
                 event.setUseBlock(net.neoforged.neoforge.common.util.TriState.TRUE);
         });
     }

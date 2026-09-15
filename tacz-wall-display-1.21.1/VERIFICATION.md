@@ -1,3 +1,21 @@
+# 0.4.1 调整工具配置验证（2026-09-15）
+
+目标：Minecraft 1.21.1 / NeoForge 21.1.248 / Java 21。只更新 1.21.1。
+
+- 新增 SERVER 配置 adjustmentItem，默认 minecraft:stick；本机生成于实例 config/tacz-wall-display-server.toml。联机由 NeoForge 同步服务端配置。
+- 物品 ID 同时控制普通右键和 Shift 翻面入口；提示文本使用配置物品名称。不适配物品自身的右键功能。
+- test build 通过：13 项既有单元测试，零失败、零跳过；发布包无 smoke 测试类。
+- 默认木棍：从实际配置文件加载，六面实际客户端操作成功；羽毛不触发调整。
+- 自定义羽毛：修改配置文件并重新启动测试实例，六面实际客户端操作成功；木棍不触发调整。
+- 两轮分别验证普通旋转、创造飞行 Shift 非蹲伏翻面、副手持物、客户端姿态同步和提示文本，每轮 18 次有效动作恰好播放 18 次音效。
+- 专项测试使用隔离存档及内置服务器。本次未重新执行全部枪包及压力回归，静态渲染实现未改动；未额外实测外置多人服务器。
+
+已安装 tacz-wall-display-1.21.1-0.4.1.jar，SHA-256：13D6D9D433E84CC98F43C9EA6E427D7D287D24F76007D53862C78AF82721E632。0.4.0 原包备份于输出目录 backup。实例配置保持默认木棍。
+
+日志与截图：E:\GAME\Minecraft\Codex_Output\tacz-wall-display-0.4.1。default-tool.log / configured-tool.log 及 project/run-client/tool-verification-* 包含两轮检查结果。
+
+---
+
 # 0.3.0 验证记录
 
 ## 功能实现
