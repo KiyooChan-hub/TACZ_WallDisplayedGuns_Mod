@@ -24,10 +24,4 @@
 
 已清理本地 origin 的旧跟踪引用和旧 reflog，避免 Fork 本地历史图继续显示旧分支；origin 的 URL 与分支配置保留。未推送或修改远端。
 
-远端若已包含旧历史，需要由用户手动更新。清理前本地记录的 origin/master 为 `a0f9b1d9ec0e72b3a3765bdf11ca6667d855c4b4`；核实远端没有他人新提交后，可从本仓库手动执行：
-
-```sh
-git push --force-with-lease=refs/heads/master:a0f9b1d9ec0e72b3a3765bdf11ca6667d855c4b4 origin master
-```
-
-该命令在远端已发生其他更新时会拒绝覆盖。远端未同步前，重新 fetch 会再次显示远端的旧历史。
+后续已将清理后的完整历史迁移到 GitHub，并独立拉取验证。本地 origin 与 master 上游均已切换到 GitHub，不再使用 Codeup，也不再需要此前针对 Codeup 的强制推送步骤。详见 [GitHub 迁移记录](GITHUB-MIGRATION.md)。

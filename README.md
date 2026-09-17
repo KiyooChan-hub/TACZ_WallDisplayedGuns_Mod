@@ -11,3 +11,7 @@ TACZ 静态装饰枪模组的独立开发仓库，当前位置为 `D:/FORK/TACZ_
 两个版本均保留原有 Gradle 工程布局，分别进入子目录使用 Gradle Wrapper 构建。Minecraft 实例、TACZ 依赖及已发布制品的位置保持原样，具体要求见各子工程说明。
 
 此仓库只维护装饰枪模组及其测试，不包含 HK416D、L119A2 等独立枪包工程。开发和提交规则见 [AGENTS.md](AGENTS.md)。
+
+## 远端仓库
+
+唯一维护远端：[GitHub — KiyooChan-hub/TACZ_WallDisplayedGuns_Mod](https://github.com/KiyooChan-hub/TACZ_WallDisplayedGuns_Mod)。默认分支 `master`，本地 `origin` 已切换至 GitHub。迁移与核验记录见 [GitHub 迁移记录](migration/GITHUB-MIGRATION.md)。
