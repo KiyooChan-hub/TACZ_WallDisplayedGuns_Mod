@@ -18,6 +18,16 @@ public final class GunOrientation {
         // This pack authors its aiming ray as a 100-pixel cube rather than BeamRenderer geometry.
         // Hide that exact helper on the detached display only; the PEQ device remains visible.
         if(displayId.toString().equals("ccrp:hk416_sopmod_display")) hideHelper(model.getRootNode(),"laser_illuminated");
+        // TACZ's additional_magazine function renders a second copy of magazine geometry.
+        // These CAG models moved the main magazine by +0.2 Z but retain the reload helper
+        // at its original pivot. Only suppress the duplicate on this detached wall model;
+        // the player's animated model and its reload helper must remain untouched.
+        if (switch (displayId.toString()) {
+            case "spearhead:hk416d_cag_display", "spearhead:hk416d_cag_fde_display",
+                 "spearhead:hk416d_cag_two_tone_display" -> true;
+            default -> false;
+        }) hideHelper(model.getRootNode(), "additional_magazine");
+
     }
     private static void hideHelper(com.tacz.guns.client.model.bedrock.BedrockPart part,String name) {
         if(part==null)return;
