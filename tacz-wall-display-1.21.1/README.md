@@ -82,3 +82,5 @@ adjustmentItem = "minecraft:stick"
 测试源集不进入发布 JAR。各测试只使用 `run-client` 内的新存档或独立副本；不编辑玩家存档。
 
 调整工具专项回归：将隔离实例的配置设为目标 ID 后，运行 `gradlew -Psmoke -PtoolItem=minecraft:stick runClient`；可用 `minecraft:feather` 验证改配、旧工具失效、提示文本和六面实际客户端交互。
+
+装饰枪兼容性专项回归：独立测试 JAR 配合 JVM 参数 `-Dwallgun.compatibilitySmoke=true`，默认以 TACZ 自带 HK416 与 SCAR-L 检查四档弹匣静态模型、双向合成、原枪掉落和挂墙渲染。可用 `-Dwallgun.compatibilityGuns=namespace:first,namespace:second` 指定两个支持测试配件的原枪 ID。结果写入 `display-compatibility-verification`；不验证真枪射击、换弹或枪包配方。历史清理说明见根目录 `migration/HISTORY-CLEANUP.md`。
