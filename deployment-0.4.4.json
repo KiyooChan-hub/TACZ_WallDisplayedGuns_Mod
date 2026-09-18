@@ -1,0 +1,8 @@
+{
+  "deployed": "E:\\GAME\\Minecraft\\Minecraft 1.21.1\\.minecraft\\mods\\tacz-wall-display-1.21.1-0.4.4.jar",
+  "change": "Remove three gun-ID-specific additional_magazine visibility overrides",
+  "version": "0.4.4",
+  "backupDirectory": "E:\\GAME\\Minecraft\\Codex_Output\\wall-display-0.4.4\\deployment-backup-20260918-221158",
+  "date": "2026-09-18T22:11:58.0552879+08:00",
+  "tests": "Not run; jar compilation only"
+}
