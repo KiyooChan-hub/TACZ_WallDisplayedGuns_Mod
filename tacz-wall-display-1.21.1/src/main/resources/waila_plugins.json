@@ -1,0 +1,7 @@
+{
+  "tacz_wall_display:gun_name": {
+    "entrypoints": {"client": "dev.kiyo.wallgun.compat.WthitPlugin"},
+    "side": "client",
+    "required": ["tacz_wall_display"]
+  }
+}

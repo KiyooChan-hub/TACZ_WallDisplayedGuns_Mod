@@ -2,13 +2,14 @@ plugins {
     id 'java'
     id 'net.neoforged.moddev' version '2.0.74'
 }
-version = '0.4.5'
+version = '0.4.6'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 repositories { mavenCentral() }
 def instance = providers.gradleProperty('minecraftInstance').getOrElse('E:/GAME/Minecraft/Minecraft 1.21.1/.minecraft')
 dependencies {
+    compileOnly files("${instance}/mods/wthit-1.21.1-neo-12.10.2.jar")
     implementation files("${instance}/mods/tacz-neoforge-1.21.1-1.1.8-hotfix-r6.jar")
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -24,6 +25,7 @@ test { useJUnitPlatform() }
 if (providers.gradleProperty('smoke').isPresent()) {
     sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
     configurations.smokeImplementation.extendsFrom(configurations.implementation)
+    configurations.smokeCompileOnly.extendsFrom(configurations.compileOnly)
     neoForge {
         addModdingDependenciesTo sourceSets.smoke
         mods { wall_display_smoke { sourceSet sourceSets.smoke } }

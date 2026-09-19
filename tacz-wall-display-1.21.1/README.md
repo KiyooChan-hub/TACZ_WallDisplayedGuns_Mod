@@ -1,6 +1,12 @@
-# TACZ Wall Display 0.4.5
+# TACZ Wall Display 0.4.6
 
 Minecraft 1.21.1 / NeoForge 21.1.248 / TACZ 1.1.8-hotfix-r6 / Java 21。
+
+## 0.4.6：WTHIT 显示枪械本名
+
+安装 WTHIT 时，指向装饰枪会显示所保存原枪的本名，不再显示“装饰枪”前缀；保留 WTHIT 的图标、名称格式和模组来源行。名称随客户端语言切换，不采用铁砧自定义名称。WTHIT 为可选兼容，不增加必需前置。只更新 1.21.1。
+
+构建需要本机 `wthit-1.21.1-neo-12.10.2.jar` 作为 compileOnly API；不会打包进制品。隔离客户端使用测试专用 JAR 和 `-Dwallgun.wthitSmoke=true` 验证实际准星提示。
 
 ## 0.4.5：静态装饰只显示当前安装的弹匣
 
