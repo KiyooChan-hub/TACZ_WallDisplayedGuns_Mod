@@ -1,6 +1,14 @@
-# TACZ Wall Display 0.4.2
+# TACZ Wall Display 0.4.5
 
 Minecraft 1.21.1 / NeoForge 21.1.248 / TACZ 1.1.8-hotfix-r6 / Java 21。
+
+## 0.4.5：静态装饰只显示当前安装的弹匣
+
+修复新建独立枪械模型时未执行 TACZ 动画状态清理，导致换弹用 `additional_magazine` 与正常弹匣同时被捕获的问题。静态捕获前仅对独立模型恢复正常状态，再应用已有的枪包显隐修正；标准与扩容弹匣继续由 TACZ 按保存的原枪配件选择。不会启动逐帧动画，也不改变真枪数据或玩家手持模型。
+
+重启游戏后，已有装饰枪会重新生成正确缓存，无需拆除或重新合成。仅更新 1.21.1；1.20.1 保持原版本。
+
+N4 专项测试：`gradlew --offline test build -Psmoke smokeJar`，独立测试实例使用 `-Dwallgun.magazineSmoke=true`。`-Dwallgun.magazineSeedOld=true` 配合旧版正式 JAR 复现重叠并保存测试存档，替换为新版后使用 `-Dwallgun.magazineReopen=true` 验证旧存档升级和重新进档。需要本机 Suffuse 与 Spearhead 枪包；只在隔离测试实例中运行。
 
 ## 0.4.2：装饰枪始终捕获高精度模型
 
