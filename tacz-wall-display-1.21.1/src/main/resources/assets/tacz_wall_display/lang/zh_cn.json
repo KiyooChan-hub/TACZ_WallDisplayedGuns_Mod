@@ -3,5 +3,5 @@
   "item.tacz_wall_display.named": "装饰枪 · %s",
   "tooltip.tacz_wall_display.place": "可贴六面放置，拆除支撑后仍保留。",
   "tooltip.tacz_wall_display.restore": "生存拆除返还原枪；也可单独放入合成栏还原。",
-  "tooltip.tacz_wall_display.adjust": "%s 右键：顺时针转 22.5°；Shift+右键：翻面。"
+  "tooltip.tacz_wall_display.adjust": "%s 右键：默认面逆时针转 22.5°，翻面后顺时针；Shift+右键：翻面。"
 }

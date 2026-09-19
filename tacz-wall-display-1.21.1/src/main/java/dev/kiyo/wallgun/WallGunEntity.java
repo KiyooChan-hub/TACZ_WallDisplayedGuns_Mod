@@ -23,7 +23,8 @@ public final class WallGunEntity extends BlockEntity {
     }
     public void adjust(boolean flip, boolean fromBack) {
         // Pose = R(roll) * F. A flip around the mounting plate's fixed vertical axis is F * R = R(-roll) * F.
-        if (flip) setPose(-roll, !flipped); else setPose(roll + (fromBack ? -1 : 1), flipped);
+        // Default side turns counterclockwise; flipped side clockwise, as seen by the player.
+        if (flip) setPose(-roll, !flipped); else setPose(roll + ((flipped ^ fromBack) ? 1 : -1), flipped);
     }
     public WallGunEntity(BlockPos pos, BlockState state) { super(WallGuns.ENTITY.get(), pos, state); }
     public GunSnapshot snapshot() { return snapshot; }

@@ -3,5 +3,5 @@
   "item.tacz_wall_display.named": "Decorative Gun · %s",
   "tooltip.tacz_wall_display.place": "Place on any of six faces; support is optional.",
   "tooltip.tacz_wall_display.restore": "Breaking in survival returns the original gun; crafting also restores it.",
-  "tooltip.tacz_wall_display.adjust": "%s: right-click rotates 22.5 degrees; Shift+right-click turns over."
+  "tooltip.tacz_wall_display.adjust": "%s: right-click rotates 22.5 degrees counterclockwise, or clockwise when turned over; Shift+right-click turns over."
 }

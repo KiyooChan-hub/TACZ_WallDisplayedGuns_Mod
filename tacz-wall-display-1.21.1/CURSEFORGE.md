@@ -37,7 +37,7 @@ Gun-pack and attachment compatibility depends on the source models. Unusual cust
 1. Place one TACZ gun, with or without attachments, by itself in your inventory crafting grid or a crafting table. Take the resulting decorative gun block.
 2. Place the block wherever you want to display it.
 3. Break it by hand in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. You can also place the decorative block by itself in a crafting grid to recover the gun.
-4. Hold a stick, or the item selected in the configuration, and right-click to rotate the display clockwise by 22.5 degrees. Hold Shift and right-click to flip it over and show its other side. Shift works while flying in Creative mode.
+4. Hold a stick, or the item selected in the configuration, and right-click to rotate the display by 22.5 degrees: counterclockwise on its default side, clockwise after turning it over. Hold Shift and right-click to flip it over and show its other side. Shift works while flying in Creative mode.
 
 ## Adjustment Item
 

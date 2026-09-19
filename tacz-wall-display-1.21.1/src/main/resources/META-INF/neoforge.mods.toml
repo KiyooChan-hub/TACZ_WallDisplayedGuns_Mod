@@ -3,7 +3,7 @@ loaderVersion="[0,)"
 license="GPL-3.0-only"
 [[mods]]
 modId="tacz_wall_display"
-version="0.4.6"
+version="0.4.7"
 displayName="TACZ Wall Display"
 authors="Kiyo"
 description='''Turn equipped TACZ guns into decorative blocks. Place on six faces, rotate or turn over with a configurable item, and recover the original gun in survival.

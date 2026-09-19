@@ -114,17 +114,19 @@ final class PoseSmoke {
                 if(toolSmoke && ticks==25)checkPose(0,false);
                 if(toolSmoke && ticks==26)server(()->mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst().setItemInHand(InteractionHand.MAIN_HAND,configuredTool()));
                 if(ticks==40){click(face);}
-                if(ticks==60){checkPose(1,false);mc.options.keyShift.setDown(true);}
+                if(ticks==60){checkPose(15,false);mc.options.keyShift.setDown(true);}
                 if(ticks==70){require(mc.player.isShiftKeyDown()&&!mc.player.isCrouching(),"Client flight Shift input versus pose");click(face);}
-                if(ticks==90){checkPose(15,true);screenshot("face-"+face.getName()+"-flipped.png");}
+                if(ticks==90){checkPose(1,true);mc.options.keyShift.setDown(false);screenshot("face-"+face.getName()+"-flipped.png");}
                 if(ticks==100)click(face);
-                if(ticks==120){checkPose(1,false);mc.options.keyShift.setDown(false);}
+                if(ticks==120){checkPose(2,true);mc.options.keyShift.setDown(true);}
+                if(ticks==125)click(face);
+                if(ticks==135){checkPose(14,false);mc.options.keyShift.setDown(false);}
                 if(ticks==140){screenshot("face-"+face.getName()+".png");}
                 if(++ticks<150)return;
-                require(sounds==(faceIndex+1)*3,"Exactly one sound per real client action: "+sounds);
+                require(sounds==(faceIndex+1)*4,"Exactly one sound per real client action: "+sounds);
                 if(++faceIndex<6){ticks=0;prepareFace();}
                 else {
-                    Files.writeString(out().resolve("SUCCESS.txt"),(toolSmoke?"Configured item "+WallGunConfig.adjustmentItemId()+": loaded from server config; tooltip updated; other item rejected on all six faces.\n":Files.readString(out().resolve("stress.txt")))+"PASS: all six faces received actual client use-item packets; creative flight Shift worked without crouching; occupied offhand; 18 actions produced exactly 18 item-frame insertion sounds; client block entities synchronized expected poses; all face screenshots captured.\n");mc.stop();
+                    Files.writeString(out().resolve("SUCCESS.txt"),(toolSmoke?"Configured item "+WallGunConfig.adjustmentItemId()+": loaded from server config; tooltip updated; other item rejected on all six faces.\n":Files.readString(out().resolve("stress.txt")))+"PASS: all six faces received actual client use-item packets; creative flight Shift worked without crouching; occupied offhand; 24 actions produced exactly 24 item-frame insertion sounds; client block entities synchronized expected poses; all face screenshots captured.\n");mc.stop();
                 }
             }
         }catch(Throwable ex){ex.printStackTrace();mc.options.keyShift.setDown(false);try{Files.writeString(out().resolve("FAILED.txt"),ex.toString());}catch(Exception ignored){}mc.stop();}

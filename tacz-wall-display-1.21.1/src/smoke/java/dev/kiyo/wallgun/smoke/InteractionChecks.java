@@ -43,7 +43,12 @@ final class InteractionChecks {
             player.setShiftKeyDown(false);
             for(int i=1;i<=16;i++) {
                 require(player.gameMode.useItemOn(player,level,stick,InteractionHand.MAIN_HAND,hit).consumesAction(),"Stick interaction "+face);
-                require(gun.roll()==i%16&&!gun.flipped(),"Clockwise step "+face+" "+i);
+                require(gun.roll()==Math.floorMod(-i,16)&&!gun.flipped(),"Counterclockwise step "+face+" "+i);
+            }
+            gun.adjust(true,false);
+            for(int i=1;i<=16;i++) {
+                player.gameMode.useItemOn(player,level,stick,InteractionHand.MAIN_HAND,hit);
+                require(gun.roll()==i%16&&gun.flipped(),"Flipped clockwise step "+face+" "+i);
             }
             gun.setMountRoll(face.getAxis().isVertical()?4:0);gun.setPose(3,false);player.setShiftKeyDown(true);
             require(!player.isCrouching(),"Fixture must be flying without crouching pose");
@@ -58,7 +63,7 @@ final class InteractionChecks {
             player.setShiftKeyDown(false);var back=Vec3.atCenterOf(pos).subtract(Vec3.atLowerCornerOf(face.getNormal()).scale(2));
             player.setPos(back.x,back.y-player.getEyeHeight(),back.z);
             player.gameMode.useItemOn(player,level,stick,InteractionHand.MAIN_HAND,hit);
-            require(gun.roll()==2,"Backside clockwise");require(gun.snapshot().equals(snapshot),"Interaction mutated original gun");
+            require(gun.roll()==4,"Backside counterclockwise");require(gun.snapshot().equals(snapshot),"Interaction mutated original gun");
             player.setItemInHand(InteractionHand.MAIN_HAND,ItemStack.EMPTY);player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
             require(player.gameMode.destroyBlock(pos),"Hand survival break");
             var drops=level.getEntitiesOfClass(ItemEntity.class,new AABB(pos).inflate(2));
@@ -69,6 +74,6 @@ final class InteractionChecks {
             require(level.getEntitiesOfClass(ItemEntity.class,new AABB(pos).inflate(2)).isEmpty(),"Creative must not drop");
         }
         player.setShiftKeyDown(false);player.setItemInHand(InteractionHand.MAIN_HAND,ItemStack.EMPTY);player.setItemInHand(InteractionHand.OFF_HAND,ItemStack.EMPTY);
-        Files.writeString(output.resolve("interactions.txt"),"PASS: six faces; 16 clockwise steps each; flying Shift (without crouching pose), occupied offhand, two flips identity; fixed plate vertical flip after rotation; backside clockwise; pose disk + update-tag persistence; unchanged original gun; hardness 0.5/no tool requirement; six real survival player breaks return exactly one original gun; six creative player breaks drop nothing.\n");
+        Files.writeString(output.resolve("interactions.txt"),"PASS: six faces; 16 counterclockwise default-side and 16 clockwise flipped-side steps each; flying Shift (without crouching pose), occupied offhand, two flips identity; fixed plate vertical flip after rotation; backside counterclockwise; pose disk + update-tag persistence; unchanged original gun; hardness 0.5/no tool requirement; six real survival player breaks return exactly one original gun; six creative player breaks drop nothing.\n");
     }
 }
