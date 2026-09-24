@@ -14,12 +14,13 @@ final class InteractionChecks {
     static void run(ServerPlayer player,Path output)throws Exception {
         var level=player.serverLevel();var original=ConversionChecks.equipped(level.registryAccess());
         var snapshot=new GunSnapshot(original);var stick=new ItemStack(Items.STICK);
+        GunPlacement.set(player,true);
         for(Direction face:new Direction[]{Direction.UP,Direction.DOWN})for(Direction heading:Direction.Plane.HORIZONTAL) {
             var pos=new BlockPos(0,-54,4);var support=pos.relative(face.getOpposite());
             level.setBlock(support,net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState(),3);
             player.setYRot(heading.toYRot());
             var hit=new BlockHitResult(Vec3.atCenterOf(support),face,support,false);
-            var context=new net.minecraft.world.item.context.BlockPlaceContext(player,InteractionHand.MAIN_HAND,WallGuns.decorate(original),hit);
+            var context=new net.minecraft.world.item.context.BlockPlaceContext(player,InteractionHand.MAIN_HAND,original.copy(),hit);
             require(WallGuns.ITEM.get().place(context).consumesAction(),"Floor/ceiling actual placement");
             var gun=(WallGunEntity)level.getBlockEntity(pos);
             int expected=switch(heading){case EAST->4;case SOUTH->8;case WEST->12;default->0;};
@@ -30,6 +31,7 @@ final class InteractionChecks {
             level.setBlock(pos,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);
             level.setBlock(support,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);
         }
+        GunPlacement.set(player,false);
         for(Direction face:Direction.values()) {
             var pos=new BlockPos(0,-54,4);
             var state=WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,face);

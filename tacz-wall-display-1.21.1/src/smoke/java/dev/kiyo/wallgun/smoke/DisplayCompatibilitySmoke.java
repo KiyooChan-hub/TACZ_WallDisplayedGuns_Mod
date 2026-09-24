@@ -87,15 +87,8 @@ final class DisplayCompatibilitySmoke {
                         var level = player.serverLevel();
                         for (String name : gunIds) {
                             var original = gun(name, 3, level.registryAccess());
-                            for (int size : new int[]{2, 3}) {
-                                var input = new ArrayList<ItemStack>(Collections.nCopies(size * size, ItemStack.EMPTY));
-                                input.set(size * size - 1, original);
-                                var recipe = new GunConversionRecipe(CraftingBookCategory.MISC);
-                                var decorated = recipe.assemble(CraftingInput.of(size, size, input), level.registryAccess());
-                                require(decorated.is(WallGuns.ITEM.get()), "Forward conversion " + name);
-                                input.set(size * size - 1, decorated);
-                                require(ItemStack.matches(original, recipe.assemble(CraftingInput.of(size, size, input), level.registryAccess())), "Reverse conversion lost gun data " + name);
-                            }
+                            var decorated = WallGuns.decorate(original);
+                            require(ItemStack.matches(original, LegacyGunMigration.restore(decorated)), "Legacy item migration lost gun data " + name);
                         }
                         for (int x = -4; x <= 4; x++) for (int y = -60; y <= -54; y++)
                             level.setBlock(new BlockPos(x, y, 0), Blocks.SMOOTH_STONE.defaultBlockState(), 3);
@@ -122,7 +115,7 @@ final class DisplayCompatibilitySmoke {
             if (!ready || ++ticks < 160) return;
             require(WallBatches.lastGuns == 2, "Two equipped displays rendered: " + WallBatches.stats());
             try (var image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) { image.writeToFile(out().resolve("equipped-displays.png")); }
-            Files.writeString(out().resolve("SUCCESS.txt"), report + "PASS: four magazine appearances, 2x2/3x3 reversible conversion, original-gun drops, two equipped wall displays.\n");
+            Files.writeString(out().resolve("SUCCESS.txt"), report + "PASS: four magazine appearances, legacy item migration, original-gun drops, two equipped wall displays.\n");
             mc.stop();
         } catch (Throwable ex) {
             ex.printStackTrace();

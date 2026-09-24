@@ -26,7 +26,7 @@ Additional gun packs are optional. To display a gun from an additional pack, kee
 ## Features
 
 - Display large collections of guns using cached static models and batched rendering.
-- Preserve the original gun and its equipped attachments when converting it into a decorative block.
+- Preserve the original gun and its equipped attachments when placing it as a decorative block.
 - Reuse the gun's detailed model, textures, and inventory icon directly from TACZ and installed gun packs.
 - Place displays on all six block faces and remove their supports afterward.
 - Rotate and flip each display with a configurable adjustment item.
@@ -37,10 +37,11 @@ Gun-pack and attachment compatibility depends on the source models. Unusual cust
 
 ## How to Use
 
-1. Place one TACZ gun, with or without attachments, by itself in your inventory crafting grid or a crafting table. Take the resulting decorative gun block.
-2. Place the block wherever you want to display it.
-3. Break it by hand in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. You can also place the decorative block by itself in a crafting grid to recover the gun.
-4. Hold a stick, or the item selected in the configuration, and right-click to rotate the display by 22.5 degrees: counterclockwise on its default side, clockwise after turning it over. Hold Shift and right-click to flip it over and show its other side. Shift works while flying in Creative mode.
+**Minecraft 1.21.1:** Press **P** to enter Free Gun Placement Mode. Hold a TACZ gun and right-click a block to display it on that face. Gun actions are suspended in this mode; left-click breaks blocks as if empty-handed. Press P again to leave. Rebind the key in Controls, or set its initial default with `toggleKey` in `tacz-wall-display-client.toml`. The top-right instructions adapt to the current language and key. Crafting conversion is no longer available. Existing decorative gun items restore their original guns when loaded; they cannot be placed directly. Creative pick-block returns the original gun.
+
+**Minecraft 1.20.1:** Put one TACZ gun in a crafting grid to obtain its decorative block, and craft the block alone to restore the gun. This version retains its previous crafting workflow until it is explicitly updated.
+
+For either version, break a display by hand in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. Hold a stick, or the configured adjustment item, and right-click to rotate the display by 22.5 degrees: counterclockwise on its default side, clockwise after turning it over. Hold Shift and right-click to flip it over. Shift works while flying in Creative mode.
 
 ## Adjustment Item
 

@@ -30,6 +30,7 @@ public class WallSmoke {
     private final StringBuilder motionFrames=new StringBuilder("tick,frameMs,uploads,draws,guns\n");
     private static final String[] GUNS={"tacz:ak47","tacz:m249","tacz:ak47","tacz:scar_h","mk16:m4urgi10","suffuse:l119a2","tacz:hk416d","tacz:m4a1","tacz:m16a4","tacz:scar_l","ghost:arx160","tacz:hk416d"};
     public WallSmoke() {
+        if (Boolean.getBoolean("wallgun.placementSmoke")) {new PlacementSmoke();return;}
         if (Boolean.getBoolean("wallgun.createSmoke")) {new CreateSmoke();return;}
         if (Boolean.getBoolean("wallgun.wthitSmoke")) {new WthitSmoke();return;}
         if (Boolean.getBoolean("wallgun.magazineSmoke")) {new MagazineSmoke();return;}
@@ -88,11 +89,11 @@ public class WallSmoke {
                             var saved=gun.saveWithFullMetadata(world.registryAccess());
                             var restored=new WallGunEntity(pos,state);restored.loadWithComponents(saved,world.registryAccess());
                             if(!restored.snapshot().equals(gun.snapshot()))throw new AssertionError("Gun ID save/load failed");
-                            if(!WallGuns.snapshot(WallGuns.BLOCK.get().getCloneItemStack(world,pos,state)).equals(gun.snapshot()))throw new AssertionError("Pick block ID failed");
+                            if(!net.minecraft.world.item.ItemStack.matches(WallGuns.BLOCK.get().getCloneItemStack(world,pos,state),gun.snapshot().copyGun()))throw new AssertionError("Pick block ID failed");
                             if(!state.canSurvive(world,pos))throw new AssertionError("Wall support failed");
                         }
                         var player=server.getPlayerList().getPlayers().getFirst();
-                        ConversionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
+                        PlacementChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
                         InteractionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
                         for(Direction direction:Direction.values()) {
                             var wall=new BlockPos(30+direction.get3DDataValue()*4,-56,10);

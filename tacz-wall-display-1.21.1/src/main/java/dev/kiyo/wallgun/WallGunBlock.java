@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.phys.shapes.*;
+import com.tacz.guns.api.item.IGun;
 
 public final class WallGunBlock extends BaseEntityBlock {
     public static final MapCodec<WallGunBlock> CODEC = simpleCodec(WallGunBlock::new);
@@ -20,7 +21,8 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING); }
     @Override public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         Direction face = ctx.getClickedFace();
-        return WallGuns.snapshot(ctx.getItemInHand()) == null ? null : defaultBlockState().setValue(FACING, face);
+        return GunPlacement.enabled(ctx.getPlayer()) && IGun.getIGunOrNull(ctx.getItemInHand()) != null
+                ? defaultBlockState().setValue(FACING, face) : null;
     }
     @Override protected java.util.List<ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder params) {
         var entity = params.getOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
@@ -58,7 +60,7 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity entity, ItemStack stack) {
         super.setPlacedBy(level, pos, state, entity, stack);
         if (level.getBlockEntity(pos) instanceof WallGunEntity gun) {
-            gun.setSnapshot(WallGuns.snapshot(stack));
+            gun.setSnapshot(IGun.getIGunOrNull(stack) != null ? new GunSnapshot(stack) : null);
             if (entity != null && state.getValue(FACING).getAxis().isVertical()) {
                 int roll = switch (entity.getDirection()) { case EAST -> 4; case SOUTH -> 8; case WEST -> 12; default -> 0; };
                 gun.setMountRoll(state.getValue(FACING) == Direction.DOWN ? -roll : roll);
@@ -66,7 +68,7 @@ public final class WallGunBlock extends BaseEntityBlock {
         }
     }
     @Override public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
-        return level.getBlockEntity(pos) instanceof WallGunEntity gun ? WallGuns.stack(gun.snapshot()) : ItemStack.EMPTY;
+        return level.getBlockEntity(pos) instanceof WallGunEntity gun && gun.snapshot() != null ? gun.snapshot().copyGun() : ItemStack.EMPTY;
     }
     @Override protected BlockState rotate(BlockState state, Rotation rotation) { return state.setValue(FACING, rotation.rotate(state.getValue(FACING))); }
     @Override protected BlockState mirror(BlockState state, Mirror mirror) { return state.rotate(mirror.getRotation(state.getValue(FACING))); }
