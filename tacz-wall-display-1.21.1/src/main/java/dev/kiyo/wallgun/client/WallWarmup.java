@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.neoforged.neoforge.client.event.*;
+import net.neoforged.fml.ModList;
 import java.util.*;
 
 /** Client-thread scheduling, independent of the camera's visible block entities. */
@@ -88,7 +89,10 @@ public final class WallWarmup {
                 || !world.hasChunkAt(g.getBlockPos()) || world.getBlockEntity(g.getBlockPos())!=g);
         Set<GunSnapshot> needed=new HashSet<>();
         for(var gun:TRACKED.values())if(gun.snapshot()!=null && GunMeshes.peek(gun.snapshot())==null)needed.add(gun.snapshot());
+        if (ModList.get().isLoaded("create")) for (var snapshot:CreateMovingGuns.discover(world))
+            if (GunMeshes.peek(snapshot)==null) needed.add(snapshot);
         PENDING.retainAll(needed);
+        PENDING.addAll(needed);
         WorkBudget budget=new WorkBudget(loading?12_000_000:2_000_000);
         var iterator=PENDING.iterator();
         while(iterator.hasNext() && frameBakes<(loading?8:1) && budget.start()) {

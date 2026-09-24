@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'net.neoforged.moddev' version '2.0.74'
 }
-version = '0.4.7'
+version = '0.4.8'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -10,6 +10,8 @@ repositories { mavenCentral() }
 def instance = providers.gradleProperty('minecraftInstance').getOrElse('E:/GAME/Minecraft/Minecraft 1.21.1/.minecraft')
 dependencies {
     compileOnly files("${instance}/mods/wthit-1.21.1-neo-12.10.2.jar")
+    compileOnly files("${instance}/mods/create-1.21.1-6.0.10.jar")
+    compileOnly fileTree(dir: layout.buildDirectory.dir('create-compile-deps'), include: '*.jar')
     implementation files("${instance}/mods/tacz-neoforge-1.21.1-1.1.8-hotfix-r6.jar")
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -20,7 +22,15 @@ neoForge {
     mods { tacz_wall_display { sourceSet sourceSets.main } }
     runs { client { client(); if (providers.gradleProperty('magazineSmoke').isPresent()) jvmArgument '-Dwallgun.magazineSmoke=true'; if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgument '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('toolItem').isPresent()) { jvmArgument '-Dwallgun.toolSmoke=true'; jvmArgument '-Dwallgun.toolItem='+providers.gradleProperty('toolItem').get() }; gameDirectory = file('run-client'); jvmArgument '-Xmx6G'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgument '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgument '-Dwallgun.audit=true'; if (providers.gradleProperty('pose').isPresent()) jvmArgument '-Dwallgun.pose=true'; if (providers.gradleProperty('auditOnly').isPresent()) jvmArgument '-Dwallgun.auditOnly='+providers.gradleProperty('auditOnly').get(); programArguments.addAll '--width','1280','--height','900' } }
 }
-tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.register('extractCreateCompileDeps', Copy) {
+    from(zipTree("${instance}/mods/create-1.21.1-6.0.10.jar")) {
+        include 'META-INF/jarjar/*.jar'
+        eachFile { it.path = it.name }
+        includeEmptyDirs = false
+    }
+    into layout.buildDirectory.dir('create-compile-deps')
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; dependsOn 'extractCreateCompileDeps' }
 test { useJUnitPlatform() }
 if (providers.gradleProperty('smoke').isPresent()) {
     sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
