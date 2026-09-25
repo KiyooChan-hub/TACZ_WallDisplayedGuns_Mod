@@ -60,8 +60,7 @@ public final class PlacementClient {
         var mc = Minecraft.getInstance();
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             if (interceptGun() && (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.BLOCK)) {
-                WARNING.trigger(System.nanoTime());
-                playDryFire(mc);
+                if (WARNING.trigger(System.nanoTime())) playDryFire(mc);
             }
             return;
         }
@@ -117,6 +116,7 @@ public final class PlacementClient {
         Component key = toggle == null ? Component.literal("P") : toggle.getTranslatedKeyMessage();
         var labels = java.util.List.of(
                 Component.translatable("hud.tacz_wall_display.placement_title"),
+                Component.literal("--------------------------------"),
                 Component.translatable("hud.tacz_wall_display.place"),
                 Component.translatable("hud.tacz_wall_display.break"),
                 Component.translatable("hud.tacz_wall_display.flip"),
@@ -124,7 +124,7 @@ public final class PlacementClient {
                 Component.translatable("hud.tacz_wall_display.rotate_down"),
                 Component.translatable("hud.tacz_wall_display.toggle", key));
         int padding = 6, line = mc.font.lineHeight + 3;
-        float scale = 0.455F;
+        float scale = 0.52F;
         int maxWidth = Math.max(1, screenWidth / 3);
         int contentLimit = Math.max(1, (int) ((maxWidth - padding * 2) / scale));
         var lines = new java.util.ArrayList<net.minecraft.util.FormattedCharSequence>();
@@ -136,7 +136,9 @@ public final class PlacementClient {
         }
         int boxWidth = Math.min(maxWidth, (int) Math.ceil(textWidth * scale) + padding * 2);
         int boxHeight = (int) Math.ceil((line * lines.size()) * scale) + padding * 2;
-        int right = screenWidth - 13, left = right - boxWidth, top = 13;
+        int right = screenWidth - 13, left = right - boxWidth;
+        int warningY = Math.max(14, screenHeight / 20);
+        int top = warningY + 20;
         gui.fill(left, top, right, top + boxHeight, 0x80000000);
         gui.pose().pushPose();
         gui.pose().translate(left + padding, top + padding, 0);
@@ -145,10 +147,12 @@ public final class PlacementClient {
             gui.drawString(mc.font, lines.get(index), 0, line * index, 0xffffff);
         gui.pose().popPose();
         Component warning = Component.translatable("hud.tacz_wall_display.cannot_fire");
+        float warningBaseScale = Math.min(1.0F, (maxWidth - 8.0F) / (mc.font.width(warning) * 1.3F));
         for (DryFireWarning.Frame frame : WARNING.frames(System.nanoTime())) {
             gui.pose().pushPose();
-            gui.pose().translate(screenWidth / 2.0, screenHeight * 0.45, 0);
-            gui.pose().scale((float) frame.scale(), (float) frame.scale(), 1);
+            gui.pose().translate(right - maxWidth / 2.0, warningY, 0);
+            float warningScale = warningBaseScale * (float) frame.scale();
+            gui.pose().scale(warningScale, warningScale, 1);
             int color = ((int) Math.round(255 * frame.opacity()) << 24) | 0xff3030;
             gui.drawString(mc.font, warning, -mc.font.width(warning) / 2, -mc.font.lineHeight / 2, color, true);
             gui.pose().popPose();
