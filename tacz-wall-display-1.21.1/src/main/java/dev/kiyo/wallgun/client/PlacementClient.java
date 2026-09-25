@@ -19,10 +19,16 @@ import org.lwjgl.glfw.GLFW;
 public final class PlacementClient {
     private static KeyMapping toggle;
     private static boolean enabled;
+    private static net.minecraft.core.BlockPos heldGun;
+    private static int repeatDelay;
     private PlacementClient() {}
     public static boolean interceptGun() {
         var mc = Minecraft.getInstance();
         return enabled && mc.player != null && mc.screen == null && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null;
+    }
+    public static boolean allowGunBlockAttack() {
+        var mc = Minecraft.getInstance();
+        return interceptGun() && mc.hitResult instanceof BlockHitResult;
     }
     public static void register(RegisterKeyMappingsEvent event) {
         toggle = new KeyMapping("key.tacz_wall_display.placement", InputConstants.Type.KEYSYM,
@@ -34,7 +40,9 @@ public final class PlacementClient {
         if (toggle == null || mc.player == null || mc.level == null) return;
         while (toggle.consumeClick()) {
             enabled = !enabled;
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(enabled ? SoundEvents.UI_TOAST_IN : SoundEvents.UI_TOAST_OUT, 2.0F, 0.5F));
+            heldGun = null;
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                    enabled ? WallGuns.MODE_OPEN.get() : WallGuns.MODE_CLOSE.get(), 1.0F, 1.0F));
             if (enabled && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null) {
                 var operator = com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator.fromLocalPlayer(mc.player);
                 operator.aim(false);
@@ -42,9 +50,23 @@ public final class PlacementClient {
             }
             PacketDistributor.sendToServer(new PlacementPayloads.Mode(enabled));
         }
+        if (heldGun == null) return;
+        if (!active() || !mc.isWindowActive()
+                || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) != GLFW.GLFW_PRESS
+                || leftAltDown(mc) || !(mc.hitResult instanceof BlockHitResult hit)
+                || !heldGun.equals(hit.getBlockPos())
+                || !mc.level.getBlockState(heldGun).is(WallGuns.BLOCK.get())) {
+            heldGun = null;
+            return;
+        }
+        if (--repeatDelay <= 0) {
+            PacketDistributor.sendToServer(new PlacementPayloads.Adjust(heldGun, false));
+            repeatDelay = 4;
+        }
     }
     public static void mouse(InputEvent.MouseButton.Pre event) {
         if (event.getButton() != GLFW.GLFW_MOUSE_BUTTON_RIGHT || !active()) return;
+        if (event.getAction() == GLFW.GLFW_RELEASE) heldGun = null;
         var mc = Minecraft.getInstance();
         if (!(mc.hitResult instanceof BlockHitResult hit)) return;
         boolean holdingGun = IGun.getIGunOrNull(mc.player.getMainHandItem()) != null;
@@ -52,9 +74,14 @@ public final class PlacementClient {
         if (!targetGun && !holdingGun) return;
         event.setCanceled(true);
         if (event.getAction() != GLFW.GLFW_PRESS) return;
-        if (targetGun && !(holdingGun && leftAltDown(mc)))
+        if (targetGun && !(holdingGun && leftAltDown(mc))) {
             PacketDistributor.sendToServer(new PlacementPayloads.Adjust(hit.getBlockPos(), false));
-        else PacketDistributor.sendToServer(new PlacementPayloads.Place(hit.getBlockPos(), hit.getDirection()));
+            heldGun = hit.getBlockPos();
+            repeatDelay = 4;
+        } else {
+            heldGun = null;
+            PacketDistributor.sendToServer(new PlacementPayloads.Place(hit.getBlockPos(), hit.getDirection()));
+        }
     }
     public static void scroll(InputEvent.MouseScrollingEvent event) {
         if (!active() || event.getScrollDeltaY() == 0) return;
@@ -71,7 +98,7 @@ public final class PlacementClient {
     private static boolean leftAltDown(Minecraft mc) {
         return InputConstants.isKeyDown(mc.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_ALT);
     }
-    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; }
+    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; heldGun = null; }
     public static void render(RenderGuiEvent.Post event) {
         var mc = Minecraft.getInstance();
         if (!enabled || mc.player == null || mc.options.hideGui || mc.screen != null) return;

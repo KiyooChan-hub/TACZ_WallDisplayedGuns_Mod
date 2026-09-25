@@ -68,8 +68,14 @@ final class PlacementSmoke {
                             net.minecraft.client.KeyMapping.click(key.getKey());
                             phase = 1;
                         } else if (phase == 1 && ++phaseTicks > 3) {
+                            if (mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_OPEN.getId()) == null
+                                    || mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_CLOSE.getId()) == null)
+                                throw new AssertionError("Placement mode sounds were not loaded");
                             if (!dev.kiyo.wallgun.client.PlacementClient.interceptGun() || com.tacz.guns.util.InputExtraCheck.isInGame())
-                                throw new AssertionError("TACZ inputs were not blocked after placement key toggle");
+                                throw new AssertionError("TACZ inputs were not blocked after placement key toggle: intercept="
+                                        + dev.kiyo.wallgun.client.PlacementClient.interceptGun() + " gun="
+                                        + mc.player.getMainHandItem() + " screen=" + mc.screen + " input="
+                                        + com.tacz.guns.util.InputExtraCheck.isInGame());
                             try (var image = net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
                                 image.writeToFile(mc.gameDirectory.toPath().resolve("verification/mode-hud.png"));
                             }
@@ -136,14 +142,20 @@ final class PlacementSmoke {
                             phase = 9; phaseTicks = 0;
                         } else if (phase == 9 && networkFlipped != null) {
                             if (!networkFlipped) throw new AssertionError("Scroll flip packet did not flip neighboring display");
-                            mc.player.getInventory().setItem(0, net.minecraft.world.item.ItemStack.EMPTY);
+                            mc.player.getInventory().setItem(0, ConversionChecks.equipped(mc.level.registryAccess()));
                             mc.getSingleplayerServer().execute(() -> {
                                 var serverPlayer = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
-                                serverPlayer.getInventory().setItem(0, net.minecraft.world.item.ItemStack.EMPTY);
+                                serverPlayer.getInventory().setItem(0, ConversionChecks.equipped(serverPlayer.registryAccess()));
                                 serverPlayer.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
                             });
                             phase = 10; phaseTicks = 0;
                         } else if (phase == 10 && ++phaseTicks > 4) {
+                            mc.hitResult = new net.minecraft.world.phys.BlockHitResult(new net.minecraft.world.phys.Vec3(0.5, -53.5, -1.7),
+                                    net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, -2), false);
+                            var attack = new net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered(
+                                    0, mc.options.keyAttack, net.minecraft.world.InteractionHand.MAIN_HAND);
+                            com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(attack);
+                            if (attack.isCanceled()) throw new AssertionError("TACZ still blocks gun-held attack input in placement mode");
                             mc.gameMode.startDestroyBlock(new net.minecraft.core.BlockPos(0, -54, -2), net.minecraft.core.Direction.NORTH);
                             phase = 11; phaseTicks = 0;
                         } else if (phase == 11 && ++phaseTicks > 8) {
@@ -151,13 +163,36 @@ final class PlacementSmoke {
                                     .getBlockState(new net.minecraft.core.BlockPos(0, -54, -2)).isAir());
                             phase = 12; phaseTicks = 0;
                         } else if (phase == 12 && instantBroken != null) {
-                            if (!instantBroken) throw new AssertionError("Empty-hand first attack did not instantly break display");
-                            net.minecraft.client.KeyMapping.click(key.getKey());
+                            if (!instantBroken) throw new AssertionError("Gun-held survival first attack did not instantly break display");
+                            instantBroken = null;
+                            mc.getSingleplayerServer().execute(() -> {
+                                var serverPlayer = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+                                serverPlayer.gameMode.changeGameModeForPlayer(GameType.CREATIVE);
+                                serverPlayer.serverLevel().setBlock(new net.minecraft.core.BlockPos(0, -54, -2),
+                                        net.minecraft.world.level.block.Blocks.QUARTZ_BLOCK.defaultBlockState(), 3);
+                            });
                             phase = 13; phaseTicks = 0;
-                        } else if (phase == 13 && ++phaseTicks > 3) {
+                        } else if (phase == 13 && ++phaseTicks > 8) {
+                            mc.hitResult = new net.minecraft.world.phys.BlockHitResult(new net.minecraft.world.phys.Vec3(0.5, -53.5, -1.7),
+                                    net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, -2), false);
+                            mc.gameMode.startDestroyBlock(new net.minecraft.core.BlockPos(0, -54, -2), net.minecraft.core.Direction.NORTH);
+                            phase = 14; phaseTicks = 0;
+                        } else if (phase == 14 && ++phaseTicks > 8) {
+                            mc.getSingleplayerServer().execute(() -> instantBroken = mc.getSingleplayerServer().overworld()
+                                    .getBlockState(new net.minecraft.core.BlockPos(0, -54, -2)).isAir());
+                            phase = 15; phaseTicks = 0;
+                        } else if (phase == 15 && instantBroken != null) {
+                            if (!instantBroken) throw new AssertionError("Gun-held creative attack did not break ordinary block");
+                            net.minecraft.client.KeyMapping.click(key.getKey());
+                            phase = 16; phaseTicks = 0;
+                        } else if (phase == 16 && ++phaseTicks > 3) {
                             if (dev.kiyo.wallgun.client.PlacementClient.interceptGun() || !com.tacz.guns.util.InputExtraCheck.isInGame())
                                 throw new AssertionError("TACZ inputs did not resume after exiting placement mode");
-                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: P key in TACZ category, TACZ gate, right-click placement, empty-hand rotation, clicked-face neighbor placement, flip packet, survival empty-hand first-hit break and mode exit.\n");
+                            var attack = new net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered(
+                                    0, mc.options.keyAttack, net.minecraft.world.InteractionHand.MAIN_HAND);
+                            com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(attack);
+                            if (!attack.isCanceled()) throw new AssertionError("TACZ gun-click guard stayed bypassed after mode exit");
+                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: P key in TACZ category, TACZ gate, right-click placement, empty-hand rotation, clicked-face neighbor placement, flip packet, survival gun-held first-hit break, creative gun-held ordinary-block break, and TACZ guard restoration.\n");
                             mc.stop();
                         }
                     } catch (Throwable ex) {

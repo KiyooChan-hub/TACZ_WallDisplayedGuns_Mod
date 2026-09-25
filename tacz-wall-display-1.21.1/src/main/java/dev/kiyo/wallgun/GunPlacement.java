@@ -12,6 +12,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.GameType;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.sounds.SoundSource;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import java.util.Set;
@@ -41,7 +44,16 @@ public final class GunPlacement {
         BlockPlaceContext context = new BlockPlaceContext(new UseOnContext(player, InteractionHand.MAIN_HAND, actual));
         BlockPos target = context.getClickedPos();
         if (!player.level().mayInteract(player, target) || !player.mayUseItemAt(target, actual.getDirection(), gun)) return;
-        WallGuns.ITEM.get().place(context);
+        if (WallGuns.ITEM.get().place(context).consumesAction()) {
+            // BlockItem broadcasts to everyone except its player. This server-only placement
+            // has no client prediction, so send the missing local sound only to that player.
+            var soundType = player.level().getBlockState(target).getSoundType(player.level(), target, player);
+            player.connection.send(new ClientboundSoundPacket(
+                    BuiltInRegistries.SOUND_EVENT.wrapAsHolder(soundType.getPlaceSound()), SoundSource.BLOCKS,
+                    target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5,
+                    (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F,
+                    player.getRandom().nextLong()));
+        }
     }
     public static void adjust(ServerPlayer player, BlockPos requested, boolean flip) {
         if (!enabled(player) || !canEdit(player)) return;
