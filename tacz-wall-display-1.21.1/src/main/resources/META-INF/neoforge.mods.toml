@@ -3,7 +3,7 @@ loaderVersion="[0,)"
 license="GPL-3.0-only"
 [[mods]]
 modId="tacz_wall_display"
-version="0.6.4"
+version="0.6.5"
 displayName="TACZ Wall Display"
 authors="Kiyo"
 description='''Press P to toggle free placement mode and place equipped TACZ guns directly as decorative blocks on six faces. Recover the original gun in survival. Legacy decorative items restore on load.

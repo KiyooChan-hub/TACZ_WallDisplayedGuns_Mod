@@ -138,7 +138,7 @@ public final class PlacementClient {
         int boxHeight = (int) Math.ceil((line * lines.size()) * scale) + padding * 2;
         int right = screenWidth - 13, left = right - boxWidth;
         int warningY = Math.max(14, screenHeight / 20);
-        int top = warningY + 20;
+        int top = warningY + 5;
         gui.fill(left, top, right, top + boxHeight, 0x80000000);
         gui.pose().pushPose();
         gui.pose().translate(left + padding, top + padding, 0);
@@ -150,8 +150,8 @@ public final class PlacementClient {
         float warningBaseScale = Math.min(1.0F, (maxWidth - 8.0F) / (mc.font.width(warning) * 1.3F));
         for (DryFireWarning.Frame frame : WARNING.frames(System.nanoTime())) {
             gui.pose().pushPose();
-            gui.pose().translate(right - maxWidth / 2.0, warningY, 0);
             float warningScale = warningBaseScale * (float) frame.scale();
+            gui.pose().translate(right + 3 - mc.font.width(warning) * warningScale / 2.0, warningY, 0);
             gui.pose().scale(warningScale, warningScale, 1);
             int color = ((int) Math.round(255 * frame.opacity()) << 24) | 0xff3030;
             gui.drawString(mc.font, warning, -mc.font.width(warning) / 2, -mc.font.lineHeight / 2, color, true);
