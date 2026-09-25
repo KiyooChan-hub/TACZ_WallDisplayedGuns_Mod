@@ -44,8 +44,13 @@ final class PlacementChecks {
             check(drops.size()==1,"Incorrect drop count on "+face);
             same(drops.get(0),original,"Drop on "+face);
             entity.adjust(0,false);check(entity.flipped(),"Flip on "+face);
-            entity.adjust(1,false);check(entity.roll()!=0,"Up rotation on "+face);
-            entity.adjust(-1,false);check(entity.roll()==0,"Down rotation on "+face);
+            for(boolean flipped:new boolean[]{false,true}){
+                entity.setPose(0,flipped);
+                entity.adjust(1,false);check(entity.roll()==15,"Up must turn counterclockwise on "+face+", flipped="+flipped);
+                entity.adjust(-1,false);check(entity.roll()==0,"Down must undo front rotation on "+face+", flipped="+flipped);
+                entity.adjust(1,true);check(entity.roll()==1,"Up must follow back view on "+face+", flipped="+flipped);
+                entity.adjust(-1,true);check(entity.roll()==0,"Down must undo back rotation on "+face+", flipped="+flipped);
+            }
             level.destroyBlock(target,false);
             GunPlacement.set(player,false);
             var disabled=new BlockPlaceContext(player,InteractionHand.MAIN_HAND,original.copy(),hit);

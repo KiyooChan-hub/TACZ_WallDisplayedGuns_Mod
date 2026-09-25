@@ -54,6 +54,17 @@ final class PlacementChecks {
             var drops = net.minecraft.world.level.block.Block.getDrops(entity.getBlockState(), world, pos, entity);
             check(drops.size() == 1, "Wrong drop count " + direction);
             same(drops.getFirst(), original, "Breaking drop " + direction);
+            for (boolean flipped : new boolean[]{false, true}) {
+                entity.setPose(0, flipped);
+                entity.adjust(1, false);
+                check(entity.roll() == 15, "Scroll up must turn counterclockwise on " + direction + ", flipped=" + flipped);
+                entity.adjust(-1, false);
+                check(entity.roll() == 0, "Scroll down must undo front rotation on " + direction + ", flipped=" + flipped);
+                entity.adjust(1, true);
+                check(entity.roll() == 1, "Scroll up must follow back view on " + direction + ", flipped=" + flipped);
+                entity.adjust(-1, true);
+                check(entity.roll() == 0, "Scroll down must undo back rotation on " + direction + ", flipped=" + flipped);
+            }
             world.destroyBlock(pos, false);
             GunPlacement.set(player, false);
             var disabledContext = new BlockPlaceContext(player, InteractionHand.MAIN_HAND, original.copy(), hit);

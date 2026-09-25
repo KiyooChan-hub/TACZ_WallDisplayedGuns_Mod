@@ -8,8 +8,8 @@
   "hud.tacz_wall_display.place": "> Right-click with gun：place display gun",
   "hud.tacz_wall_display.break": "> Left-click：break block（cannot fire！）",
   "hud.tacz_wall_display.flip": "> LeftAlt+right-click display：flip side",
-  "hud.tacz_wall_display.rotate_up": "> LeftAlt+scroll up display：muzzle up",
-  "hud.tacz_wall_display.rotate_down": "> LeftAlt+scroll down display：muzzle down",
+  "hud.tacz_wall_display.rotate_up": "> LeftAlt+scroll up display：rotate counterclockwise",
+  "hud.tacz_wall_display.rotate_down": "> LeftAlt+scroll down display：rotate clockwise",
   "hud.tacz_wall_display.toggle": "> %s（configurable）：toggle placement mode",
   "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!"
 }

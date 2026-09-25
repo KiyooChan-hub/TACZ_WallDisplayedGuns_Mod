@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.6.5'
+version = '0.6.6'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
