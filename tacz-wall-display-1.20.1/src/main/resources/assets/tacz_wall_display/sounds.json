@@ -1,0 +1,8 @@
+{
+  "mode_open": {
+    "sounds": [{"name": "minecraft:ui/toast/in", "pitch": 2.0}]
+  },
+  "mode_close": {
+    "sounds": [{"name": "minecraft:ui/toast/out", "pitch": 2.0}]
+  }
+}

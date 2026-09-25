@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.4.2'
+version = '0.6.5'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -8,6 +8,13 @@ repositories { mavenCentral(); flatDir { dirs "${instance}/mods" } }
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.21'
     implementation fg.deobf('local:tacz-1.20.1:1.1.8-hotfix')
+    compileOnly fg.deobf('local:wthit-1.20.1-forge:8.21.1')
+    compileOnly fg.deobf('local:create-1.20.1:6.0.8')
+    if (providers.gradleProperty('compatSmoke').isPresent()) {
+        runtimeOnly fg.deobf('local:wthit-1.20.1-forge:8.21.1')
+        runtimeOnly fg.deobf('local:create-1.20.1:6.0.8')
+        runtimeOnly fg.deobf('local:badpackets-forge:0.4.3')
+    }
     runtimeOnly fg.deobf('local:packetfixer:3.3.2-1.18-1.20.4-merged')
     if (!providers.gradleProperty('serverSmoke').isPresent()) runtimeOnly fg.deobf('local:embeddium:0.3.31+mc1.20.1')
     runtimeOnly fg.deobf('local:cloth-config:11.1.136-forge')
@@ -26,7 +33,7 @@ minecraft {
             args '-mixin.config=tacz_wall_display.mixins.json'
             mods { tacz_wall_display { source sourceSets.main } }
         }
-        client { jvmArgs '-Xmx6G'; if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgs '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('toolItem').isPresent()) { jvmArgs '-Dwallgun.toolSmoke=true', '-Dwallgun.toolItem='+providers.gradleProperty('toolItem').get() }; if (providers.gradleProperty('pose').isPresent()) jvmArgs '-Dwallgun.pose=true'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgs '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgs '-Dwallgun.audit=true'; args '--width','1280','--height','900' }
+        client { jvmArgs '-Xmx6G'; if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgs '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('placementSmoke').isPresent()) jvmArgs '-Dwallgun.placementSmoke=true'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgs '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgs '-Dwallgun.audit=true'; args '--width','1280','--height','900' }
         server { workingDirectory project.file('run-server'); args '--nogui' }
     }
 }

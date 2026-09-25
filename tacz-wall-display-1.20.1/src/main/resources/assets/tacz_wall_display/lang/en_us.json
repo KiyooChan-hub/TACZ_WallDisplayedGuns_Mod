@@ -1,7 +1,15 @@
 {
   "block.tacz_wall_display.decorative_gun": "Decorative Gun",
   "item.tacz_wall_display.named": "Decorative Gun · %s",
-  "tooltip.tacz_wall_display.place": "Place on any of six faces; support is optional.",
-  "tooltip.tacz_wall_display.restore": "Breaking in survival returns the original gun; crafting also restores it.",
-  "tooltip.tacz_wall_display.adjust": "%s: right-click rotates 22.5 degrees; Shift+right-click turns over."
+  "tooltip.tacz_wall_display.place": "Legacy decorative items can no longer be placed.",
+  "tooltip.tacz_wall_display.restore": "Legacy decorative items restore their original gun when loaded.",
+  "key.tacz_wall_display.placement": "Toggle free gun placement mode",
+  "hud.tacz_wall_display.placement_title": "【Gun Placement Mode - Controls】",
+  "hud.tacz_wall_display.place": "> Right-click with gun：place display gun",
+  "hud.tacz_wall_display.break": "> Left-click：break block（cannot fire！）",
+  "hud.tacz_wall_display.flip": "> LeftAlt+right-click display：flip side",
+  "hud.tacz_wall_display.rotate_up": "> LeftAlt+scroll up display：muzzle up",
+  "hud.tacz_wall_display.rotate_down": "> LeftAlt+scroll down display：muzzle down",
+  "hud.tacz_wall_display.toggle": "> %s（configurable）：toggle placement mode",
+  "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!"
 }

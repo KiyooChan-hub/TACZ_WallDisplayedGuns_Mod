@@ -1,7 +1,15 @@
 {
   "block.tacz_wall_display.decorative_gun": "装饰枪",
   "item.tacz_wall_display.named": "装饰枪 · %s",
-  "tooltip.tacz_wall_display.place": "可贴六面放置，拆除支撑后仍保留。",
-  "tooltip.tacz_wall_display.restore": "生存拆除返还原枪；也可单独放入合成栏还原。",
-  "tooltip.tacz_wall_display.adjust": "%s 右键：顺时针转 22.5°；Shift+右键：翻面。"
+  "tooltip.tacz_wall_display.place": "旧版装饰枪物品已废弃，不能直接放置。",
+  "tooltip.tacz_wall_display.restore": "旧版物品会在读取时还原为原枪。",
+  "key.tacz_wall_display.placement": "切换枪械自由摆放模式",
+  "hud.tacz_wall_display.placement_title": "【枪械摆放模式 - 操作说明】",
+  "hud.tacz_wall_display.place": "> 手持枪械时右键：摆放装饰枪方块",
+  "hud.tacz_wall_display.break": "> 左键：破坏方块（不能开枪！）",
+  "hud.tacz_wall_display.flip": "> 左Alt+右键装饰枪：水平翻面",
+  "hud.tacz_wall_display.rotate_up": "> 左Alt+上滚轮装饰枪：枪口上转",
+  "hud.tacz_wall_display.rotate_down": "> 左Alt+下滚轮装饰枪：枪口下转",
+  "hud.tacz_wall_display.toggle": "> %s（可配置）：开关摆放模式",
+  "hud.tacz_wall_display.cannot_fire": "不能在枪械摆放模式下开火！"
 }

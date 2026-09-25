@@ -38,6 +38,8 @@ final class WarmupSmoke {
             require(System.nanoTime()<deadline,"Warmup smoke timed out, screen="+mc.screen+", phase="+phase+" "+WallBatches.stats());
             if(!opened && mc.screen instanceof TitleScreen && mc.getOverlay()==null) {
                 opened=true;positioned=false;Files.createDirectories(out());
+                require(Files.isRegularFile(mc.gameDirectory.toPath().resolve("saves/warmup-stress/level.dat")),
+                        "Missing warmup-stress test world in the isolated run-client directory");
                 mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(6);mc.options.framerateLimit().set(60);
                 com.tacz.guns.config.client.RenderConfig.GUN_LOD_RENDER_DISTANCE.set(999);
                 mc.createWorldOpenFlows().loadLevel(mc.screen,"warmup-stress");return;

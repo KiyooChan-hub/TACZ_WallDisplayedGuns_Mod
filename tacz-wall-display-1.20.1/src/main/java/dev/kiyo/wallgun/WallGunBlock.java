@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.phys.shapes.*;
+import com.tacz.guns.api.item.IGun;
 
 public final class WallGunBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
@@ -18,7 +19,8 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING); }
     @Override public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         Direction face = ctx.getClickedFace();
-        return WallGuns.snapshot(ctx.getItemInHand()) == null ? null : defaultBlockState().setValue(FACING, face);
+        return GunPlacement.enabled(ctx.getPlayer()) && IGun.getIGunOrNull(ctx.getItemInHand()) != null
+                ? defaultBlockState().setValue(FACING, face) : null;
     }
     @Override public java.util.List<ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder params) {
         var entity = params.getOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
@@ -26,20 +28,6 @@ public final class WallGunBlock extends BaseEntityBlock {
             if (entity instanceof WallGunEntity gun && gun.snapshot() != null) output.accept(gun.snapshot().copyGun());
         });
         return super.getDrops(state, params);
-    }
-    @Override public net.minecraft.world.InteractionResult use(BlockState state, Level level, BlockPos pos,
-            net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
-        ItemStack stack=player.getItemInHand(hand);
-        if (!WallGunConfig.isAdjustmentItem(stack)) return net.minecraft.world.InteractionResult.PASS;
-        if (!(level.getBlockEntity(pos) instanceof WallGunEntity gun) || gun.snapshot() == null) return net.minecraft.world.InteractionResult.FAIL;
-        if (!level.isClientSide) {
-            Direction face = state.getValue(FACING);
-            var towardPlayer = player.getEyePosition().subtract(net.minecraft.world.phys.Vec3.atCenterOf(pos));
-            boolean back = towardPlayer.dot(net.minecraft.world.phys.Vec3.atLowerCornerOf(face.getNormal())) < 0;
-            gun.adjust(player.isShiftKeyDown(), back);
-            level.playSound(null, pos, net.minecraft.sounds.SoundEvents.ITEM_FRAME_ADD_ITEM, net.minecraft.sounds.SoundSource.BLOCKS, 1, 1);
-        }
-        return net.minecraft.world.InteractionResult.sidedSuccess(level.isClientSide);
     }
     @Override public RenderShape getRenderShape(BlockState state) { return RenderShape.ENTITYBLOCK_ANIMATED; }
     @Override public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
@@ -57,7 +45,7 @@ public final class WallGunBlock extends BaseEntityBlock {
     @Override public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity entity, ItemStack stack) {
         super.setPlacedBy(level, pos, state, entity, stack);
         if (level.getBlockEntity(pos) instanceof WallGunEntity gun) {
-            gun.setSnapshot(WallGuns.snapshot(stack));
+            gun.setSnapshot(IGun.getIGunOrNull(stack) != null ? new GunSnapshot(stack) : null);
             if (entity != null && state.getValue(FACING).getAxis().isVertical()) {
                 int roll = switch (entity.getDirection()) { case EAST -> 4; case SOUTH -> 8; case WEST -> 12; default -> 0; };
                 gun.setMountRoll(state.getValue(FACING) == Direction.DOWN ? -roll : roll);
@@ -65,7 +53,7 @@ public final class WallGunBlock extends BaseEntityBlock {
         }
     }
     @Override public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
-        return level.getBlockEntity(pos) instanceof WallGunEntity gun ? WallGuns.stack(gun.snapshot()) : ItemStack.EMPTY;
+        return level.getBlockEntity(pos) instanceof WallGunEntity gun && gun.snapshot()!=null ? gun.snapshot().copyGun() : ItemStack.EMPTY;
     }
     @Override public BlockState rotate(BlockState state, Rotation rotation) { return state.setValue(FACING, rotation.rotate(state.getValue(FACING))); }
     @Override public BlockState mirror(BlockState state, Mirror mirror) { return state.rotate(mirror.getRotation(state.getValue(FACING))); }

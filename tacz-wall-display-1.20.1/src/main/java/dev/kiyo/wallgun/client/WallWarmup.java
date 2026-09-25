@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraftforge.client.event.*;
+import net.minecraftforge.fml.ModList;
 import java.util.*;
 
 /** Client-thread scheduling, independent of the camera's visible block entities. */
@@ -16,7 +17,7 @@ public final class WallWarmup {
     private static final Set<GunSnapshot> PENDING=new LinkedHashSet<>();
     private static ClientLevel world;
     private static boolean loading;
-    private static int tick, scans, loadedChunks, expectedChunks;
+    private static int tick, scans, loadedChunks, expectedChunks, scanCursor;
     private static long lastDiscovery, gateStarted;
     public static int completed, timedOut, frameBakes, frameUploads;
     public static double lastGateMillis;
@@ -32,7 +33,7 @@ public final class WallWarmup {
         int n=0; for(var gun:TRACKED.values()) if(GunMeshes.peek(gun.snapshot())==null)n++; return n;
     }
     public static void reset() {
-        TRACKED.clear();PENDING.clear();world=null;loading=false;gateStarted=0;scans=0;
+        TRACKED.clear();PENDING.clear();world=null;loading=false;gateStarted=0;scans=0;scanCursor=0;
     }
     private static void ensureWorld() {
         var mc=Minecraft.getInstance();
@@ -56,21 +57,25 @@ public final class WallWarmup {
         var mc=Minecraft.getInstance();
         if(world==null || mc.player==null || mc.getOverlay()!=null)return;
         // Scan existing client chunks only: never cause disk IO, generation or server chunk tickets.
-        if(!loading && ++tick%5!=0)return;
-        int radius=Math.min(7,mc.options.getEffectiveRenderDistance());
+        if(loading && scans>0 && ++tick%5!=0)return;
+        int radius=RenderDistanceRules.scanRadius(WallGunConfig.maxRenderDistance(),mc.options.getEffectiveRenderDistance());
         int cx=mc.player.chunkPosition().x, cz=mc.player.chunkPosition().z;
-        loadedChunks=0;expectedChunks=(radius*2+1)*(radius*2+1);
-        for(int x=cx-radius;x<=cx+radius;x++)for(int z=cz-radius;z<=cz+radius;z++) {
+        int side=radius*2+1,total=side*side;
+        if(loading){loadedChunks=0;expectedChunks=total;}
+        int count=loading?total:Math.min(64,total);
+        for(int i=0;i<count;i++) {
+            int index=loading?i:(scanCursor+i)%total;
+            int x=cx-radius+index%side,z=cz-radius+index/side;
             var chunk=world.getChunkSource().getChunk(x,z,ChunkStatus.FULL,false);
             if(chunk==null)continue;
-            loadedChunks++;
+            if(loading)loadedChunks++;
             for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun && nearby(gun))request(gun);
         }
-        scans++;
+        if(loading)scans++;else scanCursor=(scanCursor+count)%total;
     }
     private static boolean nearby(WallGunEntity gun) {
         var player=Minecraft.getInstance().player;
-        return player!=null && gun.getBlockPos().distToCenterSqr(player.getEyePosition())<=112*112;
+        return player!=null && RenderDistanceRules.keep(gun.getBlockPos(),player.getEyePosition(),WallGunConfig.maxRenderDistance());
     }
     public static void opening(ScreenEvent.Opening event) {
         if(event.getNewScreen()==null && event.getCurrentScreen() instanceof ReceivingLevelScreen) {
@@ -90,6 +95,8 @@ public final class WallWarmup {
                 || !world.hasChunkAt(g.getBlockPos()) || world.getBlockEntity(g.getBlockPos())!=g);
         Set<GunSnapshot> needed=new HashSet<>();
         for(var gun:TRACKED.values())if(gun.snapshot()!=null && GunMeshes.peek(gun.snapshot())==null)needed.add(gun.snapshot());
+        if(ModList.get().isLoaded("create"))for(var snapshot:CreateMovingGuns.discover(world))
+            if(GunMeshes.peek(snapshot)==null)needed.add(snapshot);
         PENDING.retainAll(needed);
         WorkBudget budget=new WorkBudget(loading?12_000_000:2_000_000);
         var iterator=PENDING.iterator();

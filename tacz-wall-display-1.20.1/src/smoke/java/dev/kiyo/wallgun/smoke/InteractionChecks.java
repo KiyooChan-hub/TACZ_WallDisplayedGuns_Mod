@@ -25,7 +25,7 @@ final class InteractionChecks {
             int expected=switch(heading){case EAST->4;case SOUTH->8;case WEST->12;default->0;};
             if(face==Direction.DOWN)expected=Math.floorMod(-expected,16);
             require(gun.mountRoll()==expected&&gun.roll()==0,"Initial view heading "+face+"/"+heading);
-            gun.setPose(3,false);gun.adjust(true,false);
+            gun.setPose(3,false);gun.adjust(0,false);
             require(gun.mountRoll()==expected&&gun.roll()==13&&gun.flipped(),"Flip keeps initial placement heading");
             level.setBlock(pos,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);
             level.setBlock(support,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);

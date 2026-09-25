@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.kiyo.wallgun.mixin",
   "compatibilityLevel": "JAVA_17",
+  "mixins": ["LegacyItemDecodeMixin", "ServerPreventGunBlockMixin"],
   "client": [
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
@@ -10,7 +11,11 @@
     "GunTransformInvoker",
     "AccelerationCaptureMixin",
     "AttachmentCaptureMixin",
-    "BeamCaptureMixin"
+    "BeamCaptureMixin",
+    "GunInputMixin",
+    "ClientPreventGunClickMixin",
+    "ClientPreventGunBlockMixin",
+    "AutoReloadMixin"
   ],
   "injectors": {
     "defaultRequire": 1

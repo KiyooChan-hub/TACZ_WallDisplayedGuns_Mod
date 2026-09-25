@@ -6,6 +6,10 @@ import net.minecraft.world.level.block.Block;
 
 public final class WallGunItem extends BlockItem {
     public WallGunItem(Block block, Properties properties) { super(block, properties); }
+    @Override public net.minecraft.world.InteractionResult useOn(net.minecraft.world.item.context.UseOnContext context) {
+        // Legacy or command-created item stacks may still exist, but cannot be placed directly.
+        return net.minecraft.world.InteractionResult.FAIL;
+    }
     @Override public void initializeClient(java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions> consumer) {
         consumer.accept(new net.minecraftforge.client.extensions.common.IClientItemExtensions() {
             @Override public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer(){return dev.kiyo.wallgun.client.WallGunIcon.INSTANCE;}
@@ -17,7 +21,6 @@ public final class WallGunItem extends BlockItem {
     }
     @Override public void appendHoverText(ItemStack stack, net.minecraft.world.level.Level context, java.util.List<Component> tooltip, TooltipFlag flags) {
         tooltip.add(Component.translatable("tooltip.tacz_wall_display.place"));
-        tooltip.add(Component.translatable("tooltip.tacz_wall_display.adjust", WallGunConfig.adjustmentItemName()));
         tooltip.add(Component.translatable("tooltip.tacz_wall_display.restore"));
     }
 }

@@ -34,6 +34,8 @@ public final class GunMeshes {
             var detached = GunDisplayInstance.create(((GunDisplayAccessor) original).wallgun$displayId(), ((GunDisplayAccessor) original).wallgun$display());
             var model = detached.getGunModel();
             if (model == null) throw new IllegalStateException("Missing gun model");
+            // Reset TACZ animation state, including duplicate reload magazines, before static capture.
+            model.cleanAnimationTransform();
             GunOrientation.prepareModel(((GunDisplayAccessor) original).wallgun$displayId(),model);
             PoseStack pose = new PoseStack();
             // ItemFrameRenderer applies these OUTSIDE the FIXED item renderer.
