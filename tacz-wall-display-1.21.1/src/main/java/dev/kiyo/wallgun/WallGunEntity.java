@@ -27,10 +27,13 @@ public final class WallGunEntity extends BlockEntity {
         roll = Math.floorMod(steps, 16); flipped = otherSide; setChanged();
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
-    public void adjust(boolean flip, boolean fromBack) {
+    public void adjust(int operation, boolean fromBack) {
         // Pose = R(roll) * F. A flip around the mounting plate's fixed vertical axis is F * R = R(-roll) * F.
-        // Default side turns counterclockwise; flipped side clockwise, as seen by the player.
-        if (flip) setPose(-roll, !flipped); else setPose(roll + ((flipped ^ fromBack) ? 1 : -1), flipped);
+        // Up turns counterclockwise on the default side, clockwise on the flipped side.
+        // The mounting plane's local up also applies to floors and ceilings.
+        if (operation == 0) setPose(-roll, !flipped);
+        else if (operation == 1 || operation == -1)
+            setPose(roll + ((flipped ^ fromBack) ? 1 : -1) * operation, flipped);
     }
     public WallGunEntity(BlockPos pos, BlockState state) { super(WallGuns.ENTITY.get(), pos, state); }
     public GunSnapshot snapshot() { return snapshot; }

@@ -55,8 +55,8 @@ public final class GunPlacement {
                     player.getRandom().nextLong()));
         }
     }
-    public static void adjust(ServerPlayer player, BlockPos requested, boolean flip) {
-        if (!enabled(player) || !canEdit(player)) return;
+    public static void adjust(ServerPlayer player, BlockPos requested, int operation) {
+        if (!enabled(player) || !canEdit(player) || operation < -1 || operation > 1) return;
         if (!(player.pick(player.blockInteractionRange(), 0, false) instanceof BlockHitResult hit)
                 || !hit.getBlockPos().equals(requested)) return;
         if (!player.level().getBlockState(requested).is(WallGuns.BLOCK.get())
@@ -66,7 +66,7 @@ public final class GunPlacement {
         Direction face = gun.getBlockState().getValue(WallGunBlock.FACING);
         Vec3 towardPlayer = player.getEyePosition().subtract(Vec3.atCenterOf(requested));
         boolean back = towardPlayer.dot(Vec3.atLowerCornerOf(face.getNormal())) < 0;
-        gun.adjust(flip, back);
+        gun.adjust(operation, back);
         player.level().playSound(null, requested, net.minecraft.sounds.SoundEvents.ITEM_FRAME_ADD_ITEM,
                 net.minecraft.sounds.SoundSource.BLOCKS, 1, 1);
     }

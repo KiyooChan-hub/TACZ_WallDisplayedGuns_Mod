@@ -74,6 +74,9 @@ final class PlacementSmoke {
                             if (mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_OPEN.getId()) == null
                                     || mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_CLOSE.getId()) == null)
                                 throw new AssertionError("Placement mode sounds were not loaded");
+                            if (com.tacz.guns.client.sound.SoundPlayManager.playClientSound(mc.player,
+                                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire"), 0.0F, 1.0F, 16) == null)
+                                throw new AssertionError("AKM default dry-fire fallback was not loaded");
                             if (!dev.kiyo.wallgun.client.PlacementClient.interceptGun() || com.tacz.guns.util.InputExtraCheck.isInGame())
                                 throw new AssertionError("TACZ inputs were not blocked after placement key toggle: intercept="
                                         + dev.kiyo.wallgun.client.PlacementClient.interceptGun() + " gun="
@@ -82,12 +85,20 @@ final class PlacementSmoke {
                             try (var image = net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
                                 image.writeToFile(mc.gameDirectory.toPath().resolve("verification/mode-hud.png"));
                             }
+                            mc.hitResult = net.minecraft.world.phys.BlockHitResult.miss(new net.minecraft.world.phys.Vec3(0.5, -53.5, -1.5),
+                                    net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, -2));
+                            dev.kiyo.wallgun.client.PlacementClient.mouse(new net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre(0, 1, 0));
+                            if (dev.kiyo.wallgun.client.PlacementClient.allowGunBlockInput())
+                                throw new AssertionError("A miss must not be treated as a block attack");
                             var click = new net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre(1, 1, 0);
                             mc.hitResult = new net.minecraft.world.phys.BlockHitResult(new net.minecraft.world.phys.Vec3(0.5, -53.5, 0), net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, 0), false);
                             dev.kiyo.wallgun.client.PlacementClient.mouse(click);
                             if (!click.isCanceled()) throw new AssertionError("Right-click was not captured");
                             phase = 2; phaseTicks = 0;
                         } else if (phase == 2 && ++phaseTicks > 10) {
+                            try (var image = net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
+                                image.writeToFile(mc.gameDirectory.toPath().resolve("verification/dry-fire-warning.png"));
+                            }
                             mc.getSingleplayerServer().execute(() -> {
                                 var world = mc.getSingleplayerServer().overworld();
                                 var display = world.getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -1));
@@ -96,55 +107,54 @@ final class PlacementSmoke {
                             phase = 3; phaseTicks = 0;
                         } else if (phase == 3 && networkPlaced != null) {
                             if (!networkPlaced) throw new AssertionError("Client right-click packet did not place a gun");
-                            mc.player.getInventory().setItem(0, net.minecraft.world.item.ItemStack.EMPTY);
-                            mc.getSingleplayerServer().execute(() -> mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst()
-                                    .getInventory().setItem(0, net.minecraft.world.item.ItemStack.EMPTY));
                             mc.hitResult = new net.minecraft.world.phys.BlockHitResult(new net.minecraft.world.phys.Vec3(0.5, -53.5, -0.3),
                                     net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, -1), false);
                             var click = new net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre(1, 1, 0);
                             dev.kiyo.wallgun.client.PlacementClient.mouse(click);
-                            if (!click.isCanceled()) throw new AssertionError("Empty-hand display rotation was not captured");
+                            if (!click.isCanceled()) throw new AssertionError("Gun-held neighbor placement was not captured");
                             phase = 4; phaseTicks = 0;
                         } else if (phase == 4 && ++phaseTicks > 10) {
-                            mc.getSingleplayerServer().execute(() -> {
-                                var serverPlayer = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
-                                var display = mc.getSingleplayerServer().overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -1));
-                                networkRoll = display instanceof dev.kiyo.wallgun.WallGunEntity gun ? gun.roll() : -1;
-                                var picked = serverPlayer.pick(serverPlayer.blockInteractionRange(), 0, false);
-                                networkInfo = "pick=" + picked.getType() + "/" + (picked instanceof net.minecraft.world.phys.BlockHitResult block ? block.getBlockPos() + "/" + block.getDirection() : "")
-                                        + " player=" + serverPlayer.position() + "/" + serverPlayer.getYRot() + "/" + serverPlayer.getXRot()
-                                        + " mode=" + dev.kiyo.wallgun.GunPlacement.enabled(serverPlayer)
-                                        + " allowed=" + serverPlayer.mayUseItemAt(new net.minecraft.core.BlockPos(0, -54, -1),
-                                        net.minecraft.core.Direction.NORTH, serverPlayer.getMainHandItem());
-                            });
-                            phase = 5; phaseTicks = 0;
-                        } else if (phase == 5 && networkRoll != null) {
-                            if (networkRoll == 0 || networkRoll == -1) throw new AssertionError("Empty-hand right-click did not rotate display: " + networkInfo);
-                            mc.player.getInventory().setItem(0, ConversionChecks.equipped(mc.level.registryAccess()));
-                            mc.getSingleplayerServer().execute(() -> mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst()
-                                    .getInventory().setItem(0, ConversionChecks.equipped(mc.getSingleplayerServer().registryAccess())));
-                            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new dev.kiyo.wallgun.PlacementPayloads.Place(
-                                    new net.minecraft.core.BlockPos(0, -54, -1), net.minecraft.core.Direction.NORTH));
-                            phase = 6; phaseTicks = 0;
-                        } else if (phase == 6 && ++phaseTicks > 10) {
                             mc.getSingleplayerServer().execute(() -> {
                                 var display = mc.getSingleplayerServer().overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -2));
                                 neighborPlaced = display instanceof dev.kiyo.wallgun.WallGunEntity gun && gun.snapshot() != null;
                             });
-                            phase = 7; phaseTicks = 0;
-                        } else if (phase == 7 && neighborPlaced != null) {
-                            if (!neighborPlaced) throw new AssertionError("Click-face neighbor placement failed");
+                            phase = 5; phaseTicks = 0;
+                        } else if (phase == 5 && neighborPlaced != null) {
+                            if (!neighborPlaced) throw new AssertionError("Right-click did not place beside display");
                             net.neoforged.neoforge.network.PacketDistributor.sendToServer(new dev.kiyo.wallgun.PlacementPayloads.Adjust(
-                                    new net.minecraft.core.BlockPos(0, -54, -2), true));
-                            phase = 8; phaseTicks = 0;
-                        } else if (phase == 8 && ++phaseTicks > 10) {
+                                    new net.minecraft.core.BlockPos(0, -54, -2), 0));
+                            phase = 6; phaseTicks = 0;
+                        } else if (phase == 6 && ++phaseTicks > 10) {
                             mc.getSingleplayerServer().execute(() -> {
                                 var display = mc.getSingleplayerServer().overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -2));
                                 networkFlipped = display instanceof dev.kiyo.wallgun.WallGunEntity gun && gun.flipped();
                             });
+                            phase = 7; phaseTicks = 0;
+                        } else if (phase == 7 && networkFlipped != null) {
+                            if (!networkFlipped) throw new AssertionError("Flip packet did not flip display");
+                            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new dev.kiyo.wallgun.PlacementPayloads.Adjust(
+                                    new net.minecraft.core.BlockPos(0, -54, -2), 1));
+                            phase = 8; phaseTicks = 0;
+                        } else if (phase == 8 && ++phaseTicks > 10) {
+                            mc.getSingleplayerServer().execute(() -> {
+                                var display = mc.getSingleplayerServer().overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -2));
+                                networkRoll = display instanceof dev.kiyo.wallgun.WallGunEntity gun ? gun.roll() : -1;
+                            });
                             phase = 9; phaseTicks = 0;
-                        } else if (phase == 9 && networkFlipped != null) {
-                            if (!networkFlipped) throw new AssertionError("Scroll flip packet did not flip neighboring display");
+                        } else if (phase == 9 && networkRoll != null) {
+                            if (networkRoll == 0 || networkRoll == -1) throw new AssertionError("Up-scroll did not rotate display");
+                            networkRoll = null;
+                            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new dev.kiyo.wallgun.PlacementPayloads.Adjust(
+                                    new net.minecraft.core.BlockPos(0, -54, -2), -1));
+                            phase = 17; phaseTicks = 0;
+                        } else if (phase == 17 && ++phaseTicks > 10) {
+                            mc.getSingleplayerServer().execute(() -> {
+                                var display = mc.getSingleplayerServer().overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, -54, -2));
+                                networkRoll = display instanceof dev.kiyo.wallgun.WallGunEntity gun ? gun.roll() : -1;
+                            });
+                            phase = 18; phaseTicks = 0;
+                        } else if (phase == 18 && networkRoll != null) {
+                            if (networkRoll != 0) throw new AssertionError("Down-scroll did not restore rotation: " + networkRoll);
                             mc.player.getInventory().setItem(0, ConversionChecks.equipped(mc.level.registryAccess()));
                             mc.getSingleplayerServer().execute(() -> {
                                 var serverPlayer = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
@@ -198,12 +208,14 @@ final class PlacementSmoke {
                             phase = 16; phaseTicks = 0;
                         } else if (phase == 16 && ++phaseTicks > 3) {
                             if (dev.kiyo.wallgun.client.PlacementClient.interceptGun() || !com.tacz.guns.util.InputExtraCheck.isInGame())
-                                throw new AssertionError("TACZ inputs did not resume after exiting placement mode");
+                                throw new AssertionError("TACZ inputs did not resume after exiting placement mode: enabled="
+                                        + dev.kiyo.wallgun.client.PlacementClient.interceptGun() + " screen=" + mc.screen
+                                        + " level=" + mc.level + " player=" + mc.player);
                             var attack = new net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered(
                                     0, mc.options.keyAttack, net.minecraft.world.InteractionHand.MAIN_HAND);
                             com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(attack);
                             if (!attack.isCanceled()) throw new AssertionError("TACZ gun-click guard stayed bypassed after mode exit");
-                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: render config=" + dev.kiyo.wallgun.WallGunConfig.maxRenderDistance() + ", P key in TACZ category, TACZ gate, right-click placement, empty-hand rotation, clicked-face neighbor placement, flip packet, gun-held pick-block returning original gun, survival gun-held first-hit break, creative gun-held ordinary-block break, and TACZ guard restoration.\n");
+                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: render config=" + dev.kiyo.wallgun.WallGunConfig.maxRenderDistance() + ", P key in TACZ category, TACZ gate, air-click warning, right-click placement and neighboring placement, flip and up/down rotation packets, gun-held pick-block returning original gun, survival gun-held first-hit break, creative gun-held ordinary-block break, and TACZ guard restoration.\n");
                             mc.stop();
                         }
                     } catch (Throwable ex) {
