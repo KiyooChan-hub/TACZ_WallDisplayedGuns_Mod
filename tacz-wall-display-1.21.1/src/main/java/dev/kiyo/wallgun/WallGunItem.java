@@ -12,7 +12,6 @@ public final class WallGunItem extends BlockItem {
     }
     @Override public void appendHoverText(ItemStack stack, TooltipContext context, java.util.List<Component> tooltip, TooltipFlag flags) {
         tooltip.add(Component.translatable("tooltip.tacz_wall_display.place"));
-        tooltip.add(Component.translatable("tooltip.tacz_wall_display.adjust", WallGunConfig.adjustmentItemName()));
         tooltip.add(Component.translatable("tooltip.tacz_wall_display.restore"));
     }
 }

@@ -24,6 +24,11 @@ public final class PlacementPayloads {
         public static final StreamCodec<ByteBuf, Place> CODEC = StreamCodec.composite(BlockPos.STREAM_CODEC, Place::pos, Direction.STREAM_CODEC, Place::face, Place::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
+    public record Adjust(BlockPos pos, boolean flip) implements CustomPacketPayload {
+        public static final Type<Adjust> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WallGuns.ID, "adjust_gun"));
+        public static final StreamCodec<ByteBuf, Adjust> CODEC = StreamCodec.composite(BlockPos.STREAM_CODEC, Adjust::pos, ByteBufCodecs.BOOL, Adjust::flip, Adjust::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1");
         registrar.playToServer(Mode.TYPE, Mode.CODEC, (payload, context) -> {
@@ -32,6 +37,9 @@ public final class PlacementPayloads {
         registrar.playToServer(Place.TYPE, Place.CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player)
                 GunPlacement.place(player, new BlockHitResult(Vec3.atCenterOf(payload.pos()), payload.face(), payload.pos(), false));
+        });
+        registrar.playToServer(Adjust.TYPE, Adjust.CODEC, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer player) GunPlacement.adjust(player, payload.pos(), payload.flip());
         });
     }
 }

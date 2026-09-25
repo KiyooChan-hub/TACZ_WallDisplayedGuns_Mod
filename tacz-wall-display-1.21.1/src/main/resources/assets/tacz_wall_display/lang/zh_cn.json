@@ -3,10 +3,12 @@
   "item.tacz_wall_display.named": "装饰枪 · %s",
   "tooltip.tacz_wall_display.place": "旧版装饰枪物品已废弃，不能直接放置。",
   "tooltip.tacz_wall_display.restore": "旧版物品会在读取时还原为原枪。",
-  "tooltip.tacz_wall_display.adjust": "%s 右键：默认面逆时针转 22.5°，翻面后顺时针；Shift+右键：翻面。",
   "key.tacz_wall_display.placement": "切换枪械自由摆放模式",
-  "key.categories.tacz_wall_display": "TACZ 装饰枪",
-  "hud.tacz_wall_display.placement_title": "<枪械自由摆放模式>",
-  "hud.tacz_wall_display.placement_action": "手持真枪右键：摆放为装饰枪；左键：空手破坏",
-  "hud.tacz_wall_display.placement_exit": "按 %s 退出"
+  "hud.tacz_wall_display.placement_title": "枪械自由摆放模式",
+  "hud.tacz_wall_display.place": "手持真枪右键：放置装饰枪",
+  "hud.tacz_wall_display.break": "左键：破坏方块",
+  "hud.tacz_wall_display.rotate": "右键装饰枪：旋转",
+  "hud.tacz_wall_display.neighbor": "持真枪按下左 Alt＋右键装饰枪：向邻格放置",
+  "hud.tacz_wall_display.flip": "左 Alt＋滚轮装饰枪：翻面",
+  "hud.tacz_wall_display.toggle": "%s：开关枪械摆放模式"
 }

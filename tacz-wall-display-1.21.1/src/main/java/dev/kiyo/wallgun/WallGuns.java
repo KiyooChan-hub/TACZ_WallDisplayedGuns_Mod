@@ -23,22 +23,15 @@ public final class WallGuns {
     private static final DeferredRegister<RecipeSerializer<?>> RECIPES = DeferredRegister.create(Registries.RECIPE_SERIALIZER, ID);
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<GunSnapshot>> SNAPSHOT = COMPONENTS.register("original_gun", () -> DataComponentType.<GunSnapshot>builder().persistent(GunSnapshot.CODEC).networkSynchronized(GunSnapshot.STREAM_CODEC).build());
     // Deliberately new registry IDs: old gun-id-only blocks cannot own or return a real gun.
-    public static final DeferredBlock<WallGunBlock> BLOCK = BLOCKS.register("decorative_gun", () -> new WallGunBlock(BlockBehaviour.Properties.of().strength(0.5F).noOcclusion().noCollission()));
+    public static final DeferredBlock<WallGunBlock> BLOCK = BLOCKS.register("decorative_gun", () -> new WallGunBlock(BlockBehaviour.Properties.of().strength(0.0F).sound(net.minecraft.world.level.block.SoundType.STONE).noOcclusion().noCollission()));
     public static final DeferredItem<WallGunItem> ITEM = ITEMS.register("decorative_gun", () -> new WallGunItem(BLOCK.get(), new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WallGunEntity>> ENTITY = ENTITIES.register("decorative_gun", () -> BlockEntityType.Builder.of(WallGunEntity::new, BLOCK.get()).build(null));
     public static final DeferredHolder<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<GunConversionRecipe>> CONVERSION = RECIPES.register("gun_conversion", () -> new SimpleCraftingRecipeSerializer<>(GunConversionRecipe::new));
     public WallGuns(IEventBus bus, net.neoforged.fml.ModContainer container) {
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, WallGunConfig.SPEC, WallGunConfig.FILE_NAME);
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, dev.kiyo.wallgun.client.PlacementClientConfig.SPEC, "tacz-wall-display-client.toml");
         COMPONENTS.register(bus); BLOCKS.register(bus); ITEMS.register(bus); ENTITIES.register(bus); RECIPES.register(bus);
         bus.addListener(PlacementPayloads::register);
         GunPlacement.init();
         LegacyGunMigration.init();
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) -> {
-            // Shift normally bypasses block use. Opt in only for our block and the configured tool.
-            if (WallGunConfig.isAdjustmentItem(event.getItemStack()) && event.getLevel().getBlockState(event.getPos()).is(BLOCK.get()))
-                event.setUseBlock(net.neoforged.neoforge.common.util.TriState.TRUE);
-        });
     }
     public static ItemStack stack(GunSnapshot snapshot) {
         if (snapshot == null) return ItemStack.EMPTY;

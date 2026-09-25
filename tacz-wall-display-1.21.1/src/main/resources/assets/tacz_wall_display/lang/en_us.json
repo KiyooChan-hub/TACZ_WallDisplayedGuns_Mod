@@ -3,10 +3,12 @@
   "item.tacz_wall_display.named": "Decorative Gun · %s",
   "tooltip.tacz_wall_display.place": "Legacy decorative items can no longer be placed.",
   "tooltip.tacz_wall_display.restore": "Legacy decorative items restore their original gun when loaded.",
-  "tooltip.tacz_wall_display.adjust": "%s: right-click rotates 22.5 degrees counterclockwise, or clockwise when turned over; Shift+right-click turns over.",
   "key.tacz_wall_display.placement": "Toggle free gun placement mode",
-  "key.categories.tacz_wall_display": "TACZ Wall Display",
-  "hud.tacz_wall_display.placement_title": "<Free Gun Placement Mode>",
-  "hud.tacz_wall_display.placement_action": "Hold a gun: right-click to display; left-click to break by hand",
-  "hud.tacz_wall_display.placement_exit": "Press %s to exit"
+  "hud.tacz_wall_display.placement_title": "Free Gun Placement Mode",
+  "hud.tacz_wall_display.place": "Hold a gun + right-click: place display",
+  "hud.tacz_wall_display.break": "Left-click: break blocks",
+  "hud.tacz_wall_display.rotate": "Right-click a display: rotate",
+  "hud.tacz_wall_display.neighbor": "Hold a gun + Left Alt + right-click a display: place beside it",
+  "hud.tacz_wall_display.flip": "Left Alt + scroll over a display: flip",
+  "hud.tacz_wall_display.toggle": "%s: toggle gun placement mode"
 }

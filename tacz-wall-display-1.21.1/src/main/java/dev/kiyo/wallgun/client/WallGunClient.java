@@ -21,6 +21,7 @@ public final class WallGunClient {
         NeoForge.EVENT_BUS.addListener(WallWarmup::opening);
         NeoForge.EVENT_BUS.addListener(PlacementClient::tick);
         NeoForge.EVENT_BUS.addListener(PlacementClient::mouse);
+        NeoForge.EVENT_BUS.addListener(PlacementClient::scroll);
         NeoForge.EVENT_BUS.addListener(PlacementClient::render);
         NeoForge.EVENT_BUS.addListener(PlacementClient::reset);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{WallBatches.clear();GunMeshes.clear();WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});

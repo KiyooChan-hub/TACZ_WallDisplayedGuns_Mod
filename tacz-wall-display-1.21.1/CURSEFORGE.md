@@ -29,7 +29,7 @@ Additional gun packs are optional. To display a gun from an additional pack, kee
 - Preserve the original gun and its equipped attachments when placing it as a decorative block.
 - Reuse the gun's detailed model, textures, and inventory icon directly from TACZ and installed gun packs.
 - Place displays on all six block faces and remove their supports afterward.
-- Rotate and flip each display with a configurable adjustment item.
+- On 1.21.1, rotate a display with right-click and flip it with Left Alt + scroll in Free Gun Placement Mode.
 - Prepare nearby displays while entering the world to reduce first-view loading stutter.
 - On the 1.21.1 build, super-glue displays to Create moving structures; their static meshes follow rotation and retain the original gun when disassembled.
 
@@ -37,13 +37,13 @@ Gun-pack and attachment compatibility depends on the source models. Unusual cust
 
 ## How to Use
 
-**Minecraft 1.21.1:** Press **P** to enter Free Gun Placement Mode. Hold a TACZ gun and right-click a block to display it on that face. Gun actions are suspended in this mode; left-click breaks blocks as if empty-handed. Press P again to leave. Rebind the key in Controls, or set its initial default with `toggleKey` in `tacz-wall-display-client.toml`. The top-right instructions adapt to the current language and key. Crafting conversion is no longer available. Existing decorative gun items restore their original guns when loaded; they cannot be placed directly. Creative pick-block returns the original gun.
+**Minecraft 1.21.1:** Press **P** to enter Free Gun Placement Mode; rebind it in the TACZ section of Controls. Hold a TACZ gun and right-click a block to display it on that face. Left-click retains normal block breaking, and decorative guns break with one empty-hand click in Survival. Right-click an existing display with any item or an empty hand to rotate it by 22.5 degrees. Hold **Left Alt** and scroll over a display to flip it. Hold a real gun and **Left Alt + right-click** a display to place another gun in the clicked face's neighboring cell, including unsupported space. Gun actions are suspended in this mode. Press the mode key again to leave. Crafting conversion is no longer available. Existing decorative gun items restore their original guns when loaded; they cannot be placed directly. Creative pick-block returns the original gun.
 
 **Minecraft 1.20.1:** Put one TACZ gun in a crafting grid to obtain its decorative block, and craft the block alone to restore the gun. This version retains its previous crafting workflow until it is explicitly updated.
 
-For either version, break a display by hand in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. Hold a stick, or the configured adjustment item, and right-click to rotate the display by 22.5 degrees: counterclockwise on its default side, clockwise after turning it over. Hold Shift and right-click to flip it over. Shift works while flying in Creative mode.
+For either version, break a display in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. On **1.20.1 only**, hold a stick or the configured adjustment item and right-click to rotate by 22.5 degrees; Shift + right-click flips it.
 
-## Adjustment Item
+## Adjustment Item (1.20.1 Only)
 
 Set `adjustmentItem` in `tacz-wall-display-server.toml` to an item ID. The default is:
 
@@ -51,6 +51,6 @@ Set `adjustmentItem` in `tacz-wall-display-server.toml` to an item ID. The defau
 adjustmentItem = "minecraft:stick"
 ```
 
-The server controls this setting in multiplayer. On Forge 1.20.1, edit the file in the world's `serverconfig` folder; `defaultconfigs` supplies the template for worlds without a saved configuration. On the supported NeoForge 1.21.1 setup, the file is generated in the instance's `config` folder unless a world-specific override is enabled.
+The server controls this setting in multiplayer. On Forge 1.20.1, edit the file in the world's `serverconfig` folder; `defaultconfigs` supplies the template for worlds without a saved configuration. The 1.21.1 build no longer has an adjustment-item configuration.
 
 The selected item's own right-click behavior is not specially handled. Choose an appropriate item for your setup.

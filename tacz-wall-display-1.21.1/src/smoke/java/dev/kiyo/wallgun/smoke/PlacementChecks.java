@@ -29,6 +29,8 @@ final class PlacementChecks {
         CompoundTag tag = (CompoundTag) legacy.save(lookup);
         same(ItemStack.parseOptional(lookup, tag), original, "NBT migration at load");
         check(WallGuns.snapshot(legacy) != null, "Legacy registry lost gun data");
+        check(WallGuns.BLOCK.get().defaultBlockState().getDestroySpeed(world, player.blockPosition()) == 0.0F,
+                "Decorative gun is not instant-break hardness");
         for (Direction direction : Direction.values()) {
             BlockPos wall = new BlockPos(70 + direction.get3DDataValue() * 6, -56, 10);
             BlockPos pos = wall.relative(direction);
@@ -59,7 +61,7 @@ final class PlacementChecks {
             world.destroyBlock(wall, false);
         }
         Files.createDirectories(output);
-        Files.writeString(output.resolve("placement.txt"), "PASS: recipes removed, legacy item NBT restored, direct legacy placement denied, six-face real-gun placement, data, creative pick, drops, mode-off rejection.\n");
+        Files.writeString(output.resolve("placement.txt"), "PASS: instant-break hardness, recipes removed, legacy item NBT restored, direct legacy placement denied, six-face real-gun placement, data, creative pick, drops, mode-off rejection.\n");
     }
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
     private static void same(ItemStack actual, ItemStack expected, String message) { check(ItemStack.matches(actual, expected), message + ": " + actual + " != " + expected); }

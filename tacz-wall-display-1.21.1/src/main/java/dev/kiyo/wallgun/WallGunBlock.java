@@ -31,19 +31,6 @@ public final class WallGunBlock extends BaseEntityBlock {
         });
         return super.getDrops(state, params);
     }
-    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
-            net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
-        if (!WallGunConfig.isAdjustmentItem(stack)) return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        if (!(level.getBlockEntity(pos) instanceof WallGunEntity gun) || gun.snapshot() == null) return net.minecraft.world.ItemInteractionResult.FAIL;
-        if (!level.isClientSide) {
-            Direction face = state.getValue(FACING);
-            var towardPlayer = player.getEyePosition().subtract(net.minecraft.world.phys.Vec3.atCenterOf(pos));
-            boolean back = towardPlayer.dot(net.minecraft.world.phys.Vec3.atLowerCornerOf(face.getNormal())) < 0;
-            gun.adjust(player.isShiftKeyDown(), back);
-            level.playSound(null, pos, net.minecraft.sounds.SoundEvents.ITEM_FRAME_ADD_ITEM, net.minecraft.sounds.SoundSource.BLOCKS, 1, 1);
-        }
-        return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide);
-    }
     @Override protected RenderShape getRenderShape(BlockState state) { return RenderShape.ENTITYBLOCK_ANIMATED; }
     @Override protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         // A stable, thin mounting plate remains targetable at every roll and from either side.

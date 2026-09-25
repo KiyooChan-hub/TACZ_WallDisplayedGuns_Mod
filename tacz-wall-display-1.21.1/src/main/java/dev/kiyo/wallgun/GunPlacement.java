@@ -9,6 +9,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.GameType;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import java.util.Set;
@@ -27,7 +30,7 @@ public final class GunPlacement {
         if (enabled) ENABLED.add(player.getUUID()); else ENABLED.remove(player.getUUID());
     }
     public static void place(ServerPlayer player, BlockHitResult requested) {
-        if (!enabled(player) || player.isSpectator()) return;
+        if (!enabled(player) || !canEdit(player)) return;
         ItemStack gun = player.getMainHandItem();
         if (IGun.getIGunOrNull(gun) == null) return;
         // Re-raytrace on the server; never trust a client-supplied target or distant position.
@@ -39,5 +42,24 @@ public final class GunPlacement {
         BlockPos target = context.getClickedPos();
         if (!player.level().mayInteract(player, target) || !player.mayUseItemAt(target, actual.getDirection(), gun)) return;
         WallGuns.ITEM.get().place(context);
+    }
+    public static void adjust(ServerPlayer player, BlockPos requested, boolean flip) {
+        if (!enabled(player) || !canEdit(player)) return;
+        if (!(player.pick(player.blockInteractionRange(), 0, false) instanceof BlockHitResult hit)
+                || !hit.getBlockPos().equals(requested)) return;
+        if (!player.level().getBlockState(requested).is(WallGuns.BLOCK.get())
+                || !player.level().mayInteract(player, requested)
+                || !player.mayUseItemAt(requested, hit.getDirection(), player.getMainHandItem())) return;
+        if (!(player.level().getBlockEntity(requested) instanceof WallGunEntity gun) || gun.snapshot() == null) return;
+        Direction face = gun.getBlockState().getValue(WallGunBlock.FACING);
+        Vec3 towardPlayer = player.getEyePosition().subtract(Vec3.atCenterOf(requested));
+        boolean back = towardPlayer.dot(Vec3.atLowerCornerOf(face.getNormal())) < 0;
+        gun.adjust(flip, back);
+        player.level().playSound(null, requested, net.minecraft.sounds.SoundEvents.ITEM_FRAME_ADD_ITEM,
+                net.minecraft.sounds.SoundSource.BLOCKS, 1, 1);
+    }
+    private static boolean canEdit(ServerPlayer player) {
+        GameType mode = player.gameMode.getGameModeForPlayer();
+        return mode == GameType.SURVIVAL || mode == GameType.CREATIVE;
     }
 }

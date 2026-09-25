@@ -36,9 +36,7 @@ public class WallSmoke {
         if (Boolean.getBoolean("wallgun.magazineSmoke")) {new MagazineSmoke();return;}
         if (Boolean.getBoolean("wallgun.compatibilitySmoke")) {new DisplayCompatibilitySmoke();return;}
         if (Boolean.getBoolean("wallgun.lodSmoke")) {new LodSmoke();return;}
-        if (Boolean.getBoolean("wallgun.toolSmoke")) {new PoseSmoke();return;}
         if (Boolean.getBoolean("wallgun.warmupSmoke")) {new WarmupSmoke();return;}
-        if (Boolean.getBoolean("wallgun.pose")) {new PoseSmoke();return;}
         if (Boolean.getBoolean("wallgun.audit")) {new CatalogAudit();return;}
         NeoForge.EVENT_BUS.addListener(this::tick);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RenderLevelStageEvent e)->{
@@ -94,7 +92,6 @@ public class WallSmoke {
                         }
                         var player=server.getPlayerList().getPlayers().getFirst();
                         PlacementChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
-                        InteractionChecks.run(player, mc.gameDirectory.toPath().resolve("verification"));
                         for(Direction direction:Direction.values()) {
                             var wall=new BlockPos(30+direction.get3DDataValue()*4,-56,10);
                             var target=wall.relative(direction);
