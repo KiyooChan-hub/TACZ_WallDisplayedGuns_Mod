@@ -122,6 +122,7 @@ public final class PlacementClient {
                 Component.translatable("hud.tacz_wall_display.flip"),
                 Component.translatable("hud.tacz_wall_display.rotate_up"),
                 Component.translatable("hud.tacz_wall_display.rotate_down"),
+                Component.translatable("hud.tacz_wall_display.pick"),
                 Component.translatable("hud.tacz_wall_display.toggle", key));
         int padding = 6, line = mc.font.lineHeight + 3;
         float scale = 0.52F;

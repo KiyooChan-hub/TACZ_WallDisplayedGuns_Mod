@@ -69,7 +69,8 @@ public final class WallBatches {
         return n;
     }
     public static void render(RenderLevelStageEvent event) {
-        if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES)return;
+        // Draw before other mods' block-entity overlays can switch the world framebuffer.
+        if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
         lastDraws=0;lastGuns=0;
         if(world==null || world!=Minecraft.getInstance().level)return;
         var camera=event.getCamera().getPosition();
