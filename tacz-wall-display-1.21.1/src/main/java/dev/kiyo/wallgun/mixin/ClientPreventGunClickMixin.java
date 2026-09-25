@@ -8,11 +8,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Let vanilla initiate block breaking with a gun while placement mode is active. */
+/** Restore vanilla block attack and pick-block while placement mode is active. */
 @Mixin(value = ClientPreventGunClick.class, remap = false)
 public abstract class ClientPreventGunClickMixin {
     @Inject(method = "onClickInput", at = @At("HEAD"), cancellable = true)
     private static void wallgun$allowBlockAttack(InputEvent.InteractionKeyMappingTriggered event, CallbackInfo ci) {
-        if (event.isAttack() && PlacementClient.allowGunBlockAttack()) ci.cancel();
+        if ((event.isAttack() || event.isPickBlock()) && PlacementClient.allowGunBlockInput()) ci.cancel();
     }
 }

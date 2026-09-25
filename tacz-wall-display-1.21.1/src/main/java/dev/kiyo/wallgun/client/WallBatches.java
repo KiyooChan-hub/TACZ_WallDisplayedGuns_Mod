@@ -45,7 +45,7 @@ public final class WallBatches {
         groups=new LinkedHashMap<>();
         RESIDENTS.values().removeIf(entry -> entry.gun.isRemoved() || !world.hasChunkAt(entry.pos)
                 || world.getBlockEntity(entry.pos)!=entry.gun || Minecraft.getInstance().player==null
-                || entry.pos.distToCenterSqr(Minecraft.getInstance().player.getEyePosition())>112*112);
+                || !RenderDistanceRules.keep(entry.pos, Minecraft.getInstance().player.getEyePosition(), WallGunConfig.maxRenderDistance()));
         for (Entry entry:RESIDENTS.values()) {
             for (RenderType type:entry.mesh.materials().keySet()) groups.computeIfAbsent(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type),ignored->new ArrayList<>()).add(entry);
         }
@@ -79,7 +79,8 @@ public final class WallBatches {
             Key key=group.getKey();var entries=group.getValue();var batch=BATCHES.get(key);
             // A pending edit must not keep drawing a destroyed gun or an obsolete attachment.
             if(batch==null || batch.buffer==null || !batch.entries.equals(entries))continue;
-            boolean visible=event.getFrustum().isVisible(batch.bounds) && batch.bounds.distanceToSqr(camera)<=96*96;
+            boolean visible=event.getFrustum().isVisible(batch.bounds)
+                    && RenderDistanceRules.draw(batch.bounds, camera, WallGunConfig.maxRenderDistance());
             if(!batch.primed) {
                 if(primedThisFrame>=(WallWarmup.loading()?8:2) || !primeBudget.start())continue;
                 primedThisFrame++;

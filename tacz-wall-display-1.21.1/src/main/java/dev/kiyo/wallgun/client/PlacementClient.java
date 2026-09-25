@@ -26,7 +26,7 @@ public final class PlacementClient {
         var mc = Minecraft.getInstance();
         return enabled && mc.player != null && mc.screen == null && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null;
     }
-    public static boolean allowGunBlockAttack() {
+    public static boolean allowGunBlockInput() {
         var mc = Minecraft.getInstance();
         return interceptGun() && mc.hitResult instanceof BlockHitResult;
     }

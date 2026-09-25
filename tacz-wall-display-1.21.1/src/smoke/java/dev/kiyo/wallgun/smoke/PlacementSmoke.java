@@ -68,6 +68,9 @@ final class PlacementSmoke {
                             net.minecraft.client.KeyMapping.click(key.getKey());
                             phase = 1;
                         } else if (phase == 1 && ++phaseTicks > 3) {
+                            int expectedDistance = Integer.getInteger("wallgun.expectedRenderDistance", 512);
+                            if (dev.kiyo.wallgun.WallGunConfig.maxRenderDistance() != expectedDistance)
+                                throw new AssertionError("Unexpected render distance: " + dev.kiyo.wallgun.WallGunConfig.maxRenderDistance());
                             if (mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_OPEN.getId()) == null
                                     || mc.getSoundManager().getSoundEvent(dev.kiyo.wallgun.WallGuns.MODE_CLOSE.getId()) == null)
                                 throw new AssertionError("Placement mode sounds were not loaded");
@@ -152,6 +155,14 @@ final class PlacementSmoke {
                         } else if (phase == 10 && ++phaseTicks > 4) {
                             mc.hitResult = new net.minecraft.world.phys.BlockHitResult(new net.minecraft.world.phys.Vec3(0.5, -53.5, -1.7),
                                     net.minecraft.core.Direction.NORTH, new net.minecraft.core.BlockPos(0, -54, -2), false);
+                            var pick = new net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered(
+                                    2, mc.options.keyPickItem, net.minecraft.world.InteractionHand.MAIN_HAND);
+                            com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(pick);
+                            if (pick.isCanceled()) throw new AssertionError("TACZ still blocks gun-held pick-block in placement mode");
+                            var picked = mc.level.getBlockState(new net.minecraft.core.BlockPos(0, -54, -2))
+                                    .getCloneItemStack(mc.hitResult, mc.level, new net.minecraft.core.BlockPos(0, -54, -2), mc.player);
+                            if (com.tacz.guns.api.item.IGun.getIGunOrNull(picked) == null)
+                                throw new AssertionError("Display pick-block did not return its original gun");
                             var attack = new net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered(
                                     0, mc.options.keyAttack, net.minecraft.world.InteractionHand.MAIN_HAND);
                             com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(attack);
@@ -192,7 +203,7 @@ final class PlacementSmoke {
                                     0, mc.options.keyAttack, net.minecraft.world.InteractionHand.MAIN_HAND);
                             com.tacz.guns.client.event.ClientPreventGunClick.onClickInput(attack);
                             if (!attack.isCanceled()) throw new AssertionError("TACZ gun-click guard stayed bypassed after mode exit");
-                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: P key in TACZ category, TACZ gate, right-click placement, empty-hand rotation, clicked-face neighbor placement, flip packet, survival gun-held first-hit break, creative gun-held ordinary-block break, and TACZ guard restoration.\n");
+                            Files.writeString(mc.gameDirectory.toPath().resolve("verification/placement-client.txt"), "PASS: render config=" + dev.kiyo.wallgun.WallGunConfig.maxRenderDistance() + ", P key in TACZ category, TACZ gate, right-click placement, empty-hand rotation, clicked-face neighbor placement, flip packet, gun-held pick-block returning original gun, survival gun-held first-hit break, creative gun-held ordinary-block break, and TACZ guard restoration.\n");
                             mc.stop();
                         }
                     } catch (Throwable ex) {

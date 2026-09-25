@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.registries.*;
 import org.slf4j.Logger;
 
@@ -34,6 +35,7 @@ public final class WallGuns {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WallGunEntity>> ENTITY = ENTITIES.register("decorative_gun", () -> BlockEntityType.Builder.of(WallGunEntity::new, BLOCK.get()).build(null));
     public static final DeferredHolder<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<GunConversionRecipe>> CONVERSION = RECIPES.register("gun_conversion", () -> new SimpleCraftingRecipeSerializer<>(GunConversionRecipe::new));
     public WallGuns(IEventBus bus, net.neoforged.fml.ModContainer container) {
+        container.registerConfig(ModConfig.Type.CLIENT, WallGunConfig.SPEC);
         COMPONENTS.register(bus); BLOCKS.register(bus); ITEMS.register(bus); ENTITIES.register(bus); RECIPES.register(bus); SOUNDS.register(bus);
         bus.addListener(PlacementPayloads::register);
         GunPlacement.init();

@@ -4,6 +4,9 @@ import dev.kiyo.wallgun.WallGunEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.*;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.Minecraft;
+import dev.kiyo.wallgun.WallGunConfig;
 import net.neoforged.fml.ModList;
 
 /** Visibility/light collection only. No per-frame bone traversal or vertex emission here. */
@@ -16,5 +19,12 @@ public final class WallGunRenderer implements BlockEntityRenderer<WallGunEntity>
     @Override public AABB getRenderBoundingBox(WallGunEntity gun) { return new AABB(gun.getBlockPos()).inflate(1.0); }
     // The anchor section may be outside the frustum while a long barrel is still visible.
     @Override public boolean shouldRenderOffScreen(WallGunEntity gun) { return true; }
-    @Override public int getViewDistance() { return 96; }
+    @Override public boolean shouldRender(WallGunEntity gun, Vec3 camera) {
+        return RenderDistanceRules.keep(gun.getBlockPos(), camera, WallGunConfig.maxRenderDistance());
+    }
+    // A third-party renderer may consult this even though vanilla calls shouldRender.
+    @Override public int getViewDistance() {
+        int configured = WallGunConfig.maxRenderDistance();
+        return configured == -1 ? Minecraft.getInstance().options.getEffectiveRenderDistance() * 16 + 32 : configured + 16;
+    }
 }
