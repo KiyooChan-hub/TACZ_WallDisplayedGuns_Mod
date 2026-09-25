@@ -12,6 +12,7 @@
     "AttachmentCaptureMixin",
     "BeamCaptureMixin",
     "GunInputMixin",
+    "RefitKeyMixin",
     "ClientPreventGunClickMixin",
     "ClientPreventGunBlockMixin",
     "AutoReloadMixin"

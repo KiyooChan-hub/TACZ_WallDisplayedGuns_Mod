@@ -11,6 +11,7 @@
   "hud.tacz_wall_display.rotate_up": "> 左Alt+上滚轮装饰枪：逆时针旋转",
   "hud.tacz_wall_display.rotate_down": "> 左Alt+下滚轮装饰枪：顺时针旋转",
   "hud.tacz_wall_display.pick": "> 鼠标中键：选取装饰枪或方块",
+  "hud.tacz_wall_display.refit": "> %s：改装手持枪械",
   "hud.tacz_wall_display.toggle": "> %s（可配置）：开关摆放模式",
   "hud.tacz_wall_display.cannot_fire": "不能在枪械摆放模式下开火！"
 }

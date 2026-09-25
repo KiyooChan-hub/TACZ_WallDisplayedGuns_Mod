@@ -11,6 +11,7 @@
   "hud.tacz_wall_display.rotate_up": "> LeftAlt+scroll up display：rotate counterclockwise",
   "hud.tacz_wall_display.rotate_down": "> LeftAlt+scroll down display：rotate clockwise",
   "hud.tacz_wall_display.pick": "> Middle-click：pick display gun or block",
+  "hud.tacz_wall_display.refit": "> %s：customize held gun",
   "hud.tacz_wall_display.toggle": "> %s（configurable）：toggle placement mode",
   "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!"
 }

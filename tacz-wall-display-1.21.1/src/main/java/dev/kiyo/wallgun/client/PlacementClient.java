@@ -2,6 +2,7 @@ package dev.kiyo.wallgun.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.client.input.RefitKey;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.client.sound.SoundPlayManager;
 import com.tacz.guns.sound.SoundManager;
@@ -123,6 +124,7 @@ public final class PlacementClient {
                 Component.translatable("hud.tacz_wall_display.rotate_up"),
                 Component.translatable("hud.tacz_wall_display.rotate_down"),
                 Component.translatable("hud.tacz_wall_display.pick"),
+                Component.translatable("hud.tacz_wall_display.refit", RefitKey.REFIT_KEY.getTranslatedKeyMessage()),
                 Component.translatable("hud.tacz_wall_display.toggle", key));
         int padding = 6, line = mc.font.lineHeight + 3;
         float scale = 0.52F;
