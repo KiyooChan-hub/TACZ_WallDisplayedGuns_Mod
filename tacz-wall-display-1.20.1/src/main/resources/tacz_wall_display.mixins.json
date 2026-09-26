@@ -1,5 +1,6 @@
 {
   "required": true,
+  "refmap": "tacz_wall_display.refmap.json",
   "minVersion": "0.8",
   "package": "dev.kiyo.wallgun.mixin",
   "compatibilityLevel": "JAVA_17",

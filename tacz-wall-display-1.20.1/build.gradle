@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.6.9'
+version = '0.6.10'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -19,6 +19,7 @@ dependencies {
     if (!providers.gradleProperty('serverSmoke').isPresent()) runtimeOnly fg.deobf('local:embeddium:0.3.31+mc1.20.1')
     runtimeOnly fg.deobf('local:cloth-config:11.1.136-forge')
     if (!providers.gradleProperty('serverSmoke').isPresent()) runtimeOnly fg.deobf('local:ruok-forge_1.20.1:1.7.2')
+    annotationProcessor files(configurations.compileClasspath)
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 }
 minecraft {
@@ -37,9 +38,11 @@ minecraft {
         server { workingDirectory project.file('run-server'); args '--nogui' }
     }
 }
-tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17; options.compilerArgs += ['-proc:none'] }
+tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17 }
+tasks.named('compileJava', JavaCompile) { options.compilerArgs += ['-processor', 'org.spongepowered.tools.obfuscation.MixinObfuscationProcessorInjection,org.spongepowered.tools.obfuscation.MixinObfuscationProcessorTargets', '-AdefaultObfuscationEnv=searge', '-AreobfSrgFile=' + project.file('build/generated/refmap/mcp-to-srg.srg').absolutePath, '-AoutRefMapFile=' + project.file('build/generated/refmap/tacz_wall_display.refmap.json').absolutePath]; dependsOn 'mixinSrgMappings'; outputs.file('build/generated/refmap/tacz_wall_display.refmap.json'); doFirst { project.file('build/generated/refmap').mkdirs() } }
 test { useJUnitPlatform() }
-jar { manifest { attributes 'MixinConfigs':'tacz_wall_display.mixins.json' }; finalizedBy 'reobfJar' }
+processResources { inputs.property 'modVersion', project.version; filesMatching('META-INF/mods.toml') { expand(modVersion: project.version) } }
+jar { from('build/generated/refmap') { include '*.refmap.json' }; manifest { attributes 'MixinConfigs':'tacz_wall_display.mixins.json' }; finalizedBy 'reobfJar' }
 if (providers.gradleProperty('smoke').isPresent()) {
     sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
     configurations.smokeImplementation.extendsFrom(configurations.implementation)
@@ -65,3 +68,5 @@ if (providers.gradleProperty('serverSmoke').isPresent()) {
     configurations.serverSmokeImplementation.extendsFrom(configurations.implementation)
     minecraft.runs.server { mods { wall_display_server_smoke { source sourceSets.serverSmoke } } }
 }
+
+tasks.register('mixinSrgMappings') { dependsOn 'createMcpToSrg'; inputs.file('build/createMcpToSrg/output.tsrg'); outputs.file('build/generated/refmap/mcp-to-srg.srg'); doLast { project.file('build/generated/refmap').mkdirs(); net.minecraftforge.srgutils.IMappingFile.load(project.file('build/createMcpToSrg/output.tsrg')).write(project.file('build/generated/refmap/mcp-to-srg.srg').toPath(), net.minecraftforge.srgutils.IMappingFile.Format.SRG, false) } }

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Decode-time restoration catches player and container stacks before play begins. */
 @Mixin(ItemStack.class)
 public abstract class LegacyItemDecodeMixin {
-    @Inject(method="of",at=@At("RETURN"),cancellable=true)
+    @Inject(method="of(Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/world/item/ItemStack;",at=@At("RETURN"),cancellable=true)
     private static void wallgun$restoreLegacy(CompoundTag tag, CallbackInfoReturnable<ItemStack> cir){
         ItemStack original=cir.getReturnValue();
         if(original!=null && !original.isEmpty())cir.setReturnValue(LegacyGunMigration.restore(original));
