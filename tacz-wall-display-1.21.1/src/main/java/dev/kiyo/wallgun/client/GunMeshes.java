@@ -31,6 +31,12 @@ public final class GunMeshes {
         try {
             var original = TimelessAPI.getGunDisplay(stack).orElseThrow();
             // A separate display owns the mutable gun model; never capture the player's live animated model.
+            // TACZ removes the lazy supplier before publishing the parsed model.
+            // Its fast path can return null during that interval; join the manager lock.
+            var models = ((ClientAssetsAccessor) (Object) com.tacz.guns.client.resource.ClientAssetsManager.INSTANCE).wallgun$models();
+            var location = ((GunDisplayAccessor) original).wallgun$display().getModelLocation();
+            if (ModelLoadBarrier.load(models, () -> models.getData(location)) == null)
+                throw new IllegalStateException("Missing gun resource: " + location);
             var detached = GunDisplayInstance.create(((GunDisplayAccessor) original).wallgun$displayId(), ((GunDisplayAccessor) original).wallgun$display());
             var model = detached.getGunModel();
             if (model == null) throw new IllegalStateException("Missing gun model");
