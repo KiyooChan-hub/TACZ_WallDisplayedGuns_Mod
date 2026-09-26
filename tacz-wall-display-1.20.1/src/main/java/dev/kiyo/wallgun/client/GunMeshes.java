@@ -31,10 +31,18 @@ public final class GunMeshes {
         try {
             var original = TimelessAPI.getGunDisplay(stack).orElseThrow();
             // A separate display owns the mutable gun model; never capture the player's live animated model.
+            // TACZ removes the lazy supplier before publishing the parsed model.
+            // Its fast path can return null during that interval; join the manager lock.
+            var models = ((ClientAssetsAccessor) (Object) com.tacz.guns.client.resource.ClientAssetsManager.INSTANCE).wallgun$models();
+            var location = ((GunDisplayAccessor) original).wallgun$display().getModelLocation();
+            if (ModelLoadBarrier.load(models, () -> models.getData(location)) == null)
+                throw new IllegalStateException("Missing gun resource: " + location);
             var detached = GunDisplayInstance.create(((GunDisplayAccessor) original).wallgun$displayId(), ((GunDisplayAccessor) original).wallgun$display());
             var model = detached.getGunModel();
             if (model == null) throw new IllegalStateException("Missing gun model");
-            // Reset TACZ animation state, including duplicate reload magazines, before static capture.
+            // New detached models have not passed through TACZ's post-frame cleanup.
+            // Reset animation state (including the extra reload magazine) before static capture.
+            // Keep this before our pack-specific visibility overrides.
             model.cleanAnimationTransform();
             GunOrientation.prepareModel(((GunDisplayAccessor) original).wallgun$displayId(),model);
             PoseStack pose = new PoseStack();

@@ -25,7 +25,7 @@ public final class WallGunClient {
         MinecraftForge.EVENT_BUS.addListener(PlacementClient::render);
         MinecraftForge.EVENT_BUS.addListener(PlacementClient::reset);
         MinecraftForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{WallBatches.clear();GunMeshes.clear();WallWarmup.reset();if(ModList.get().isLoaded("create"))CreateMovingGuns.clear();});
-        MinecraftForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()),false);return 1;})));
+        MinecraftForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()+(ModList.get().isLoaded("create") ? ", "+CreateMovingGuns.stats() : "")),false);return 1;})));
     }
     @SubscribeEvent public static void keys(RegisterKeyMappingsEvent event) { PlacementClient.register(event); }
     @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {

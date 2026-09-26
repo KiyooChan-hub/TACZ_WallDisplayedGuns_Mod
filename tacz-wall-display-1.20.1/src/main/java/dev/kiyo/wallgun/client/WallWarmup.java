@@ -98,6 +98,7 @@ public final class WallWarmup {
         if(ModList.get().isLoaded("create"))for(var snapshot:CreateMovingGuns.discover(world))
             if(GunMeshes.peek(snapshot)==null)needed.add(snapshot);
         PENDING.retainAll(needed);
+        PENDING.addAll(needed);
         WorkBudget budget=new WorkBudget(loading?12_000_000:2_000_000);
         var iterator=PENDING.iterator();
         while(iterator.hasNext() && frameBakes<(loading?8:1) && budget.start()) {

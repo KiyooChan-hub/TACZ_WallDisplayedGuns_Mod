@@ -9,6 +9,7 @@
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",
+    "ClientAssetsAccessor",
     "GunTransformInvoker",
     "AccelerationCaptureMixin",
     "AttachmentCaptureMixin",
