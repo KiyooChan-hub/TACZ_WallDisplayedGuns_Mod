@@ -48,6 +48,30 @@ final class PlacementSmoke {
                         mc.stop();
                     } else try {
                         if (phase == 0 && Files.exists(mc.gameDirectory.toPath().resolve("verification/placement.txt"))) {
+                            if (Boolean.getBoolean("wallgun.firstPersonSmoke")) {
+                                var cold = ConversionChecks.equipped(mc.level.registryAccess());
+                                var display = com.tacz.guns.api.TimelessAPI.getGunDisplay(cold).orElseThrow();
+                                var machine = display.getAnimationStateMachine();
+                                if (machine.isInitialized()) throw new AssertionError("Fixture must have a cold animation");
+                                Object renderer = net.neoforged.neoforge.client.extensions.common.IClientItemExtensions.of(cold.getItem()).getCustomRenderer();
+                                var render = Class.forName("com.tacz.guns.client.renderer.item.AnimateGeoItemRenderer").getMethod("renderFirstPerson",
+                                        net.minecraft.client.player.LocalPlayer.class, net.minecraft.world.item.ItemStack.class,
+                                        net.minecraft.world.item.ItemDisplayContext.class, com.mojang.blaze3d.vertex.PoseStack.class,
+                                        net.minecraft.client.renderer.MultiBufferSource.class, int.class, float.class);
+                                // Null rendering arguments deliberately prove the stale frame exits before rendering.
+                                render.invoke(renderer, mc.player, cold, net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                                        null, null, 15728880, 0.0F);
+                                if (machine.isInitialized()) throw new AssertionError("Stale stack must not initialize with the wrong hand");
+                                var saved = mc.player.getMainHandItem();
+                                mc.player.getInventory().setItem(mc.player.getInventory().selected, cold);
+                                try {
+                                    render.invoke(renderer, mc.player, cold, net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                                            new com.mojang.blaze3d.vertex.PoseStack(), mc.renderBuffers().bufferSource(), 15728880, 0.0F);
+                                    if (!machine.isInitialized()) throw new AssertionError("Matching first frame must initialize the animation");
+                                } finally { mc.player.getInventory().setItem(mc.player.getInventory().selected, saved); }
+                                Files.writeString(mc.gameDirectory.toPath().resolve("verification/first-person-initialization.txt"),
+                                        "PASS: cold stale frame canceled before drawing; matching first frame initialized and rendered through TACZ.\n");
+                            }
                             mc.player.getInventory().selected = 0;
                             mc.player.getInventory().setItem(0, ConversionChecks.equipped(mc.level.registryAccess()));
                             var field = dev.kiyo.wallgun.client.PlacementClient.class.getDeclaredField("toggle");

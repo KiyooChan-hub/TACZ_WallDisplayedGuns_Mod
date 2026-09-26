@@ -13,6 +13,7 @@
     "BeamCaptureMixin",
     "GunInputMixin",
     "RefitKeyMixin",
+    "FirstPersonInitializationMixin",
     "ClientPreventGunClickMixin",
     "ClientPreventGunBlockMixin",
     "AutoReloadMixin"
