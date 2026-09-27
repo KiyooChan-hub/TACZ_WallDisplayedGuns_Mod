@@ -26,6 +26,7 @@ public final class PlacementClient {
     private static KeyMapping toggle;
     private static KeyMapping adjustmentModifier;
     private static boolean enabled;
+    private static final ModeToggleGate TOGGLE_GATE = new ModeToggleGate();
     private static final DryFireWarning WARNING = new DryFireWarning();
     private static final ResourceLocation DEFAULT_DRY_FIRE = ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire");
     private PlacementClient() {}
@@ -48,10 +49,15 @@ public final class PlacementClient {
     public static void tick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         var mc = Minecraft.getInstance();
-        if (toggle == null || mc.player == null || mc.level == null) return;
-        while (toggle.consumeClick()) {
+        if (toggle == null) return;
+        boolean clicked = false;
+        while (toggle.consumeClick()) clicked = true;
+        boolean available = mc.player != null && mc.level != null && mc.screen == null && mc.isWindowActive();
+        if (TOGGLE_GATE.accept(clicked, boundKeyDown(toggle, mc), available)) {
             enabled = !enabled;
             WARNING.clear();
+            mc.gui.getChat().addMessage(Component.translatable(enabled
+                    ? "chat.tacz_wall_display.mode_on" : "chat.tacz_wall_display.mode_off"));
             mc.getSoundManager().play(SimpleSoundInstance.forUI(
                     enabled ? WallGuns.MODE_OPEN.get() : WallGuns.MODE_CLOSE.get(), 1.0F, 1.0F));
             if (enabled && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null) {
@@ -103,8 +109,11 @@ public final class PlacementClient {
         return enabled && mc.player != null && mc.level != null && mc.screen == null;
     }
     private static boolean adjustmentModifierDown(Minecraft mc) {
-        if (adjustmentModifier == null || adjustmentModifier.isUnbound()) return false;
-        var key = adjustmentModifier.getKey();
+        return boundKeyDown(adjustmentModifier, mc);
+    }
+    private static boolean boundKeyDown(KeyMapping mapping, Minecraft mc) {
+        if (mapping == null || mapping.isUnbound()) return false;
+        var key = mapping.getKey();
         long window = mc.getWindow().getWindow();
         // Poll the bound physical input so shared bindings (e.g. sneak) still work.
         if (key.getType() == InputConstants.Type.MOUSE)
@@ -116,7 +125,7 @@ public final class PlacementClient {
                 return InputConstants.isKeyDown(window, code);
         return false;
     }
-    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; WARNING.clear(); }
+    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; WARNING.clear(); TOGGLE_GATE.reset(); }
     public static void render(RenderGuiEvent.Post event) {
         var mc = Minecraft.getInstance();
         if (!enabled || mc.player == null || mc.options.hideGui || mc.screen != null) return;
