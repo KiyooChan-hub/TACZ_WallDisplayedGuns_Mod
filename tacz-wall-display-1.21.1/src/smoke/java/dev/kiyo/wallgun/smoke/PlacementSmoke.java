@@ -72,6 +72,20 @@ final class PlacementSmoke {
                                 Files.writeString(mc.gameDirectory.toPath().resolve("verification/first-person-initialization.txt"),
                                         "PASS: cold stale frame canceled before drawing; matching first frame initialized and rendered through TACZ.\n");
                             }
+                    var modifierField = dev.kiyo.wallgun.client.PlacementClient.class.getDeclaredField("adjustmentModifier");
+                    modifierField.setAccessible(true);
+                    var modifier = (net.minecraft.client.KeyMapping) modifierField.get(null);
+                    if (modifier == null || !modifier.getCategory().equals("key.category.tacz")
+                            || modifier.getKey().getValue() != org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT)
+                        throw new AssertionError("Default Alt modifier missing from TACZ controls");
+                    modifier.setKey(com.mojang.blaze3d.platform.InputConstants.getKey(org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL, 0));
+                    if (modifier.getKey().getValue() != org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL)
+                        throw new AssertionError("Modifier rebinding failed");
+                    var label = net.minecraft.network.chat.Component.translatable("hud.tacz_wall_display.flip", modifier.getTranslatedKeyMessage()).getString();
+                    if (!label.contains(modifier.getTranslatedKeyMessage().getString()) || label.contains("%s"))
+                        throw new AssertionError("HUD did not use rebound modifier: " + label);
+                    java.nio.file.Files.writeString(mc.gameDirectory.toPath().resolve("verification/modifier.txt"),
+                            "PASS: default Left Alt in TACZ controls; rebound Left Control; localized HUD uses the bound key.\n" + label);
                             mc.player.getInventory().selected = 0;
                             mc.player.getInventory().setItem(0, ConversionChecks.equipped(mc.level.registryAccess()));
                             var field = dev.kiyo.wallgun.client.PlacementClient.class.getDeclaredField("toggle");

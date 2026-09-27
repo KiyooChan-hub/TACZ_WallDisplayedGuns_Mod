@@ -24,6 +24,7 @@ import org.lwjgl.glfw.GLFW;
 /** Client-only control and entirely code-drawn HUD. */
 public final class PlacementClient {
     private static KeyMapping toggle;
+    private static KeyMapping adjustmentModifier;
     private static boolean enabled;
     private static final DryFireWarning WARNING = new DryFireWarning();
     private static final ResourceLocation DEFAULT_DRY_FIRE = ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire");
@@ -40,6 +41,9 @@ public final class PlacementClient {
         toggle = new KeyMapping("key.tacz_wall_display.placement", InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_P, "key.category.tacz");
         event.register(toggle);
+        adjustmentModifier = new KeyMapping("key.tacz_wall_display.adjustment_modifier", InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_LEFT_ALT, "key.category.tacz");
+        event.register(adjustmentModifier);
     }
     public static void tick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -71,10 +75,10 @@ public final class PlacementClient {
         if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
         boolean holdingGun = IGun.getIGunOrNull(mc.player.getMainHandItem()) != null;
         boolean targetGun = mc.level.getBlockState(hit.getBlockPos()).is(WallGuns.BLOCK.get());
-        boolean alt = leftAltDown(mc);
-        if (alt ? !targetGun : !holdingGun) return;
+        boolean adjusting = adjustmentModifierDown(mc);
+        if (adjusting ? !targetGun : !holdingGun) return;
         event.setCanceled(true);
-        if (alt) {
+        if (adjusting) {
             PlacementPayloads.send(new PlacementPayloads.Adjust(hit.getBlockPos(), 0));
         } else {
             PlacementPayloads.send(new PlacementPayloads.Place(hit.getBlockPos(), hit.getDirection()));
@@ -83,7 +87,7 @@ public final class PlacementClient {
     public static void scroll(InputEvent.MouseScrollingEvent event) {
         if (!active() || event.getScrollDelta() == 0) return;
         var mc = Minecraft.getInstance();
-        if (!leftAltDown(mc) || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
+        if (!adjustmentModifierDown(mc) || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
                 || !mc.level.getBlockState(hit.getBlockPos()).is(WallGuns.BLOCK.get())) return;
         event.setCanceled(true);
         PlacementPayloads.send(new PlacementPayloads.Adjust(hit.getBlockPos(), event.getScrollDelta() > 0 ? 1 : -1));
@@ -98,8 +102,19 @@ public final class PlacementClient {
         var mc = Minecraft.getInstance();
         return enabled && mc.player != null && mc.level != null && mc.screen == null;
     }
-    private static boolean leftAltDown(Minecraft mc) {
-        return InputConstants.isKeyDown(mc.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_ALT);
+    private static boolean adjustmentModifierDown(Minecraft mc) {
+        if (adjustmentModifier == null || adjustmentModifier.isUnbound()) return false;
+        var key = adjustmentModifier.getKey();
+        long window = mc.getWindow().getWindow();
+        // Poll the bound physical input so shared bindings (e.g. sneak) still work.
+        if (key.getType() == InputConstants.Type.MOUSE)
+            return GLFW.glfwGetMouseButton(window, key.getValue()) == GLFW.GLFW_PRESS;
+        if (key.getType() == InputConstants.Type.KEYSYM)
+            return InputConstants.isKeyDown(window, key.getValue());
+        for (int code = GLFW.GLFW_KEY_SPACE; code <= GLFW.GLFW_KEY_LAST; code++)
+            if (GLFW.glfwGetKeyScancode(code) == key.getValue())
+                return InputConstants.isKeyDown(window, code);
+        return false;
     }
     public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; WARNING.clear(); }
     public static void render(RenderGuiEvent.Post event) {
@@ -117,14 +132,16 @@ public final class PlacementClient {
             gui.fill(screenWidth - i - 1, 0, screenWidth - i, screenHeight, color);
         }
         Component key = toggle == null ? Component.literal("P") : toggle.getTranslatedKeyMessage();
+        Component modifier = adjustmentModifier == null ? Component.translatable("key.keyboard.left.alt")
+                : adjustmentModifier.getTranslatedKeyMessage();
         var labels = java.util.List.of(
                 Component.translatable("hud.tacz_wall_display.placement_title"),
                 Component.literal("--------------------------------"),
                 Component.translatable("hud.tacz_wall_display.place"),
                 Component.translatable("hud.tacz_wall_display.break"),
-                Component.translatable("hud.tacz_wall_display.flip"),
-                Component.translatable("hud.tacz_wall_display.rotate_up"),
-                Component.translatable("hud.tacz_wall_display.rotate_down"),
+                Component.translatable("hud.tacz_wall_display.flip", modifier),
+                Component.translatable("hud.tacz_wall_display.rotate_up", modifier),
+                Component.translatable("hud.tacz_wall_display.rotate_down", modifier),
                 Component.translatable("hud.tacz_wall_display.pick"),
                 Component.translatable("hud.tacz_wall_display.refit", RefitKey.REFIT_KEY.getTranslatedKeyMessage()),
                 Component.translatable("hud.tacz_wall_display.toggle", key));
