@@ -19,13 +19,17 @@ public final class WallGunEntity extends BlockEntity {
     private int roll;
     private int mountRoll;
     private boolean flipped;
+    private boolean snapshotSyncPending=true;
     public int roll() { return roll; }
     public int mountRoll() { return mountRoll; }
     public void setMountRoll(int steps) { mountRoll=Math.floorMod(steps,16)/4*4; setPose(roll,flipped); }
     public boolean flipped() { return flipped; }
     public void setPose(int steps, boolean otherSide) {
         roll = Math.floorMod(steps, 16); flipped = otherSide; setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        if (level != null) {
+
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 2);
+        }
     }
     public void adjust(int operation, boolean fromBack) {
         // Pose = R(roll) * F. A flip around the mounting plate's fixed vertical axis is F * R = R(-roll) * F.
@@ -38,7 +42,7 @@ public final class WallGunEntity extends BlockEntity {
     public WallGunEntity(BlockPos pos, BlockState state) { super(WallGuns.ENTITY.get(), pos, state); }
     public GunSnapshot snapshot() { return snapshot; }
     public void setSnapshot(GunSnapshot value) {
-        snapshot = value; compactGun = null; setChanged();
+        snapshot = value; compactGun = null; snapshotSyncPending=true; setChanged();
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
     @Override protected void saveAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
@@ -49,6 +53,7 @@ public final class WallGunEntity extends BlockEntity {
     @Override protected void loadAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
         super.loadAdditional(tag, lookup);
         roll = Math.floorMod(tag.getInt("DisplayRoll"), 16); mountRoll=Math.floorMod(tag.getInt("DisplayMountRoll"),16)/4*4; flipped = tag.getBoolean("DisplayFlipped");
+        if(tag.getBoolean("PoseOnly"))return;
         snapshot = null; compactGun = tag.contains("CompactGun") ? tag.getByteArray("CompactGun") : null;
         CompoundTag originalTag = tag.getCompound("OriginalGun");
         if (originalTag.isEmpty() && compactGun != null) {
@@ -80,5 +85,12 @@ public final class WallGunEntity extends BlockEntity {
         }
         return tag;
     }
-    @Override public ClientboundBlockEntityDataPacket getUpdatePacket() { return ClientboundBlockEntityDataPacket.create(this); }
+    @Override public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        if(snapshotSyncPending) { snapshotSyncPending=false;return ClientboundBlockEntityDataPacket.create(this); }
+        return ClientboundBlockEntityDataPacket.create(this, (entity, lookup) -> {
+            var tag=new CompoundTag();tag.putBoolean("PoseOnly",true);
+            tag.putInt("DisplayRoll",roll);tag.putInt("DisplayMountRoll",mountRoll);tag.putBoolean("DisplayFlipped",flipped);
+            return tag;
+        });
+    }
 }

@@ -17,7 +17,9 @@ public final class GunMeshes {
     public static final float WALL_GAP=.001F;
     private static final Map<GunSnapshot, Mesh> CACHE = new HashMap<>();
     public static int bakes, failures;
-    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped) {
+    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped, float maxDepth) {
+        public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing,boolean canonicalFlipped) { this(materials,vertices,missing,canonicalFlipped,depth(materials)); }
+        private static float depth(Map<RenderType,List<Vertex>> materials) { float depth=WALL_GAP;for(var list:materials.values())for(var vertex:list)depth=Math.max(depth,vertex.z());return depth; }
         public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing) { this(materials,vertices,missing,false); }
     }
     public static Mesh get(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.computeIfAbsent(snapshot, GunMeshes::bake); }

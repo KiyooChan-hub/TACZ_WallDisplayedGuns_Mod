@@ -18,6 +18,8 @@ public final class WallBatches {
     private static final Map<BlockPos, Entry> RESIDENTS = new HashMap<>();
     private static final Map<Key, Batch> BATCHES = new LinkedHashMap<>();
     private static Map<Key,List<Entry>> groups=Map.of();
+    private static final Map<Key, Batch> STAGING = new LinkedHashMap<>();
+    private static final Map<Key, Batch> SPARES = new LinkedHashMap<>();
     private static ClientLevel world;
     private static int primedThisFrame;
     private static WorkBudget primeBudget;
@@ -25,12 +27,23 @@ public final class WallBatches {
     public static int lastUploadedVertices, maxBatchGuns;
     private record Entry(WallGunEntity gun, BlockPos pos, Direction facing, int roll, boolean flipped, GunMeshes.Mesh mesh, int light) {}
     private record Key(long section, int cell, RenderType type) {}
+    private record Cell(long section,int cell) {}
     private static final class Batch implements AutoCloseable {
         VertexBuffer buffer;
         List<Entry> entries = List.of();
         AABB bounds;
         boolean primed;
+        final Map<BlockPos, Chunk> chunks = new HashMap<>();
         @Override public void close() { if (buffer!=null) { buffer.close();buffer=null; } }
+    }
+    private record Chunk(Entry entry, float[] transformed) {}
+    private static boolean poseOnly(List<Entry> old, List<Entry> next) {
+        if(old.size()!=next.size())return false;
+        for(int i=0;i<old.size();i++) {
+            Entry a=old.get(i),b=next.get(i);
+            if(a.gun!=b.gun || !a.pos.equals(b.pos) || a.mesh!=b.mesh || a.light!=b.light)return false;
+        }
+        return true;
     }
     public static void enqueue(WallGunEntity gun, int light) {
         if (world!=gun.getLevel()) { clear();world=(ClientLevel)gun.getLevel(); }
@@ -49,13 +62,40 @@ public final class WallBatches {
         for (Entry entry:RESIDENTS.values()) {
             for (RenderType type:entry.mesh.materials().keySet()) groups.computeIfAbsent(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type),ignored->new ArrayList<>()).add(entry);
         }
+        STAGING.entrySet().removeIf(e -> {
+            if(!groups.containsKey(e.getKey())) {e.getValue().close();return true;}
+            return false;
+        });
+        SPARES.entrySet().removeIf(e->{if(!groups.containsKey(e.getKey())){e.getValue().close();return true;}return false;});
         int rebuilt=0;
         for(var group:groups.entrySet()) {
             var entries=group.getValue();entries.sort(Comparator.comparingLong(e->e.pos.asLong()));
-            Batch batch=BATCHES.computeIfAbsent(group.getKey(),ignored->new Batch());
-            if(!batch.entries.equals(entries) && rebuilt<maxUploads && budget.start()) {
-                rebuild(group.getKey(),batch,entries);rebuilt++;
+            Batch active=BATCHES.get(group.getKey());
+            if(active!=null && active.entries.equals(entries))continue;
+            Batch staged=STAGING.computeIfAbsent(group.getKey(),key->{Batch spare=SPARES.remove(key);return spare==null?new Batch():spare;});
+            if(!staged.entries.equals(entries) && rebuilt<maxUploads && budget.start()) {
+                if(active!=null && staged.chunks.isEmpty())staged.chunks.putAll(active.chunks);
+                rebuild(group.getKey(),staged,entries);
+                staged.primed=active!=null && active.primed && poseOnly(active.entries,entries);rebuilt++;
             }
+        }
+        // Publish a coherent revision: every material of a gun changes in the same frame.
+        Set<Cell> waiting=new HashSet<>();
+        for(var group:groups.entrySet()) {
+            Batch active=BATCHES.get(group.getKey()), staged=STAGING.get(group.getKey());
+            if((active==null || !active.entries.equals(group.getValue()))
+                    && (staged==null || !staged.entries.equals(group.getValue())))
+                waiting.add(new Cell(group.getKey().section,group.getKey().cell));
+        }
+        for(var group:groups.entrySet()) {
+            if(waiting.contains(new Cell(group.getKey().section,group.getKey().cell)))continue;
+            Batch staged=STAGING.remove(group.getKey());
+            if(staged==null)continue;
+            if(!staged.entries.equals(group.getValue())) {
+                Batch discarded=SPARES.put(group.getKey(),staged);if(discarded!=null)discarded.close();continue;
+            }
+            Batch old=BATCHES.put(group.getKey(),staged);
+            if(old!=null) { Batch discarded=SPARES.put(group.getKey(),old);if(discarded!=null)discarded.close(); }
         }
         var iterator=BATCHES.entrySet().iterator();
         while(iterator.hasNext()) { var entry=iterator.next();if(!groups.containsKey(entry.getKey())){entry.getValue().close();iterator.remove();} }
@@ -79,10 +119,10 @@ public final class WallBatches {
         for(var group:groups.entrySet()) {
             Key key=group.getKey();var entries=group.getValue();var batch=BATCHES.get(key);
             // A pending edit must not keep drawing a destroyed gun or an obsolete attachment.
-            if(batch==null || batch.buffer==null || !batch.entries.equals(entries))continue;
+            if(batch==null || batch.buffer==null || (!batch.entries.equals(entries) && !poseOnly(batch.entries,entries)))continue;
             boolean visible=event.getFrustum().isVisible(batch.bounds)
                     && RenderDistanceRules.draw(batch.bounds, camera, WallGunConfig.maxRenderDistance());
-            if(!batch.primed) {
+            if(!batch.primed && batch.entries.equals(entries)) {
                 if(primedThisFrame>=(WallWarmup.loading()?8:2) || !primeBudget.start())continue;
                 primedThisFrame++;
             } else if(!visible)continue;
@@ -103,37 +143,53 @@ public final class WallBatches {
     private static void rebuild(Key key, Batch batch, List<Entry> entries) {
         if(entries.size()>BatchLayout.MAX_GUNS)throw new IllegalStateException("Oversized wall gun batch");
         maxBatchGuns=Math.max(maxBatchGuns,entries.size());
-        batch.close();batch.primed=false;
+        batch.primed=false;
         double minX=Double.POSITIVE_INFINITY,minY=minX,minZ=minX,maxX=-minX,maxY=-minX,maxZ=-minX;
         try (ByteBufferBuilder storage=new ByteBufferBuilder(65536)) {
             BufferBuilder out=new BufferBuilder(storage,VertexFormat.Mode.QUADS,DefaultVertexFormat.NEW_ENTITY);
             for (Entry entry:entries) {
-                float maxDepth=entry.mesh.materials().values().stream().flatMap(List::stream).map(v->v.z()).max(Float::compare).orElse(GunMeshes.WALL_GAP);
+                float maxDepth=entry.mesh.maxDepth();
                 DisplayPose pose=new DisplayPose(entry.facing,entry.roll,entry.flipped,GunMeshes.WALL_GAP,maxDepth);
-                for (MeshCapture.Vertex v:entry.mesh.materials().get(key.type)) {
+                var vertices=entry.mesh.materials().get(key.type);
+                Chunk previous=batch.chunks.get(entry.pos);
+                float[] transformed;
+                if(previous!=null && previous.entry.equals(entry))transformed=previous.transformed;
+                else {
+                    transformed=new float[vertices.size()*6];int cursor=0;
+                    var pointScratch=new org.joml.Vector3f();var normalScratch=new org.joml.Vector3f();
+                    for(var vertex:vertices) {
+                        var point=pose.point(vertex.x(),vertex.y(),vertex.z(),pointScratch);
+                        var normal=pose.normal(vertex.nx(),vertex.ny(),vertex.nz(),normalScratch);
+                        transformed[cursor++]=point.x();transformed[cursor++]=point.y();transformed[cursor++]=point.z();
+                        transformed[cursor++]=normal.x();transformed[cursor++]=normal.y();transformed[cursor++]=normal.z();
+                    }
+                    batch.chunks.put(entry.pos,new Chunk(entry,transformed));
+                }
+                int cursor=0;
+                for (MeshCapture.Vertex v:vertices) {
                     lastUploadedVertices++;
-                    var point=pose.point(v.x(),v.y(),v.z());
-                    var normal=pose.normal(v.nx(),v.ny(),v.nz());
-                    float x=point.x(), y=point.y(), z=point.z();
+                    float x=transformed[cursor++], y=transformed[cursor++], z=transformed[cursor++];
+                    float nx=transformed[cursor++],ny=transformed[cursor++],nz=transformed[cursor++];
                     minX=Math.min(minX,(double)x+entry.pos.getX());maxX=Math.max(maxX,(double)x+entry.pos.getX());
                     minY=Math.min(minY,(double)y+entry.pos.getY());maxY=Math.max(maxY,(double)y+entry.pos.getY());
                     minZ=Math.min(minZ,(double)z+entry.pos.getZ());maxZ=Math.max(maxZ,(double)z+entry.pos.getZ());
                     out.addVertex(x+(entry.pos.getX()&15),y+(entry.pos.getY()&15),z+(entry.pos.getZ()&15))
                             .setColor(v.color()).setUv(v.u(),v.v()).setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(v.light()==0?entry.light:v.light()).setNormal(normal.x(),normal.y(),normal.z());
+                            .setLight(v.light()==0?entry.light:v.light()).setNormal(nx,ny,nz);
                 }
             }
             MeshData mesh=out.build();
             if(mesh!=null) {
-                batch.buffer=new VertexBuffer(VertexBuffer.Usage.STATIC);
+                if(batch.buffer==null)batch.buffer=new VertexBuffer(VertexBuffer.Usage.STATIC);
                 batch.buffer.bind();batch.buffer.upload(mesh);VertexBuffer.unbind();uploads++;
             }
         }
+        batch.chunks.keySet().retainAll(entries.stream().map(Entry::pos).toList());
         batch.bounds=new AABB(minX,minY,minZ,maxX,maxY,maxZ);
         batch.entries=List.copyOf(entries);
     }
     public static void clear() {
-        BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();groups=Map.of();world=null;
+        SPARES.values().forEach(Batch::close);SPARES.clear();STAGING.values().forEach(Batch::close);STAGING.clear();BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();groups=Map.of();world=null;
     }
     public static String stats() { return "bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
 }

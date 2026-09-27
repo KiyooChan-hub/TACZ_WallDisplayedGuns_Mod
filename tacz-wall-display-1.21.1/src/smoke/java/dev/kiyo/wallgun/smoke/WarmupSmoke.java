@@ -16,7 +16,7 @@ import java.nio.file.*;
 final class WarmupSmoke {
     private String lastState="";
     private int phase, frame, cycle, bakes, uploads, gateCount;
-    private boolean opened, positioned, loadingShot, finished;
+    private boolean opened, positioned, loadingShot, finished, initialCleaned;
     private long lastFrame, deadline=System.nanoTime()+300_000_000_000L;
     private volatile Throwable failure;
     private final StringBuilder frames=new StringBuilder("cycle,phase,frame,ms,screen,bakes,uploads,frameBakes,frameUploads,visible,pendingModels,pendingBatches\n");
@@ -58,6 +58,20 @@ final class WarmupSmoke {
             if(phase==0) {
                 mc.player.setYRot(0);mc.player.setXRot(0);
                 if(WallWarmup.completed<=gateCount || mc.screen!=null || mc.getOverlay()!=null)return;
+                if(Boolean.getBoolean("wallgun.rotationSmoke") && WallWarmup.tracked()==107) {
+                    if(!initialCleaned) {
+                        initialCleaned=true;
+                        mc.getSingleplayerServer().submit(()->{
+                            var level=mc.getSingleplayerServer().overworld();
+                            for(int x=-14;x<=-13;x++)for(int y=-40;y<=-39;y++)for(int z=0;z<=1;z++) {
+                                var pos=new BlockPos(x,y,z);if(pos.equals(new BlockPos(-14,-39,1)))continue;
+                                level.setBlock(pos,z==0?Blocks.SMOOTH_STONE.defaultBlockState():Blocks.AIR.defaultBlockState(),3);
+                            }
+                        }).join();
+                    }
+                    return;
+                }
+                if(WallBatches.pendingBatches()!=0)return;
                 require(WallWarmup.tracked()==100,"Load gate must discover all 100 guns behind player: "+WallWarmup.tracked());
                 require(WallWarmup.pendingModels()==0 && WallBatches.pendingBatches()==0,"Load gate released with work remaining");
                 require(GunMeshes.failures==0 && WallWarmup.timedOut==0,"No failed model or gate timeout");
@@ -86,8 +100,22 @@ final class WarmupSmoke {
                 if(frame==30){mc.player.setYRot(180);mc.player.yRotO=180;}
                 if(frame>35)require(WallBatches.lastGuns==100,"All 100 equipped guns must be visible after first turn: "+WallBatches.stats());
                 if(frame<210)return;
-                if(cycle==0)screenshot("ready-0.png");
+                if(cycle==0 && !Boolean.getBoolean("wallgun.rotationSmoke"))screenshot("ready-0.png");
                 results.append("PASS first turn cycle ").append(cycle).append(": no warm-frame exclusion; 210 frames; zero captures/uploads; 100 visible\n");
+                if(Boolean.getBoolean("wallgun.rotationSmoke")) {
+                    phase=5;frame=0;
+                    mc.getSingleplayerServer().execute(()->{
+                        try {
+                            var level=mc.getSingleplayerServer().overworld();
+                            var original=(WallGunEntity)level.getBlockEntity(new BlockPos(-14,-39,1));
+                            for(int x=-14;x<=-13;x++)for(int y=-40;y<=-39;y++)for(int z=0;z<=1;z++) {
+                                var pos=new BlockPos(x,y,z);if(pos.equals(original.getBlockPos()))continue;
+                                level.setBlock(pos,original.getBlockState(),3);
+                                ((WallGunEntity)level.getBlockEntity(pos)).setSnapshot(original.snapshot());
+                            }
+                        }catch(Throwable ex){failure=ex;}
+                    });return;
+                }
                 gateCount=WallWarmup.completed;
                 if(cycle==0) {
                     cycle++;phase=0;opened=false;mc.level.disconnect();mc.disconnect(new TitleScreen());
@@ -109,6 +137,30 @@ final class WarmupSmoke {
                         }catch(Throwable ex){failure=ex;}
                     });
                 }
+            } else if(phase==5) {
+                if(++frame<60 || WallBatches.pendingBatches()!=0 || WallBatches.lastGuns!=107)return;
+                require(WallBatches.maxBatchGuns==8,"Must test a fully populated batch");
+                bakes=GunMeshes.bakes;phase=4;frame=0;
+            } else if(phase==4) {
+                require(GunMeshes.bakes==bakes,"Rotation must reuse appearance cache");
+                require(WallBatches.lastGuns==107,"Rotation must retain all guns: "+WallBatches.stats());
+                require(WallWarmup.frameUploads<=2,"Rotation exceeded upload count");
+                if(++frame<480 && (frame<120 || frame%12==1))mc.getSingleplayerServer().execute(()->{
+                    try {var gun=(WallGunEntity)mc.getSingleplayerServer().overworld().getBlockEntity(new BlockPos(-14,-39,1));gun.adjust(frame%37==0?0:1,false);}
+                    catch(Throwable ex){failure=ex;}
+                });
+                if(frame<540)return;
+                require(WallBatches.pendingBatches()==0,"Rotation backlog must settle");
+                Files.writeString(out().resolve("frames.csv"),frames);
+                screenshot("rotation.png");finished=true;
+                mc.getSingleplayerServer().submit(()->{
+                    var level=mc.getSingleplayerServer().overworld();
+                    for(int x=-14;x<=-13;x++)for(int y=-40;y<=-39;y++)for(int z=0;z<=1;z++) {
+                        var pos=new BlockPos(x,y,z);if(pos.equals(new BlockPos(-14,-39,1)))continue;
+                        level.setBlock(pos,z==0?Blocks.SMOOTH_STONE.defaultBlockState():Blocks.AIR.defaultBlockState(),3);
+                    }
+                }).join();
+                Files.writeString(out().resolve("SUCCESS.txt"),results+"PASS continuous and spaced server rotations: 107 visible each frame including a full 8-gun cell, zero model recaptures, settled batches\n"+WallBatches.stats());mc.stop();
             } else if(phase==2) {
                 require(WallWarmup.frameBakes<=1 && WallWarmup.frameUploads<=2,"New area exceeded per-frame job cap");
                 if(mc.player.getX()<200)return;
