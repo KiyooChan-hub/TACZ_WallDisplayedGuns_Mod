@@ -81,7 +81,7 @@ final class WarmupSmoke {
             lastFrame=now;
             if(mc.gameMode==null)require(!WallWarmup.loading(),"Disconnect must not reopen a loading gate");
             if(mc.level==null || mc.player==null)return;
-            if(!loadingShot && mc.screen instanceof WarmupScreen && WallWarmup.tracked()==100) {
+            if(!loadingShot && mc.screen instanceof ReceivingLevelScreen && WallWarmup.tracked()==100) {
                 screenshot("loading.png");loadingShot=true;
             }
             if(phase==1) {

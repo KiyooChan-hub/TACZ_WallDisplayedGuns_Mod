@@ -80,16 +80,14 @@ public final class WallWarmup {
     public static void opening(ScreenEvent.Opening event) {
         if(event.getNewScreen()==null && event.getCurrentScreen() instanceof ReceivingLevelScreen) {
             ensureWorld();
-            if(loading)event.setNewScreen(new WarmupScreen(null));
+            if(holdLoadingScreen())event.setCanceled(true);
         }
     }
     public static void frame(RenderFrameEvent.Pre event) {
         ensureWorld();frameBakes=0;frameUploads=0;
         var mc=Minecraft.getInstance();
         if(world==null || mc.player==null || mc.getOverlay()!=null)return;
-        // Also covers resource reloads and clients that replace the vanilla receiving screen.
-        if(loading && !(mc.screen instanceof ReceivingLevelScreen) && !(mc.screen instanceof WarmupScreen))
-            mc.setScreen(new WarmupScreen(mc.screen));
+        if(loading)beginGate();
         TRACKED.values().removeIf(g -> g.isRemoved() || g.getLevel()!=world || !nearby(g)
                 || !world.hasChunkAt(g.getBlockPos()) || world.getBlockEntity(g.getBlockPos())!=g);
         Set<GunSnapshot> needed=new HashSet<>();
@@ -107,6 +105,14 @@ public final class WallWarmup {
         int before=WallBatches.uploads;
         WallBatches.prepare(budget,loading?8:2);
         frameUploads=WallBatches.uploads-before;
+        // Reloads/custom loading screens finish incrementally without replacing their UI.
+        if(loading && !(mc.screen instanceof ReceivingLevelScreen))gateFinished();
+    }
+    public static boolean holdLoadingScreen() {
+        ensureWorld();
+        if(!loading)return false;
+        beginGate();
+        return !gateFinished();
     }
     public static void beginGate() {
         if(gateStarted==0)gateStarted=System.nanoTime();
