@@ -2,9 +2,9 @@
   "required": true,
   "package": "dev.kiyo.wallgun.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["LegacyItemDecodeMixin", "ServerPreventGunBlockMixin"],
+  "mixins": ["LoadingPlayerMixin", "LoadingLoginMixin", "LoadingConnectionMixin", "LoadingTargetMixin", "LoadingPushMixin", "LegacyItemDecodeMixin", "ServerPreventGunBlockMixin"],
   "client": [
-    "BedrockCaptureMixin",
+    "LoadingLocalPlayerMixin", "LoadingTerrainMixin", "LoadingClientLevelMixin", "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",
     "ClientAssetsAccessor",

@@ -22,8 +22,8 @@ class WeightedCacheTest {
         var disposed=new ArrayList<Integer>();var cache=new WeightedCache<String,Integer>(10,Integer::longValue,disposed::add);
         cache.pin("a");cache.put("a",4);cache.clear();assertEquals(List.of(4),disposed);assertEquals(0,cache.size());assertEquals(0,cache.weight());
     }
-    @Test void blockingIsNotAConfigChoiceAndMixinIsAbsent() throws Exception {
-        assertEquals(List.of("BACKGROUND","OFF"),Arrays.stream(dev.kiyo.wallgun.WallGunConfig.PreloadMode.values()).map(Enum::name).toList());
+    @Test void legacyClientOnlyBlockingIsNotAConfigChoice() throws Exception {
+        assertEquals(List.of("LOADING","OFF"),Arrays.stream(dev.kiyo.wallgun.WallGunConfig.PreloadMode.values()).map(Enum::name).toList());
         try(var input=getClass().getResourceAsStream("/tacz_wall_display.mixins.json")) {
             assertNotNull(input);assertFalse(new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).contains("TerrainWarmupMixin"));
         }

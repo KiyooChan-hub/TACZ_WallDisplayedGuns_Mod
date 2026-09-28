@@ -2,7 +2,7 @@ package dev.kiyo.wallgun.client;
 
 import dev.kiyo.wallgun.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
@@ -11,17 +11,17 @@ import net.neoforged.neoforge.client.event.*;
 import net.neoforged.fml.ModList;
 import java.util.*;
 
-/** Non-blocking client scheduling. Never cancels a screen close or controls server simulation. */
+/** Frame-budgeted preparation; initial discovery is driven by the server manifest. */
 public final class WallWarmup {
     private static final Map<BlockPos,WallGunEntity> TRACKED=new LinkedHashMap<>();
     private static final Set<GunSnapshot> PENDING=new LinkedHashSet<>();
     private static ClientLevel world;
-    private static int scanCursor;
+
     public static int frameBakes,frameUploads;
-    public static boolean loading() {return WallGunConfig.preloading() && Minecraft.getInstance().screen instanceof ReceivingLevelScreen;}
+    public static boolean loading() {return WallGunConfig.preloading() && LoadingClient.waiting();}
     public static int pendingModels() {return PENDING.size();}
     public static int tracked() {return TRACKED.size();}
-    public static void reset() {TRACKED.clear();PENDING.clear();world=null;scanCursor=0;}
+    public static void reset() {TRACKED.clear();PENDING.clear();world=null;}
     private static void ensureWorld() {
         var mc=Minecraft.getInstance();var current=mc.gameMode==null?null:mc.level;
         // A respawn packet briefly replaces ClientLevel while retaining the same connection.
@@ -38,22 +38,24 @@ public final class WallWarmup {
         if(WallGunConfig.preloading() && GunMeshes.peek(gun.snapshot())==null)PENDING.add(gun.snapshot());
     }
     public static void tick(ClientTickEvent.Post event) {
-        ensureWorld();var mc=Minecraft.getInstance();
-        if(!WallGunConfig.preloading() || world==null || mc.level!=world || mc.gameMode==null || mc.player==null || mc.getOverlay()!=null)return;
-        // Only inspect a bounded slice of chunks already sent by the server. No tickets or generation.
-        int radius=RenderDistanceRules.scanRadius(WallGunConfig.maxRenderDistance(),mc.options.getEffectiveRenderDistance());
-        int cx=mc.player.chunkPosition().x,cz=mc.player.chunkPosition().z;
-        int side=radius*2+1,total=side*side,count=Math.min(loading()?128:64,total);
-        for(int i=0;i<count;i++) {
-            int index=(scanCursor+i)%total;
-            var chunk=world.getChunkSource().getChunk(cx-radius+index%side,cz-radius+index/side,ChunkStatus.FULL,false);
-            if(chunk!=null)for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun && nearby(gun))request(gun);
-        }
-        scanCursor=(scanCursor+count)%total;
+        ensureWorld();
     }
     private static boolean nearby(WallGunEntity gun) {
         var player=Minecraft.getInstance().player;
         return player!=null && RenderDistanceRules.keep(gun.getBlockPos(),player.getEyePosition(),WallGunConfig.maxRenderDistance());
+    }
+    public static boolean initialPrepared(java.util.Set<net.minecraft.world.level.ChunkPos> chunks) {
+        if(world==null)return false;
+        for(var pos:chunks) {
+            var chunk=world.getChunkSource().getChunk(pos.x,pos.z,ChunkStatus.FULL,false);
+            if(chunk==null)return false;
+            for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun && nearby(gun) && gun.snapshot()!=null) {
+                var mesh=GunMeshes.peek(gun.snapshot());
+                if(mesh!=null && mesh.missing()){LoadingClient.rejectMissingModel();return false;}
+                if(mesh==null || !WallBatches.prepared(gun))return false;
+            }
+        }
+        return !ModList.get().isLoaded("create") || CreateMovingGuns.prepared();
     }
     public static void onDemand(WallGunEntity gun) {
         request(gun);
@@ -68,7 +70,7 @@ public final class WallWarmup {
         for(var gun:TRACKED.values())if(gun.snapshot()!=null)active.add(gun.snapshot());
         if(ModList.get().isLoaded("create")) {
             active.addAll(CreateMovingGuns.retainedSnapshots());
-            if(WallGunConfig.preloading())active.addAll(CreateMovingGuns.discover(world));
+            if(loading())active.addAll(CreateMovingGuns.discover(world));
         }
         GunMeshes.retain(active);
         if(WallGunConfig.preloading()) {

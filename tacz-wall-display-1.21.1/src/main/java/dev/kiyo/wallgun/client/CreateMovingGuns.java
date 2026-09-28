@@ -28,6 +28,7 @@ public final class CreateMovingGuns {
     private record Key(GunSnapshot snapshot, Direction facing, int roll, boolean flipped) {}
     private static final class Bundle implements AutoCloseable {
         final Map<RenderType, VertexBuffer> materials = new LinkedHashMap<>();
+        boolean primed;
         final int vertices;
         Bundle(int vertices) { this.vertices = vertices; }
         @Override public void close() { materials.values().forEach(VertexBuffer::close); }
@@ -40,7 +41,7 @@ public final class CreateMovingGuns {
         if (gun.snapshot() == null) return true;
         var snapshot = gun.snapshot();
         var mesh = GunMeshes.peek(snapshot);
-        if(mesh==null && !WallGunConfig.preloading()) {mesh=GunMeshes.get(snapshot);}
+        if(mesh==null && !WallWarmup.loading()) {mesh=GunMeshes.get(snapshot);}
         if (mesh == null) return true; // Captured by the frame-budgeted discovery path.
         var key = new Key(snapshot, gun.getBlockState().getValue(WallGunBlock.FACING),
                 gun.mountRoll() + gun.roll(), gun.flipped());
@@ -63,6 +64,7 @@ public final class CreateMovingGuns {
                 type.clearRenderState();
             }
         }
+        bundle.primed=true;
         frameDrawNanos += System.nanoTime()-started;
         return true;
     }
@@ -92,6 +94,13 @@ public final class CreateMovingGuns {
             });
             if (snapshots.isEmpty()) CONTRAPTIONS.remove(moving);
             result.addAll(snapshots);
+            if(WallWarmup.loading()) {
+                var view=moving.getContraption().getOrCreateClientContraptionLazy();
+                for(var blockEntity:view.renderedBlockEntityView)if(blockEntity instanceof WallGunEntity gun && gun.snapshot()!=null) {
+                    var key=new Key(gun.snapshot(),gun.getBlockState().getValue(WallGunBlock.FACING),gun.mountRoll()+gun.roll(),gun.flipped());
+                    if(!BUFFERS.containsKey(key))PENDING.putIfAbsent(key,net.minecraft.client.renderer.LevelRenderer.getLightColor(level,moving.blockPosition()));
+                }
+            }
         }
         return result;
     }
@@ -115,7 +124,7 @@ public final class CreateMovingGuns {
                     BUFFERS.put(request.getKey(), bundle);
                     cachedVertices += bundle.vertices;
                     frameUploads++; uploads++;
-                    while (cachedVertices > MAX_CACHED_VERTICES && BUFFERS.size() > 1) {
+                    while (!WallWarmup.loading() && cachedVertices > MAX_CACHED_VERTICES && BUFFERS.size() > 1) {
                         var oldest = BUFFERS.entrySet().iterator();
                         var entry = oldest.next(); oldest.remove();
                         cachedVertices -= entry.getValue().vertices;
@@ -127,6 +136,22 @@ public final class CreateMovingGuns {
         }
     }
 
+    public static boolean prepared() {return PENDING.isEmpty() && BUFFERS.values().stream().allMatch(b->b.primed);}
+    public static void prime(net.neoforged.neoforge.client.event.RenderLevelStageEvent event) {
+        if(!WallWarmup.loading() || event.getStage()!=net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
+        var budget=new WorkBudget(8_000_000);int count=0;
+        for(var bundle:BUFFERS.values())if(!bundle.primed) {
+            if(count++>=8 || !budget.start())break;
+            // Exercise the real world material pass outside the visible scene.
+            var matrix=new Matrix4f(event.getModelViewMatrix()).translate(0,-100000,0);
+            for(var entry:bundle.materials.entrySet()) {
+                entry.getKey().setupRenderState();
+                try {entry.getValue().bind();entry.getValue().drawWithShader(matrix,event.getProjectionMatrix(),RenderSystem.getShader());}
+                finally {VertexBuffer.unbind();entry.getKey().clearRenderState();}
+            }
+            bundle.primed=true;
+        }
+    }
     private static Bundle build(Key key, GunMeshes.Mesh mesh, int light) {
         float maxDepth = mesh.materials().values().stream().flatMap(List::stream)
                 .map(MeshCapture.Vertex::z).max(Float::compare).orElse(GunMeshes.WALL_GAP);

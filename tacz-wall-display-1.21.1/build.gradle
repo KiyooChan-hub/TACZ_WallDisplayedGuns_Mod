@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'net.neoforged.moddev' version '2.0.74'
 }
-version = '0.6.16'
+version = '0.6.17'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -49,5 +49,21 @@ if (providers.gradleProperty('smoke').isPresent()) {
         from sourceSets.smoke.output
         filesMatching('META-INF/neoforge.mods.toml') { filter { line -> line.trim() == '[[mixins]]' || line.trim() == 'config="wall_display_smoke.mixins.json"' ? null : line } }
         exclude 'wall_display_smoke.mixins.json', 'dev/kiyo/wallgun/smoke/mixin/**'
+    }
+}
+
+// Isolated dedicated-server/client acceptance harness; never included in the product jar.
+if (providers.gradleProperty('activationSmoke').isPresent()) {
+    sourceSets { activationSmoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
+    configurations.activationSmokeImplementation.extendsFrom(configurations.implementation)
+    configurations.activationSmokeCompileOnly.extendsFrom(configurations.compileOnly)
+    neoForge {
+        addModdingDependenciesTo sourceSets.activationSmoke
+        mods { wall_activation_smoke { sourceSet sourceSets.activationSmoke } }
+        runs {
+            activationObserver { client(); sourceSet=sourceSets.activationSmoke; gameDirectory=file('run-activation-observer'); jvmArgument '-Dwallgun.scenario=observer'; jvmArgument '-Xmx3G'; programArguments.addAll '--username','Observer','--width','854','--height','480' }
+            activationServer { server(); sourceSet=sourceSets.activationSmoke; gameDirectory=file('run-activation-server'); jvmArgument '-Dwallgun.scenario='+providers.gradleProperty('activationScenario').getOrElse('standard'); programArgument '--nogui'; jvmArgument '-Xmx3G' }
+            activationClient { client(); sourceSet=sourceSets.activationSmoke; gameDirectory=file('run-activation-client'); jvmArgument '-Dwallgun.scenario='+providers.gradleProperty('activationScenario').getOrElse('standard'); jvmArgument '-Xmx5G'; programArguments.addAll '--width','1280','--height','900' }
+        }
     }
 }

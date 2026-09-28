@@ -1,0 +1,7 @@
+modLoader="javafml"
+loaderVersion="[0,)"
+license="All Rights Reserved"
+[[mods]]
+modId="wall_activation_smoke"
+version="1"
+displayName="Private loading acceptance"

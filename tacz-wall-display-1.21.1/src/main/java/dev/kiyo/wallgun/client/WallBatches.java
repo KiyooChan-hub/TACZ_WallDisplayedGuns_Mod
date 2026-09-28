@@ -150,6 +150,15 @@ public final class WallBatches {
         var iterator=BATCHES.entrySet().iterator();
         while(iterator.hasNext()) { var entry=iterator.next();if(!groups.containsKey(entry.getKey())){entry.getValue().close();iterator.remove();} }
     }
+    public static boolean prepared(WallGunEntity gun) {
+        var entry=RESIDENTS.get(gun.getBlockPos());
+        if(entry==null || entry.gun!=gun || entry.mesh!=GunMeshes.peek(gun.snapshot()) || entry.roll!=gun.roll()+gun.mountRoll() || entry.flipped!=gun.flipped())return false;
+        for(var type:entry.mesh.materials().keySet()) {
+            var batch=BATCHES.get(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type));
+            if(batch==null || !batch.primed || !batch.entries.contains(entry))return false;
+        }
+        return true;
+    }
     public static int pendingBatches() {
         int n=0;
         for(var group:groups.entrySet()) {

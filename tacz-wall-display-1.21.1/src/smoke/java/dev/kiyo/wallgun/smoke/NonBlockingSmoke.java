@@ -22,7 +22,7 @@ final class NonBlockingSmoke {
     private CompletableFuture<Void> reload;
     private final StringBuilder results=new StringBuilder();
     private Path out(){return Minecraft.getInstance().gameDirectory.toPath().resolve("nonblocking-verification");}
-    NonBlockingSmoke(){NeoForge.EVENT_BUS.addListener(this::tick);}
+    NonBlockingSmoke(){throw new UnsupportedOperationException("0.6.16 background regression is retired; use -PactivationSmoke runActivationServer / runActivationClient");}
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}
     private static boolean ready(){return WallWarmup.tracked()==100 && WallWarmup.pendingModels()==0 && WallBatches.pendingBatches()==0;}
     private void teleport(String dimension,double y,boolean setup,boolean edit) {
@@ -52,7 +52,7 @@ final class NonBlockingSmoke {
             require(System.nanoTime()<deadline,"Timed out in phase "+phase+" "+WallBatches.stats());
             if(!opened && mc.screen instanceof TitleScreen && mc.getOverlay()==null) {
                 opened=true;Files.createDirectories(out());if(phase==0){Files.deleteIfExists(out().resolve("FAILED.txt"));Files.deleteIfExists(out().resolve("SUCCESS.txt"));}
-                WallGunConfig.PRELOAD_MODE.set(WallGunConfig.PreloadMode.BACKGROUND);
+                WallGunConfig.PRELOAD_MODE.set(WallGunConfig.PreloadMode.LOADING);
                 mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(6);mc.options.framerateLimit().set(60);
                 mc.createWorldOpenFlows().openWorld("warmup-stress",()->mc.setScreen(new TitleScreen()));return;
             }
@@ -104,7 +104,7 @@ final class NonBlockingSmoke {
                 require(GunMeshes.bakes>=bakes+100,"OFF must capture on first visible use");
                 results.append("PASS OFF: first visible view captured and displayed 100 guns on demand\n");
                 try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(out().resolve("ready.png"));}
-                WallGunConfig.PRELOAD_MODE.set(WallGunConfig.PreloadMode.BACKGROUND);
+                WallGunConfig.PRELOAD_MODE.set(WallGunConfig.PreloadMode.LOADING);
                 bakes=GunMeshes.bakes;epoch=GunMeshes.invalidations;phase=8;opened=false;positioned=false;
                 mc.level.disconnect();mc.disconnect(new TitleScreen());
             } else if(phase==8) {

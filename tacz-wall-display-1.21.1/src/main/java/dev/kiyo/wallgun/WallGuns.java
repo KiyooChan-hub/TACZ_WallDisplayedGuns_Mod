@@ -38,6 +38,7 @@ public final class WallGuns {
         container.registerConfig(ModConfig.Type.CLIENT, WallGunConfig.SPEC);
         COMPONENTS.register(bus); BLOCKS.register(bus); ITEMS.register(bus); ENTITIES.register(bus); RECIPES.register(bus); SOUNDS.register(bus);
         bus.addListener(PlacementPayloads::register);
+        bus.addListener(LoadingPayloads::register); LoadingSessions.init();
         GunPlacement.init();
         LegacyGunMigration.init();
     }
