@@ -79,7 +79,6 @@ public final class WallBatches {
     public static Integer drawnPose(BlockPos pos){return DRAWN_POSES.get(pos);}
     private static final class EditCell {
         List<Entry> target=List.of(),visible=List.of();
-        long changed=System.nanoTime();
         boolean active;
     }
     private static Cell cell(Key key){return new Cell(key.section,key.cell);}
@@ -139,11 +138,11 @@ public final class WallBatches {
         for(var entry:RESIDENTS.values())if(EDITS.containsKey(cell(entry)))
             cells.computeIfAbsent(cell(entry),k->new ArrayList<>()).add(entry);
         EDITS.keySet().retainAll(cells.keySet());
-        long now=System.nanoTime();
+
         for(var entry:cells.entrySet()){
             var state=EDITS.get(entry.getKey());var target=entry.getValue();
             target.sort(Comparator.comparingLong(e->e.pos.asLong()));
-            if(!state.target.equals(target)){state.target=List.copyOf(target);state.changed=now;}
+            if(!state.target.equals(target))state.target=List.copyOf(target);
             for(var gun:target)EditMeshes.request(gun.mesh,gun.light);
             if(target.stream().allMatch(e->EditMeshes.ready(e.mesh,e.light))){
                 state.visible=state.target;state.active=true;
@@ -162,20 +161,17 @@ public final class WallBatches {
                 EditMeshes.request(neighbor.mesh,neighbor.light);
         }
         EditMeshes.prepare(budget);
-        // Merge only after the edit has settled; ongoing input never restarts static material jobs.
-        var settled=EDITS.entrySet().iterator();
-        while(settled.hasNext()){
-            var edit=settled.next();
-            if(now-edit.getValue().changed<750_000_000L || !edit.getValue().active)continue;
-            boolean complete=true;
-            for(var group:groups.entrySet())if(cell(group.getKey()).equals(edit.getKey())){
-                var b=BATCHES.get(group.getKey());
-                if(!current(b,group.getValue()) || !b.primed){complete=false;break;}
-            }
-            if(complete)settled.remove();
-        }
+        // Runtime edits stay in reusable local space. An idle timer must never rebuild
+        // their full static geometry later on the render thread.
+        for(var batches:List.of(BATCHES,STAGING,SPARES,RESTORED))
+            batches.entrySet().removeIf(e->{
+                var edit=EDITS.get(cell(e.getKey()));
+                if(edit==null || !edit.active)return false;
+                e.getValue().close();return true;
+            });
         int rebuilt=0;
         for(var group:groups.entrySet()) {
+            if(EDITS.containsKey(cell(group.getKey())))continue;
             var entries=group.getValue();entries.sort(Comparator.comparingLong(e->e.pos.asLong()));
             Batch active=BATCHES.get(group.getKey());
             if(active==null) {
@@ -187,8 +183,6 @@ public final class WallBatches {
                 }
             }
             if(active!=null && active.entries.equals(entries))continue;
-            var edit=EDITS.get(cell(group.getKey()));
-            if(edit!=null && (!edit.active || now-edit.changed<750_000_000L))continue;
             Batch staged=STAGING.computeIfAbsent(group.getKey(),key->{Batch spare=SPARES.remove(key);return spare==null?new Batch():spare;});
             if(!staged.entries.equals(entries) && rebuilt<maxUploads && budget.start()) {
                 if(active!=null && staged.chunks.isEmpty())staged.chunks.putAll(active.chunks);
@@ -251,16 +245,7 @@ public final class WallBatches {
         for(var group:groups.entrySet()) {
             Key key=group.getKey();var entries=group.getValue();var batch=BATCHES.get(key);
             var edit=EDITS.get(cell(key));
-            if(edit!=null && edit.active){
-                // Prime replacement static batches offscreen while independent guns remain visible.
-                if(current(batch,entries) && !batch.primed && primedThisFrame<2 && primeBudget.start()){
-                    primedThisFrame++;key.type.setupRenderState();
-                    try {batch.buffer.bind();batch.buffer.drawWithShader(new Matrix4f(event.getModelViewMatrix()).translate(0,-100000,0),
-                        event.getProjectionMatrix(),RenderSystem.getShader());batch.primed=true;}
-                    finally {VertexBuffer.unbind();key.type.clearRenderState();}
-                }
-                continue;
-            }
+            if(edit!=null && edit.active)continue;
             // A pending addition may retain its old, still valid neighbors until independent meshes are ready.
             boolean safeOld=edit!=null && batch!=null && batch.entries.stream().allMatch(e->{
                 var live=RESIDENTS.get(e.pos);return live!=null && live.gun==e.gun && live.mesh==e.mesh;
@@ -353,5 +338,5 @@ public final class WallBatches {
         DIMENSIONS.values().forEach(WallBatches::release);DIMENSIONS.clear();release(RESTORED);frustum=null;
         SPARES.values().forEach(Batch::close);SPARES.clear();STAGING.values().forEach(Batch::close);STAGING.clear();BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();groups=Map.of();world=null;
     }
-    public static String stats() { return "editCells="+EDITS.size()+", editUploads="+EditMeshes.uploads+", preload="+WallGunConfig.PRELOAD_MODE.get()+", modelCache="+GunMeshes.cachedModels()+", modelVertices="+GunMeshes.cachedVertices()+", dimensionCacheHits="+dimensionCacheHits+", retainedDimensions="+DIMENSIONS.size()+", bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
+    public static String stats() { return "editCells="+EDITS.size()+", editUploads="+EditMeshes.uploads+", editBundles="+EditMeshes.cachedBundles()+", editVertices="+EditMeshes.cachedVertices()+", preload="+WallGunConfig.PRELOAD_MODE.get()+", modelCache="+GunMeshes.cachedModels()+", modelVertices="+GunMeshes.cachedVertices()+", dimensionCacheHits="+dimensionCacheHits+", retainedDimensions="+DIMENSIONS.size()+", bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
 }

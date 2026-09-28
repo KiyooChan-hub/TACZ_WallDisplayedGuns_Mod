@@ -21,7 +21,7 @@ import java.nio.file.*;
 @Mod("wall_activation_smoke")
 public final class ActivationSmoke {
     private final String scenario=System.getProperty("wallgun.scenario","standard");
-    private int phase,activeTicks,waitTicks,checks,observerTicks;
+    private int phase,activeTicks,waitTicks,checks,observerTicks,stressTicks,stressAdded;
     private boolean lastWaiting;
     private final StringBuilder results=new StringBuilder();
     public ActivationSmoke(){
@@ -52,6 +52,9 @@ public final class ActivationSmoke {
             }
         }
         var fixture=event.getServer().overworld();
+        fixture.setDayTime(6000);
+        fixture.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false,event.getServer());
+        for(int x=-5;x<5;x++)for(int y=99;y<109;y++)fixture.setBlock(new BlockPos(x,y,-6),Blocks.AIR.defaultBlockState(),3);
         if(!scenario.equals("editing"))for(int x=-5;x<5;x++)for(int y=99;y<109;y++)
             fixture.setBlock(new BlockPos(x,y,-8),Blocks.AIR.defaultBlockState(),3);
         var gun=(WallGunEntity)fixture.getBlockEntity(new BlockPos(-5,100,0));
@@ -107,7 +110,16 @@ public final class ActivationSmoke {
         }catch(Exception ex){throw new RuntimeException(ex);}
     }
     private void tick(ServerTickEvent.Post event){
-        if(scenario.equals("editing"))return;
+        if(scenario.equals("editing")){
+            for(var player:event.getServer().getPlayerList().getPlayers())
+                if(player.getInventory().selected==1 && stressAdded<100 && ++stressTicks%4==0){
+                    int i=stressAdded++;var pos=new BlockPos(i%10-5,99+i/10,-6);
+                    var level=event.getServer().overworld();
+                    level.setBlock(pos,WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,Direction.SOUTH),3);
+                    ((WallGunEntity)level.getBlockEntity(pos)).setSnapshot(new GunSnapshot(equipped(level.registryAccess())));
+                }
+            return;
+        }
         if(event.getServer().getPlayerList().getPlayers().isEmpty()){if(phase==5)event.getServer().halt(false);return;}
         var p=event.getServer().getPlayerList().getPlayers().stream().filter(x->x.getGameProfile().getName().equals("Dev")).findFirst().orElse(null);
         if(p==null)return;

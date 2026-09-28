@@ -24,6 +24,8 @@ public final class EditMeshes {
         void close(){buffers.values().forEach(VertexBuffer::close);}
     }
     public static int uploads,draws;
+    public static int cachedBundles(){return CACHE.size();}
+    public static long cachedVertices(){return CACHE.keySet().stream().mapToLong(k->k.mesh.vertices()).sum();}
     public static void begin(){REQUESTED.clear();draws=0;}
     public static void request(GunMeshes.Mesh mesh,int light){
         var key=new Key(mesh,light);REQUESTED.add(key);CACHE.computeIfAbsent(key,k->new Bundle()).used=System.nanoTime();

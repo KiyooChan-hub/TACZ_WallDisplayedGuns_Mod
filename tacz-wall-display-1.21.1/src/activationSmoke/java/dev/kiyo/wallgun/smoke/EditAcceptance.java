@@ -18,10 +18,11 @@ final class EditAcceptance {
     private static boolean connected,mode;
     private static int ticks,phase,frames,baseUploads,baseEditUploads,baseBakes,visibleFrames,poseFrames;
     private static int lastPose=-1,transitions,cycles,placeBakes;
+    private static int placementUploads,stressUploads,stressBundles; private static long stressVertices;
     private static long last,deadline=System.nanoTime()+600_000_000_000L;
     private static final BlockPos TARGET=new BlockPos(0,101,1);
     private static final List<Double> durations=new ArrayList<>();
-    private static final StringBuilder csv=new StringBuilder("phase,ms,uploads,editUploads,pose\n");
+    private static final StringBuilder csv=new StringBuilder("phase,ms,uploads,editUploads,pose,draws,bundles,vertices\n");
     static void init(){NeoForge.EVENT_BUS.addListener(EditAcceptance::tick);NeoForge.EVENT_BUS.addListener(EditAcceptance::frame);}
     private static void require(boolean value,String text){if(!value)throw new AssertionError(text);}
     private static void finish(Throwable error){
@@ -32,7 +33,7 @@ final class EditAcceptance {
             if(error!=null){error.printStackTrace();Files.writeString(dir.resolve("FAILED.txt"),error.toString());}
             else {
                 durations.sort(Double::compare);
-                Files.writeString(dir.resolve("SUCCESS.txt"),"PASS real placement packet; 8 adjust packets/tick; all neighbors visible; live pose follows client state; rotation adds zero static/model/edit uploads after migration; idle merge; removal.\n"+
+                Files.writeString(dir.resolve("SUCCESS.txt"),"PASS real placement packet; 8 adjust packets/tick; all neighbors visible; live pose follows client state; rotation adds zero static/model/edit uploads after migration; no delayed merge over six seconds per placement; removal; 100 runtime additions with stable shared geometry.\n"+
                     "visibleFrames="+visibleFrames+", poseFrames="+poseFrames+", p99Ms="+durations.get((int)(durations.size()*.99))+", maxMs="+durations.getLast()+"\n"+WallBatches.stats());
             }
         }catch(Exception ex){ex.printStackTrace();}
@@ -58,9 +59,9 @@ final class EditAcceptance {
                     var p=new BlockPos(x,y,z);if(p.equals(TARGET))continue;
                     require(WallBatches.drawnPose(p)!=null,"fixture not visible "+p);
                 }
-                placeBakes=GunMeshes.bakes;var click=new InputEvent.MouseButton.Pre(1,1,0);PlacementClient.mouse(click);
+                placementUploads=WallBatches.uploads;placeBakes=GunMeshes.bakes;var click=new InputEvent.MouseButton.Pre(1,1,0);PlacementClient.mouse(click);
                 require(click.isCanceled(),"placement mouse not captured: "+mc.hitResult);phase=1;ticks=0;
-            } else if(phase==1 && ticks>40){
+            } else if(phase==1 && ticks>120){
                 require(mc.level.getBlockEntity(TARGET) instanceof WallGunEntity,"server did not place equipped gun");
                 require(WallBatches.drawnPose(TARGET)!=null,"new gun invisible");
                 require(GunMeshes.bakes==placeBakes,"placement repeated capture despite held prewarm");
@@ -74,24 +75,40 @@ final class EditAcceptance {
                     require(GunMeshes.bakes==baseBakes,"rotation recaptured model");
                 }
                 if(ticks>180){require(transitions>40,"server rotation was not exercised: "+transitions);phase=3;ticks=0;}
-            } else if(phase==3 && ticks>60){
-                require(WallBatches.pendingBatches()==0,"idle merge pending");
+            } else if(phase==3 && ticks>120){
+                require(WallBatches.pendingBatches()==0,"edit geometry pending");
                 phase=4;ticks=0;
                 // Ordinary player break action goes through server validation too.
                 mc.gameMode.startDestroyBlock(TARGET,Direction.SOUTH);
             } else if(phase==4 && ticks>30){
                 require(mc.level.getBlockEntity(TARGET)==null,"removal failed");
                 if(++cycles>=3){
+                    phase=7;ticks=0;
+                    mc.player.getInventory().selected=1;
+                    mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(1));
+                }else {
+                    PlacementClient.mouse(new InputEvent.MouseButton.Pre(1,1,0));phase=6;ticks=0;
+                }
+            } else if(phase==6 && ticks>120){
+                require(mc.level.getBlockEntity(TARGET) instanceof WallGunEntity,"repeat placement failed");
+                mc.gameMode.startDestroyBlock(TARGET,Direction.SOUTH);phase=4;ticks=0;
+            } else if(phase==7){
+                if(ticks==460){stressUploads=EditMeshes.uploads;stressBundles=EditMeshes.cachedBundles();stressVertices=EditMeshes.cachedVertices();}
+                if(ticks>460){
+                    require(EditMeshes.uploads==stressUploads,"stress kept uploading geometry");
+                    require(EditMeshes.cachedBundles()==stressBundles && EditMeshes.cachedVertices()==stressVertices,"stress cache did not stabilize");
+                }
+                if(ticks>600){
+                    int count=0;
+                    for(int x=-5;x<5;x++)for(int y=99;y<109;y++)
+                        if(mc.level.getBlockEntity(new BlockPos(x,y,-6)) instanceof WallGunEntity)count++;
+                    require(count==100,"runtime additions missing: "+count);
+                    require(WallBatches.pendingBatches()==0,"stress geometry pending");
                     phase=99;
                     var dir=mc.gameDirectory.toPath().resolve("edit-verification");Files.createDirectories(dir);
                     try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(dir.resolve("editing.png"));}
                     finish(null);
-                }else {
-                    PlacementClient.mouse(new InputEvent.MouseButton.Pre(1,1,0));phase=6;ticks=0;
                 }
-            } else if(phase==6 && ticks>30){
-                require(mc.level.getBlockEntity(TARGET) instanceof WallGunEntity,"repeat placement failed");
-                mc.gameMode.startDestroyBlock(TARGET,Direction.SOUTH);phase=4;ticks=0;
             }
         }catch(Throwable ex){finish(ex);phase=99;}
     }
@@ -99,6 +116,7 @@ final class EditAcceptance {
         var mc=Minecraft.getInstance();long now=System.nanoTime();double ms=last==0?0:(now-last)/1e6;last=now;
         if(phase<1 || phase==99 || mc.level==null || mc.screen!=null)return;
         try{
+            require(WallBatches.uploads==placementUploads,"runtime edit rebuilt static batches");
             durations.add(ms);frames++;
             for(int x=0;x<2;x++)for(int y=100;y<102;y++)for(int z=0;z<2;z++){
                 var p=new BlockPos(x,y,z);if(p.equals(TARGET))continue;
@@ -111,7 +129,7 @@ final class EditAcceptance {
                 if(lastPose!=gun.roll()){lastPose=gun.roll();transitions++;}
                 poseFrames++;
             }
-            csv.append(phase).append(',').append(ms).append(',').append(WallBatches.uploads).append(',').append(EditMeshes.uploads).append(',').append(WallBatches.drawnPose(TARGET)).append('\n');
+            csv.append(phase).append(',').append(ms).append(',').append(WallBatches.uploads).append(',').append(EditMeshes.uploads).append(',').append(WallBatches.drawnPose(TARGET)).append(',').append(WallBatches.lastDraws).append(',').append(EditMeshes.cachedBundles()).append(',').append(EditMeshes.cachedVertices()).append('\n');
 
         }catch(Throwable ex){finish(ex);phase=99;}
     }
