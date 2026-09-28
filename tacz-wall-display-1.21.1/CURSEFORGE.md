@@ -30,7 +30,7 @@ Additional gun packs are optional. To display a gun from an additional pack, kee
 - Reuse the gun's detailed model, textures, and inventory icon directly from TACZ and installed gun packs.
 - Place displays on all six block faces and remove their supports afterward.
 - On 1.21.1, rotate a display with right-click and flip it with Left Alt + scroll in Free Gun Placement Mode.
-- Prepare nearby displays while entering the world to reduce first-view loading stutter.
+- On 1.21.1 v0.6.16+, prepare nearby displays incrementally without extending terrain-loading screens. Reuse model memory across dimension changes and validate cached batches when returning to a dimension.
 - On the 1.21.1 build, super-glue displays to Create moving structures; their static meshes follow rotation and retain the original gun when disassembled.
 
 Gun-pack and attachment compatibility depends on the source models. Unusual custom rendering may need additional support.
@@ -54,3 +54,17 @@ adjustmentItem = "minecraft:stick"
 The server controls this setting in multiplayer. On Forge 1.20.1, edit the file in the world's `serverconfig` folder; `defaultconfigs` supplies the template for worlds without a saved configuration. The 1.21.1 build no longer has an adjustment-item configuration.
 
 The selected item's own right-click behavior is not specially handled. Choose an appropriate item for your setup.
+
+## Non-blocking Loading (1.21.1 v0.6.16+)
+
+The addon never delays closing the vanilla terrain-loading screen. Decorative guns may appear gradually while the world remains playable. It does not pause the server or add player invulnerability.
+
+In `config/tacz_wall_display-client.toml`, choose:
+
+```toml
+preloadMode = "BACKGROUND"
+```
+
+`BACKGROUND` is the default and prepares guns incrementally, including during existing vanilla loading time. Set `preloadMode = "OFF"` to disable proactive scanning and capture models only when they first become visible. **OFF can cause severe first-view stutters**, especially with large gun collections. There is no BLOCKING option.
+
+Model memory is reused within the running game and invalidated by resource reloads. `modelCacheVertexLimit` defaults to 4,000,000 vertices; active models remain pinned to avoid repeated loading. Inactive dimension GPU buffers have a shared `dimensionCacheVertexLimit` of 2,000,000 vertices and retain at most two dimensions. Set that limit to 0 to disable dimension GPU retention. Buffers are checked against current gun models, poses, positions and lighting before reuse, and released on logout or resource reload. This is memory caching; it does not persist across game restarts.

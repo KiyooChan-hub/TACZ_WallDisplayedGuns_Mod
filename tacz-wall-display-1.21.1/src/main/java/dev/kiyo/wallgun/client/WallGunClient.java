@@ -18,13 +18,12 @@ public final class WallGunClient {
         NeoForge.EVENT_BUS.addListener(WallWarmup::tick);
         NeoForge.EVENT_BUS.addListener(WallWarmup::frame);
         if (ModList.get().isLoaded("create")) NeoForge.EVENT_BUS.addListener(CreateMovingGuns::frame);
-        NeoForge.EVENT_BUS.addListener(WallWarmup::opening);
         NeoForge.EVENT_BUS.addListener(PlacementClient::tick);
         NeoForge.EVENT_BUS.addListener(PlacementClient::mouse);
         NeoForge.EVENT_BUS.addListener(PlacementClient::scroll);
         NeoForge.EVENT_BUS.addListener(PlacementClient::render);
         NeoForge.EVENT_BUS.addListener(PlacementClient::reset);
-        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{WallBatches.clear();GunMeshes.clear();WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
+        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{WallBatches.clear();GunMeshes.retain(java.util.Set.of());WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()+(ModList.get().isLoaded("create") ? ", "+CreateMovingGuns.stats() : "")),false);return 1;})));
     }
     @SubscribeEvent public static void keys(RegisterKeyMappingsEvent event) { PlacementClient.register(event); }

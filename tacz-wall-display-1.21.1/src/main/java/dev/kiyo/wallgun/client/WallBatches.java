@@ -21,6 +21,44 @@ public final class WallBatches {
     private static final Map<Key, Batch> STAGING = new LinkedHashMap<>();
     private static final Map<Key, Batch> SPARES = new LinkedHashMap<>();
     private static ClientLevel world;
+    private static net.minecraft.client.renderer.culling.Frustum frustum;
+    private static final LinkedHashMap<net.minecraft.resources.ResourceLocation,Map<Key,Batch>> DIMENSIONS=new LinkedHashMap<>();
+    private static final Map<Key,Batch> RESTORED=new LinkedHashMap<>();
+    private static long restoreDeadline;
+    public static int dimensionCacheHits;
+    private record Signature(BlockPos pos,Direction facing,int roll,boolean flipped,GunMeshes.Mesh mesh,int light) {}
+    private static List<Signature> signatures(List<Entry> entries) {return entries.stream().map(e->new Signature(e.pos,e.facing,e.roll,e.flipped,e.mesh,e.light)).toList();}
+    public static boolean visible(AABB bounds) {return frustum!=null && frustum.isVisible(bounds);}
+    private static long weight(Map<Key,Batch> batches) {return batches.values().stream().mapToLong(b->b.vertices).sum();}
+    private static void release(Map<Key,Batch> batches) {batches.values().forEach(Batch::close);batches.clear();}
+    private static void trimDimensions() {
+        long weight=DIMENSIONS.values().stream().mapToLong(WallBatches::weight).sum();
+        var iterator=DIMENSIONS.entrySet().iterator();
+        while(iterator.hasNext() && (DIMENSIONS.size()>2 || weight>WallGunConfig.dimensionCacheVertices())) {
+            var cached=iterator.next();weight-=weight(cached.getValue());release(cached.getValue());iterator.remove();
+        }
+    }
+    public static void switchWorld(ClientLevel next) {
+        if(world==next)return;
+        // Take the destination out first: retaining the departing scene must not evict it.
+        var cached=next==null?null:DIMENSIONS.remove(next.dimension().location());
+        if(cached!=null && WallGunConfig.dimensionCacheVertices()==0) {release(cached);cached=null;}
+        release(STAGING);release(SPARES);
+        if(world!=null) {
+            BATCHES.putAll(RESTORED);RESTORED.clear();
+            for(var batch:BATCHES.values()) {batch.entries=List.of();batch.chunks.clear();}
+            var old=DIMENSIONS.put(world.dimension().location(),new LinkedHashMap<>(BATCHES));
+            if(old!=null)release(old);
+        } else release(RESTORED);
+        BATCHES.clear();RESIDENTS.clear();groups=Map.of();frustum=null;world=next;
+        trimDimensions();
+        WallGuns.LOG.info("Wall gun dimension cache: destination={}, reusable batches={}, retained vertices={}",
+                next==null?"none":next.dimension().location(),cached==null?0:cached.size(),DIMENSIONS.values().stream().mapToLong(WallBatches::weight).sum());
+        if(next!=null) {
+            if(cached!=null)RESTORED.putAll(cached);
+            restoreDeadline=System.nanoTime()+10_000_000_000L;
+        }
+    }
     private static int primedThisFrame;
     private static WorkBudget primeBudget;
     public static int uploads, lastDraws, lastGuns;
@@ -33,6 +71,8 @@ public final class WallBatches {
         List<Entry> entries = List.of();
         AABB bounds;
         boolean primed;
+        int vertices;
+        List<Signature> signature=List.of();
         final Map<BlockPos, Chunk> chunks = new HashMap<>();
         @Override public void close() { if (buffer!=null) { buffer.close();buffer=null; } }
     }
@@ -46,14 +86,16 @@ public final class WallBatches {
         return true;
     }
     public static void enqueue(WallGunEntity gun, int light) {
-        if (world!=gun.getLevel()) { clear();world=(ClientLevel)gun.getLevel(); }
+        if (world!=gun.getLevel())switchWorld((ClientLevel)gun.getLevel());
         var mesh=GunMeshes.peek(gun.snapshot());
         if(mesh==null) { RESIDENTS.remove(gun.getBlockPos());WallWarmup.request(gun);return; }
         RESIDENTS.put(gun.getBlockPos(), new Entry(gun,gun.getBlockPos(),gun.getBlockState().getValue(WallGunBlock.FACING),gun.mountRoll()+gun.roll(),gun.flipped(),mesh,light));
     }
     public static void prepare(WorkBudget budget,int maxUploads) {
-        if(world!=Minecraft.getInstance().level) { clear();world=Minecraft.getInstance().level; }
+        if(world!=Minecraft.getInstance().level)switchWorld(Minecraft.getInstance().level);
         if(world==null)return;
+        trimDimensions();
+        if(System.nanoTime()>restoreDeadline)release(RESTORED);
         primedThisFrame=0;primeBudget=null;lastUploadedVertices=0;
         groups=new LinkedHashMap<>();
         RESIDENTS.values().removeIf(entry -> entry.gun.isRemoved() || !world.hasChunkAt(entry.pos)
@@ -71,6 +113,14 @@ public final class WallBatches {
         for(var group:groups.entrySet()) {
             var entries=group.getValue();entries.sort(Comparator.comparingLong(e->e.pos.asLong()));
             Batch active=BATCHES.get(group.getKey());
+            if(active==null) {
+                Batch cached=RESTORED.remove(group.getKey());
+                if(cached!=null) {
+                    if(cached.signature.equals(signatures(entries))) {
+                        cached.entries=List.copyOf(entries);BATCHES.put(group.getKey(),cached);active=cached;dimensionCacheHits++;
+                    } else {Batch old=SPARES.put(group.getKey(),cached);if(old!=null)old.close();}
+                }
+            }
             if(active!=null && active.entries.equals(entries))continue;
             Batch staged=STAGING.computeIfAbsent(group.getKey(),key->{Batch spare=SPARES.remove(key);return spare==null?new Batch():spare;});
             if(!staged.entries.equals(entries) && rebuilt<maxUploads && budget.start()) {
@@ -111,6 +161,7 @@ public final class WallBatches {
     public static void render(RenderLevelStageEvent event) {
         // Draw before other mods' block-entity overlays can switch the world framebuffer.
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
+        frustum=event.getFrustum();
         lastDraws=0;lastGuns=0;
         if(world==null || world!=Minecraft.getInstance().level)return;
         var camera=event.getCamera().getPosition();
@@ -186,10 +237,12 @@ public final class WallBatches {
         }
         batch.chunks.keySet().retainAll(entries.stream().map(Entry::pos).toList());
         batch.bounds=new AABB(minX,minY,minZ,maxX,maxY,maxZ);
-        batch.entries=List.copyOf(entries);
+        batch.entries=List.copyOf(entries);batch.signature=signatures(entries);
+        batch.vertices=entries.stream().mapToInt(e->e.mesh.materials().get(key.type).size()).sum();
     }
     public static void clear() {
+        DIMENSIONS.values().forEach(WallBatches::release);DIMENSIONS.clear();release(RESTORED);frustum=null;
         SPARES.values().forEach(Batch::close);SPARES.clear();STAGING.values().forEach(Batch::close);STAGING.clear();BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();groups=Map.of();world=null;
     }
-    public static String stats() { return "bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
+    public static String stats() { return "preload="+WallGunConfig.PRELOAD_MODE.get()+", modelCache="+GunMeshes.cachedModels()+", modelVertices="+GunMeshes.cachedVertices()+", dimensionCacheHits="+dimensionCacheHits+", retainedDimensions="+DIMENSIONS.size()+", bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
 }

@@ -11,124 +11,76 @@ import net.neoforged.neoforge.client.event.*;
 import net.neoforged.fml.ModList;
 import java.util.*;
 
-/** Client-thread scheduling, independent of the camera's visible block entities. */
+/** Non-blocking client scheduling. Never cancels a screen close or controls server simulation. */
 public final class WallWarmup {
     private static final Map<BlockPos,WallGunEntity> TRACKED=new LinkedHashMap<>();
     private static final Set<GunSnapshot> PENDING=new LinkedHashSet<>();
     private static ClientLevel world;
-    private static boolean loading;
-    private static int tick, scans, loadedChunks, expectedChunks, scanCursor;
-    private static long lastDiscovery, gateStarted;
-    public static int completed, timedOut, frameBakes, frameUploads;
-    public static double lastGateMillis;
-    private static int startBakes, startUploads;
-
-    public static boolean loading() { return loading; }
-    public static int pendingModels() { return PENDING.size(); }
-    public static int tracked() { return TRACKED.size(); }
-    public static String progress() {
-        return "装饰枪外观：" +(TRACKED.size()-missingGuns())+" / "+TRACKED.size();
-    }
-    private static int missingGuns() {
-        int n=0; for(var gun:TRACKED.values()) if(GunMeshes.peek(gun.snapshot())==null)n++; return n;
-    }
-    public static void reset() {
-        TRACKED.clear();PENDING.clear();world=null;loading=false;gateStarted=0;scans=0;scanCursor=0;
-    }
+    private static int scanCursor;
+    public static int frameBakes,frameUploads;
+    public static boolean loading() {return WallGunConfig.preloading() && Minecraft.getInstance().screen instanceof ReceivingLevelScreen;}
+    public static int pendingModels() {return PENDING.size();}
+    public static int tracked() {return TRACKED.size();}
+    public static void reset() {TRACKED.clear();PENDING.clear();world=null;scanCursor=0;}
     private static void ensureWorld() {
-        var mc=Minecraft.getInstance();
-        // Minecraft still renders frames while waiting for the integrated server to stop.
-        var current=mc.gameMode==null?null:mc.level;
+        var mc=Minecraft.getInstance();var current=mc.gameMode==null?null:mc.level;
+        // A respawn packet briefly replaces ClientLevel while retaining the same connection.
+        // Keep the departing renderer until the new level exists; it cannot render while mc.level is null.
+        if(current==null && mc.getConnection()!=null)return;
         if(current==world)return;
-        reset();WallBatches.clear();world=current;
-        if(world!=null) {
-            loading=true;lastDiscovery=System.nanoTime();startBakes=GunMeshes.bakes;startUploads=WallBatches.uploads;
-        }
+        reset();WallBatches.switchWorld(current);world=current;
+        GunMeshes.retain(Set.of());
     }
     public static void request(WallGunEntity gun) {
+        ensureWorld();
         if(gun.getLevel()!=world || gun.isRemoved() || gun.snapshot()==null)return;
-        var previous=TRACKED.put(gun.getBlockPos(),gun);
-        if(previous!=gun)lastDiscovery=System.nanoTime();
-        if(GunMeshes.peek(gun.snapshot())==null && PENDING.add(gun.snapshot()))lastDiscovery=System.nanoTime();
+        TRACKED.put(gun.getBlockPos(),gun);
+        if(WallGunConfig.preloading() && GunMeshes.peek(gun.snapshot())==null)PENDING.add(gun.snapshot());
     }
     public static void tick(ClientTickEvent.Post event) {
-        ensureWorld();
-        var mc=Minecraft.getInstance();
-        if(world==null || mc.player==null || mc.getOverlay()!=null)return;
-        // Scan existing client chunks only: never cause disk IO, generation or server chunk tickets.
-        if(loading && scans>0 && ++tick%5!=0)return;
+        ensureWorld();var mc=Minecraft.getInstance();
+        if(!WallGunConfig.preloading() || world==null || mc.level!=world || mc.gameMode==null || mc.player==null || mc.getOverlay()!=null)return;
+        // Only inspect a bounded slice of chunks already sent by the server. No tickets or generation.
         int radius=RenderDistanceRules.scanRadius(WallGunConfig.maxRenderDistance(),mc.options.getEffectiveRenderDistance());
-        int cx=mc.player.chunkPosition().x, cz=mc.player.chunkPosition().z;
-        int side=radius*2+1, total=side*side;
-        if(loading){loadedChunks=0;expectedChunks=total;}
-        // Scan everything while the loading screen is up, then a bounded slice per tick.
-        int count=loading?total:Math.min(64,total);
+        int cx=mc.player.chunkPosition().x,cz=mc.player.chunkPosition().z;
+        int side=radius*2+1,total=side*side,count=Math.min(loading()?128:64,total);
         for(int i=0;i<count;i++) {
-            int index=loading?i:(scanCursor+i)%total;
-            int x=cx-radius+index%side, z=cz-radius+index/side;
-            var chunk=world.getChunkSource().getChunk(x,z,ChunkStatus.FULL,false);
-            if(chunk==null)continue;
-            if(loading)loadedChunks++;
-            for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun && nearby(gun))request(gun);
+            int index=(scanCursor+i)%total;
+            var chunk=world.getChunkSource().getChunk(cx-radius+index%side,cz-radius+index/side,ChunkStatus.FULL,false);
+            if(chunk!=null)for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun && nearby(gun))request(gun);
         }
-        if(loading)scans++;else scanCursor=(scanCursor+count)%total;
+        scanCursor=(scanCursor+count)%total;
     }
     private static boolean nearby(WallGunEntity gun) {
         var player=Minecraft.getInstance().player;
         return player!=null && RenderDistanceRules.keep(gun.getBlockPos(),player.getEyePosition(),WallGunConfig.maxRenderDistance());
     }
-    public static void opening(ScreenEvent.Opening event) {
-        if(event.getNewScreen()==null && event.getCurrentScreen() instanceof ReceivingLevelScreen) {
-            ensureWorld();
-            if(holdLoadingScreen())event.setCanceled(true);
-        }
+    public static void onDemand(WallGunEntity gun) {
+        request(gun);
+        if(!WallGunConfig.preloading() && gun.snapshot()!=null && GunMeshes.peek(gun.snapshot())==null) {GunMeshes.get(gun.snapshot());frameBakes++;}
     }
     public static void frame(RenderFrameEvent.Pre event) {
-        ensureWorld();frameBakes=0;frameUploads=0;
-        var mc=Minecraft.getInstance();
-        if(world==null || mc.player==null || mc.getOverlay()!=null)return;
-        if(loading)beginGate();
-        TRACKED.values().removeIf(g -> g.isRemoved() || g.getLevel()!=world || !nearby(g)
+        ensureWorld();frameBakes=0;frameUploads=0;var mc=Minecraft.getInstance();
+        if(world==null || mc.level!=world || mc.gameMode==null || mc.player==null || mc.getOverlay()!=null)return;
+        TRACKED.values().removeIf(g->g.isRemoved() || g.getLevel()!=world || !nearby(g)
                 || !world.hasChunkAt(g.getBlockPos()) || world.getBlockEntity(g.getBlockPos())!=g);
-        Set<GunSnapshot> needed=new HashSet<>();
-        for(var gun:TRACKED.values())if(gun.snapshot()!=null && GunMeshes.peek(gun.snapshot())==null)needed.add(gun.snapshot());
-        if (ModList.get().isLoaded("create")) for (var snapshot:CreateMovingGuns.discover(world))
-            if (GunMeshes.peek(snapshot)==null) needed.add(snapshot);
-        PENDING.retainAll(needed);
-        PENDING.addAll(needed);
-        WorkBudget budget=new WorkBudget(loading?12_000_000:2_000_000);
+        Set<GunSnapshot> active=new HashSet<>();
+        for(var gun:TRACKED.values())if(gun.snapshot()!=null)active.add(gun.snapshot());
+        if(ModList.get().isLoaded("create")) {
+            active.addAll(CreateMovingGuns.retainedSnapshots());
+            if(WallGunConfig.preloading())active.addAll(CreateMovingGuns.discover(world));
+        }
+        GunMeshes.retain(active);
+        if(WallGunConfig.preloading()) {
+            PENDING.retainAll(active);
+            for(var snapshot:active)if(GunMeshes.peek(snapshot)==null)PENDING.add(snapshot);
+        } else PENDING.clear();
+        var budget=new WorkBudget(loading()?12_000_000:2_000_000);
         var iterator=PENDING.iterator();
-        while(iterator.hasNext() && frameBakes<(loading?8:1) && budget.start()) {
+        while(iterator.hasNext() && frameBakes<(loading()?8:1) && budget.start()) {
             GunMeshes.get(iterator.next());iterator.remove();frameBakes++;
         }
         for(var gun:TRACKED.values())WallBatches.enqueue(gun,LevelRenderer.getLightColor(world,gun.getBlockPos()));
-        int before=WallBatches.uploads;
-        WallBatches.prepare(budget,loading?8:2);
-        frameUploads=WallBatches.uploads-before;
-        // Reloads/custom loading screens finish incrementally without replacing their UI.
-        if(loading && !(mc.screen instanceof ReceivingLevelScreen))gateFinished();
-    }
-    public static boolean holdLoadingScreen() {
-        ensureWorld();
-        if(!loading)return false;
-        beginGate();
-        return !gateFinished();
-    }
-    public static void beginGate() {
-        if(gateStarted==0)gateStarted=System.nanoTime();
-    }
-    public static boolean gateFinished() {
-        if(!loading || world==null)return true;
-        long now=System.nanoTime(), elapsed=now-gateStarted;
-        boolean settled=scans>0 && now-lastDiscovery>=750_000_000L
-                && (loadedChunks==expectedChunks || elapsed>=2_500_000_000L);
-        boolean ready=settled && PENDING.isEmpty() && missingGuns()==0 && WallBatches.pendingBatches()==0;
-        if(!ready && elapsed<30_000_000_000L)return false;
-        loading=false;lastGateMillis=elapsed/1_000_000.0;
-        if(ready)completed++;else timedOut++;
-        WallGuns.LOG.info("Wall gun warmup {}: {} ms, {} guns, {} models, {} uploads, pending models={}, batches={}",
-                ready?"ready":"timeout; continuing incrementally",(long)lastGateMillis,TRACKED.size(),
-                GunMeshes.bakes-startBakes,WallBatches.uploads-startUploads,PENDING.size(),WallBatches.pendingBatches());
-        return true;
+        int before=WallBatches.uploads;WallBatches.prepare(budget,loading()?8:2);frameUploads=WallBatches.uploads-before;
     }
 }

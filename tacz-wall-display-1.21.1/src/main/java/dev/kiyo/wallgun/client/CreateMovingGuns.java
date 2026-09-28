@@ -40,6 +40,7 @@ public final class CreateMovingGuns {
         if (gun.snapshot() == null) return true;
         var snapshot = gun.snapshot();
         var mesh = GunMeshes.peek(snapshot);
+        if(mesh==null && !WallGunConfig.preloading()) {mesh=GunMeshes.get(snapshot);}
         if (mesh == null) return true; // Captured by the frame-budgeted discovery path.
         var key = new Key(snapshot, gun.getBlockState().getValue(WallGunBlock.FACING),
                 gun.mountRoll() + gun.roll(), gun.flipped());
@@ -66,6 +67,13 @@ public final class CreateMovingGuns {
         return true;
     }
 
+    /** Already requested moving models only: OFF must not discover unseen structures. */
+    public static Set<GunSnapshot> retainedSnapshots() {
+        Set<GunSnapshot> result=new HashSet<>();
+        for(var key:BUFFERS.keySet())result.add(key.snapshot());
+        for(var key:PENDING.keySet())result.add(key.snapshot());
+        return result;
+    }
     /** Discover original guns in assembled structures before they enter the camera frustum. */
     public static Set<GunSnapshot> discover(ClientLevel level) {
         if (world != level) { clear(); world = level; }

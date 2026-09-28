@@ -14,6 +14,10 @@ public final class WallGunRenderer implements BlockEntityRenderer<WallGunEntity>
     public WallGunRenderer(BlockEntityRendererProvider.Context context) {}
     @Override public void render(WallGunEntity gun, float partial, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
         if (ModList.get().isLoaded("create") && CreateMovingGuns.renderIfVirtual(gun, pose, light)) return;
+        if(!WallGunConfig.preloading()) {
+            if(!WallBatches.visible(new AABB(gun.getBlockPos()).inflate(1.0)))return;
+            WallWarmup.onDemand(gun);
+        }
         WallBatches.enqueue(gun, light);
     }
     @Override public AABB getRenderBoundingBox(WallGunEntity gun) { return new AABB(gun.getBlockPos()).inflate(1.0); }
