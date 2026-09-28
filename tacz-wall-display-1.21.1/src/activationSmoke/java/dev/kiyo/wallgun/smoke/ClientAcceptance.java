@@ -29,8 +29,8 @@ final class ClientAcceptance {
                 WallGunConfig.PRELOAD_MODE.set(scenario.equals("off")?WallGunConfig.PreloadMode.OFF:WallGunConfig.PreloadMode.LOADING);
             }
             if(installed && !connected){connected=true;ConnectScreen.startConnecting(mc.screen,mc,ServerAddress.parseString("127.0.0.1:25586"),new ServerData("Acceptance","127.0.0.1:25586",ServerData.Type.OTHER),false,null);}
-            if(offer!=null && !scenario.equals("timeout") && ++delay>=60){original.accept(offer);var stale=offer.copy();stale.putString("kind","ready");stale.putLong("id",offer.getLong("id")-1);LoadingPayloads.send(stale);if(scenario.equals("failure")){var failure=offer.copy();failure.putString("kind","failure");LoadingPayloads.send(failure);}offer=null;}
-            if(connected && !scenario.equals("standard") && mc.screen instanceof DisconnectedScreen) {
+            if(offer!=null && !scenario.equals("timeout") && ++delay>=(scenario.equals("performance")?1:60)){original.accept(offer);var stale=offer.copy();stale.putString("kind","ready");stale.putLong("id",offer.getLong("id")-1);LoadingPayloads.send(stale);if(scenario.equals("failure")){var failure=offer.copy();failure.putString("kind","failure");LoadingPayloads.send(failure);}offer=null;}
+            if(connected && !scenario.equals("standard") && !scenario.equals("performance") && mc.screen instanceof DisconnectedScreen) {
                 if(!scenario.equals("observer") && completed!=0)throw new AssertionError("failed session was released");
                 Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS-"+scenario+".txt"),"PASS explicit disconnection, no activation: "+scenario);mc.stop();return;
             }
@@ -39,7 +39,10 @@ final class ClientAcceptance {
             if(wasWaiting && !waiting && mc.level!=null){
                 if(!scenario.equals("off") && (WallBatches.pendingBatches()!=0 || WallWarmup.pendingModels()!=0))throw new AssertionError("released before GPU preparation");
                 completed++;stable=0;
-                if(completed==3 && scenario.equals("standard"))mc.reloadResourcePacks();
+                if(completed==3 && (scenario.equals("standard") || scenario.equals("performance"))) {
+                    if(scenario.equals("performance") && WallBatches.dimensionCacheHits==0)throw new AssertionError("return trip reused no GPU batches");
+                    mc.reloadResourcePacks();
+                }
                 Files.writeString(mc.gameDirectory.toPath().resolve("progress.txt"),"sessions="+completed+" "+WallBatches.stats());
             }
             wasWaiting=waiting;
@@ -47,7 +50,7 @@ final class ClientAcceptance {
             if(completed>=5 && !waiting && ++stable>100){
                 try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(mc.gameDirectory.toPath().resolve("completed-scene.png"));}
                 if(GunMeshes.failures!=0)throw new AssertionError("model capture failure");
-                Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS.txt"),"PASS five sessions, vanilla screen, delayed and stale confirmations; scenario="+scenario+"; GPU readiness checked="+!scenario.equals("off")+"\n"+WallBatches.stats());mc.stop();
+                Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS.txt"),"PASS five sessions, vanilla screen, stale confirmations; scenario="+scenario+"; GPU readiness checked="+!scenario.equals("off")+"\n"+WallBatches.stats());mc.stop();
             }
         }catch(Throwable ex){ex.printStackTrace();try{Files.writeString(mc.gameDirectory.toPath().resolve("FAILED.txt"),ex.toString());}catch(Exception ignored){}mc.stop();}
     }

@@ -56,7 +56,7 @@ public final class LoadingClient {
             if(mc.getConnection()!=null)mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun initial preparation failed or timed out"));
             return;
         }
-        if(id==0 || !sealed || sent || CHUNKS.size()!=expected || mc.level==null || mc.player==null || mc.getOverlay()!=null)return;
+        if(id==0 || sent || mc.level==null || mc.player==null || mc.getOverlay()!=null)return;
         boolean received=true,changed=false;
         for(var entry:CHUNKS.entrySet()) {
             var pos=entry.getKey();var chunk=mc.level.getChunkSource().getChunk(pos.x,pos.z,ChunkStatus.FULL,false);
@@ -65,8 +65,8 @@ public final class LoadingClient {
             for(var entity:chunk.getBlockEntities().values())if(entity instanceof WallGunEntity gun
                 && RenderDistanceRules.keep(gun.getBlockPos(),mc.player.getEyePosition(),WallGunConfig.maxRenderDistance()))WallWarmup.request(gun);
         }
-        if(changed){sent=true;LoadingPayloads.send(message("refresh"));return;}
-        if(received && WallWarmup.pendingModels()==0 && WallBatches.pendingBatches()==0 && mc.levelRenderer.isSectionCompiled(mc.player.blockPosition())) {
+        if(changed && sealed){sent=true;LoadingPayloads.send(message("refresh"));return;}
+        if(sealed && CHUNKS.size()==expected && received && WallWarmup.pendingModels()==0 && WallBatches.pendingBatches()==0 && mc.levelRenderer.isSectionCompiled(mc.player.blockPosition())) {
             // Requesting a cached model still needs one frame to enqueue/verify its GPU batches.
             if(!WallWarmup.initialPrepared(CHUNKS.keySet()))return;
             com.mojang.blaze3d.systems.RenderSystem.assertOnRenderThread();

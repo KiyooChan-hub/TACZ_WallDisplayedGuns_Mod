@@ -35,7 +35,14 @@ public final class WallBatches {
         long weight=DIMENSIONS.values().stream().mapToLong(WallBatches::weight).sum();
         var iterator=DIMENSIONS.entrySet().iterator();
         while(iterator.hasNext() && (DIMENSIONS.size()>2 || weight>WallGunConfig.dimensionCacheVertices())) {
-            var cached=iterator.next();weight-=weight(cached.getValue());release(cached.getValue());iterator.remove();
+            var cached=iterator.next();
+            if(DIMENSIONS.size()>2) {weight-=weight(cached.getValue());release(cached.getValue());iterator.remove();continue;}
+            // Keep the portion that fits; a large scene should not evict its entire dimension.
+            var batches=cached.getValue().values().iterator();
+            while(batches.hasNext() && weight>WallGunConfig.dimensionCacheVertices()) {
+                var batch=batches.next();weight-=batch.vertices;batch.close();batches.remove();
+            }
+            if(cached.getValue().isEmpty())iterator.remove();
         }
     }
     public static void switchWorld(ClientLevel next) {
@@ -95,7 +102,8 @@ public final class WallBatches {
         if(world!=Minecraft.getInstance().level)switchWorld(Minecraft.getInstance().level);
         if(world==null)return;
         trimDimensions();
-        if(System.nanoTime()>restoreDeadline)release(RESTORED);
+        if(LoadingClient.waiting())restoreDeadline=System.nanoTime()+10_000_000_000L;
+        else if(System.nanoTime()>restoreDeadline)release(RESTORED);
         primedThisFrame=0;primeBudget=null;lastUploadedVertices=0;
         groups=new LinkedHashMap<>();
         RESIDENTS.values().removeIf(entry -> entry.gun.isRemoved() || !world.hasChunkAt(entry.pos)

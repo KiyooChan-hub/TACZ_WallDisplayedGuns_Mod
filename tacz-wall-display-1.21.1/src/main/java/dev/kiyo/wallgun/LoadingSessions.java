@@ -6,7 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.*;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -24,6 +24,7 @@ public final class LoadingSessions {
         String dimension;
         boolean offered,configured,enabled,sealed,verifying,failed;
         int radius=8,cursor,revision,retries,bytes;
+        long scanNanos;
         List<ChunkPos> chunks;
         final Map<ChunkPos,CompoundTag> manifest=new LinkedHashMap<>();
     }
@@ -66,9 +67,21 @@ public final class LoadingSessions {
         player.connection.teleport(player.getX(),player.getY(),player.getZ(),player.getYRot(),player.getXRot());
         player.connection.resetPosition();
         LoadingPayloads.send(player,packet(s,"release"));WAITING.remove(player);
-        WallGuns.LOG.info("Wall gun activation id={} dimension={} chunks={} waitMs={} enabled={} revisions={}",s.id,s.dimension,s.manifest.size(),(System.nanoTime()-s.started)/1_000_000,s.enabled,s.revision);
+        WallGuns.LOG.info("Wall gun activation id={} dimension={} chunks={} waitMs={} enabled={} revisions={} scanMs={}",s.id,s.dimension,s.manifest.size(),(System.nanoTime()-s.started)/1_000_000,s.enabled,s.revision,s.scanNanos/1_000_000);
     }
+    private record GunState(long pos, GunSnapshot snapshot, int roll, int mount, boolean flip,
+                            net.minecraft.world.level.block.state.BlockState state) {}
+    private record Description(List<GunState> states, CompoundTag tag) {}
+    private static final ThreadLocal<Map<net.minecraft.world.level.chunk.LevelChunk,Description>> DESCRIPTIONS=
+        ThreadLocal.withInitial(WeakHashMap::new);
     public static CompoundTag describe(net.minecraft.world.level.chunk.LevelChunk chunk) {
+        // Materialize only wall-gun entities whose NBT has not been promoted yet.
+        for(var pos:chunk.getBlockEntitiesPos())if(chunk.getBlockState(pos).getBlock() instanceof WallGunBlock)chunk.getBlockEntity(pos);
+        var states=chunk.getBlockEntities().values().stream().filter(e->e instanceof WallGunEntity)
+            .map(e->{var g=(WallGunEntity)e;return new GunState(g.getBlockPos().asLong(),g.snapshot(),g.roll(),g.mountRoll(),g.flipped(),g.getBlockState());})
+            .sorted(Comparator.comparingLong(GunState::pos)).toList();
+        var cache=DESCRIPTIONS.get();var previous=cache.get(chunk);
+        if(previous!=null && previous.states.equals(states))return previous.tag;
         var result=new CompoundTag();var list=new ListTag();
         chunk.getBlockEntities().values().stream().filter(e->e instanceof WallGunEntity).sorted(Comparator.comparingLong(e->e.getBlockPos().asLong())).forEach(e->{
             var gun=(WallGunEntity)e;var t=new CompoundTag();t.putLong("pos",gun.getBlockPos().asLong());
@@ -77,7 +90,7 @@ public final class LoadingSessions {
             if(gun.snapshot()!=null)t.put("gun",gun.snapshot().copyGun().save(chunk.getLevel().registryAccess()));
             list.add(t);
         });
-        result.putLong("chunk",chunk.getPos().toLong());result.put("guns",list);return result;
+        result.putLong("chunk",chunk.getPos().toLong());result.put("guns",list);cache.put(chunk,new Description(states,result));return result;
     }
     private static void tick(ServerTickEvent.Post event) {
         for(var player:new ArrayList<>(WAITING.keySet())) {
@@ -99,12 +112,16 @@ public final class LoadingSessions {
                 LoadingPayloads.send(player,packet(s,"begin"));
             }
             try {
-                int work=0;
-                while(s.cursor<s.chunks.size() && work++<8 && (!s.sealed || s.verifying)) {
+                long scanStarted=System.nanoTime();
+                int remaining=s.chunks.size()-s.cursor;
+                while(s.cursor<s.chunks.size() && remaining-->0 && System.nanoTime()-scanStarted<4_000_000L && (!s.sealed || s.verifying)) {
                     var pos=s.chunks.get(s.cursor);
                     if(!player.getChunkTrackingView().contains(pos)){fail(player,"initial chunk subscription changed");break;}
-                    var chunk=player.serverLevel().getChunkSource().getChunk(pos.x,pos.z,ChunkStatus.FULL,false);
-                    if(!(chunk instanceof net.minecraft.world.level.chunk.LevelChunk full) || player.connection.chunkSender.isPending(pos.toLong()))break;
+                    var full=player.serverLevel().getChunkSource().getChunkNow(pos.x,pos.z);
+                    if(full==null || player.connection.chunkSender.isPending(pos.toLong())) {
+                        // Visit each pending position once per tick; a slow chunk must not block ready ones.
+                        s.chunks.remove(s.cursor);s.chunks.add(pos);continue;
+                    }
                     var description=describe(full);
                     if(s.verifying) {
                         if(!description.equals(s.manifest.get(pos))) {
@@ -121,6 +138,7 @@ public final class LoadingSessions {
                     }
                     s.cursor++;
                 }
+                s.scanNanos+=System.nanoTime()-scanStarted;
                 if(s.cursor==s.chunks.size()) {
                     if(s.verifying)release(player,s);
                     else if(!s.sealed){s.sealed=true;var done=packet(s,"seal");done.putInt("count",s.chunks.size());LoadingPayloads.send(player,done);}
