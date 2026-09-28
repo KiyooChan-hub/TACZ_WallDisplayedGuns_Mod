@@ -50,6 +50,7 @@ public final class WallBatches {
         // Take the destination out first: retaining the departing scene must not evict it.
         var cached=next==null?null:DIMENSIONS.remove(next.dimension().location());
         if(cached!=null && WallGunConfig.dimensionCacheVertices()==0) {release(cached);cached=null;}
+        EDITS.clear();EditMeshes.clear();
         release(STAGING);release(SPARES);
         if(world!=null) {
             BATCHES.putAll(RESTORED);RESTORED.clear();
@@ -73,6 +74,17 @@ public final class WallBatches {
     private record Entry(WallGunEntity gun, BlockPos pos, Direction facing, int roll, boolean flipped, GunMeshes.Mesh mesh, int light) {}
     private record Key(long section, int cell, RenderType type) {}
     private record Cell(long section,int cell) {}
+    private static final Map<Cell,EditCell> EDITS=new HashMap<>();
+    private static final Map<BlockPos,Integer> DRAWN_POSES=new HashMap<>();
+    public static Integer drawnPose(BlockPos pos){return DRAWN_POSES.get(pos);}
+    private static final class EditCell {
+        List<Entry> target=List.of(),visible=List.of();
+        long changed=System.nanoTime();
+        boolean active;
+    }
+    private static Cell cell(Key key){return new Cell(key.section,key.cell);}
+    private static Cell cell(Entry entry){return new Cell(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos));}
+    private static boolean current(Batch batch,List<Entry> entries){return batch!=null && batch.entries.equals(entries);}
     private static final class Batch implements AutoCloseable {
         VertexBuffer buffer;
         List<Entry> entries = List.of();
@@ -112,11 +124,56 @@ public final class WallBatches {
         for (Entry entry:RESIDENTS.values()) {
             for (RenderType type:entry.mesh.materials().keySet()) groups.computeIfAbsent(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type),ignored->new ArrayList<>()).add(entry);
         }
+        groups.values().forEach(entries->entries.sort(Comparator.comparingLong(e->e.pos.asLong())));
         STAGING.entrySet().removeIf(e -> {
             if(!groups.containsKey(e.getKey())) {e.getValue().close();return true;}
             return false;
         });
         SPARES.entrySet().removeIf(e->{if(!groups.containsKey(e.getKey())){e.getValue().close();return true;}return false;});
+        EditMeshes.begin();
+        if(!WallWarmup.loading()) {
+            for(var group:groups.entrySet())if(!current(BATCHES.get(group.getKey()),group.getValue()))
+                EDITS.computeIfAbsent(cell(group.getKey()),k->new EditCell());
+        }
+        var cells=new HashMap<Cell,List<Entry>>();
+        for(var entry:RESIDENTS.values())if(EDITS.containsKey(cell(entry)))
+            cells.computeIfAbsent(cell(entry),k->new ArrayList<>()).add(entry);
+        EDITS.keySet().retainAll(cells.keySet());
+        long now=System.nanoTime();
+        for(var entry:cells.entrySet()){
+            var state=EDITS.get(entry.getKey());var target=entry.getValue();
+            target.sort(Comparator.comparingLong(e->e.pos.asLong()));
+            if(!state.target.equals(target)){state.target=List.copyOf(target);state.changed=now;}
+            for(var gun:target)EditMeshes.request(gun.mesh,gun.light);
+            if(target.stream().allMatch(e->EditMeshes.ready(e.mesh,e.light))){
+                state.visible=state.target;state.active=true;
+            }
+        }
+        for(var state:EDITS.values())for(var gun:state.visible)EditMeshes.request(gun.mesh,gun.light);
+        var held=PlacementClient.prewarmSnapshot();
+        var heldMesh=GunMeshes.peek(held);
+        if(held!=null && heldMesh!=null && Minecraft.getInstance().player!=null)
+            EditMeshes.request(heldMesh,net.minecraft.client.renderer.LevelRenderer.getLightColor(world,
+                Minecraft.getInstance().hitResult instanceof net.minecraft.world.phys.BlockHitResult hit
+                ?hit.getBlockPos().relative(hit.getDirection()):Minecraft.getInstance().player.blockPosition()));
+        if(held!=null && Minecraft.getInstance().hitResult instanceof net.minecraft.world.phys.BlockHitResult hit){
+            var aimed=RESIDENTS.get(hit.getBlockPos());
+            if(aimed!=null)for(var neighbor:RESIDENTS.values())if(cell(aimed).equals(cell(neighbor)))
+                EditMeshes.request(neighbor.mesh,neighbor.light);
+        }
+        EditMeshes.prepare(budget);
+        // Merge only after the edit has settled; ongoing input never restarts static material jobs.
+        var settled=EDITS.entrySet().iterator();
+        while(settled.hasNext()){
+            var edit=settled.next();
+            if(now-edit.getValue().changed<750_000_000L || !edit.getValue().active)continue;
+            boolean complete=true;
+            for(var group:groups.entrySet())if(cell(group.getKey()).equals(edit.getKey())){
+                var b=BATCHES.get(group.getKey());
+                if(!current(b,group.getValue()) || !b.primed){complete=false;break;}
+            }
+            if(complete)settled.remove();
+        }
         int rebuilt=0;
         for(var group:groups.entrySet()) {
             var entries=group.getValue();entries.sort(Comparator.comparingLong(e->e.pos.asLong()));
@@ -130,6 +187,8 @@ public final class WallBatches {
                 }
             }
             if(active!=null && active.entries.equals(entries))continue;
+            var edit=EDITS.get(cell(group.getKey()));
+            if(edit!=null && (!edit.active || now-edit.changed<750_000_000L))continue;
             Batch staged=STAGING.computeIfAbsent(group.getKey(),key->{Batch spare=SPARES.remove(key);return spare==null?new Batch():spare;});
             if(!staged.entries.equals(entries) && rebuilt<maxUploads && budget.start()) {
                 if(active!=null && staged.chunks.isEmpty())staged.chunks.putAll(active.chunks);
@@ -161,6 +220,8 @@ public final class WallBatches {
     public static boolean prepared(WallGunEntity gun) {
         var entry=RESIDENTS.get(gun.getBlockPos());
         if(entry==null || entry.gun!=gun || entry.mesh!=GunMeshes.peek(gun.snapshot()) || entry.roll!=gun.roll()+gun.mountRoll() || entry.flipped!=gun.flipped())return false;
+        var edit=EDITS.get(cell(entry));
+        if(edit!=null && edit.active && EditMeshes.ready(entry.mesh,entry.light))return true;
         for(var type:entry.mesh.materials().keySet()) {
             var batch=BATCHES.get(new Key(SectionPos.asLong(entry.pos),BatchLayout.cell(entry.pos),type));
             if(batch==null || !batch.primed || !batch.entries.contains(entry))return false;
@@ -171,6 +232,8 @@ public final class WallBatches {
         int n=0;
         for(var group:groups.entrySet()) {
             var batch=BATCHES.get(group.getKey());
+            var edit=EDITS.get(cell(group.getKey()));
+            if(edit!=null && edit.active && group.getValue().stream().allMatch(e->EditMeshes.ready(e.mesh,e.light)))continue;
             if(batch==null || !batch.entries.equals(group.getValue()) || !batch.primed)n++;
         }
         return n;
@@ -179,15 +242,30 @@ public final class WallBatches {
         // Draw before other mods' block-entity overlays can switch the world framebuffer.
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
         frustum=event.getFrustum();
-        lastDraws=0;lastGuns=0;
+        lastDraws=0;lastGuns=0;DRAWN_POSES.clear();
         if(world==null || world!=Minecraft.getInstance().level)return;
+        EditMeshes.prime(event);
         var camera=event.getCamera().getPosition();
         Set<BlockPos> drawnGuns=new HashSet<>();
         if(primeBudget==null)primeBudget=new WorkBudget(WallWarmup.loading()?8_000_000:1_000_000);
         for(var group:groups.entrySet()) {
             Key key=group.getKey();var entries=group.getValue();var batch=BATCHES.get(key);
-            // A pending edit must not keep drawing a destroyed gun or an obsolete attachment.
-            if(batch==null || batch.buffer==null || (!batch.entries.equals(entries) && !poseOnly(batch.entries,entries)))continue;
+            var edit=EDITS.get(cell(key));
+            if(edit!=null && edit.active){
+                // Prime replacement static batches offscreen while independent guns remain visible.
+                if(current(batch,entries) && !batch.primed && primedThisFrame<2 && primeBudget.start()){
+                    primedThisFrame++;key.type.setupRenderState();
+                    try {batch.buffer.bind();batch.buffer.drawWithShader(new Matrix4f(event.getModelViewMatrix()).translate(0,-100000,0),
+                        event.getProjectionMatrix(),RenderSystem.getShader());batch.primed=true;}
+                    finally {VertexBuffer.unbind();key.type.clearRenderState();}
+                }
+                continue;
+            }
+            // A pending addition may retain its old, still valid neighbors until independent meshes are ready.
+            boolean safeOld=edit!=null && batch!=null && batch.entries.stream().allMatch(e->{
+                var live=RESIDENTS.get(e.pos);return live!=null && live.gun==e.gun && live.mesh==e.mesh;
+            });
+            if(batch==null || batch.buffer==null || (!batch.entries.equals(entries) && !poseOnly(batch.entries,entries) && !safeOld))continue;
             boolean visible=event.getFrustum().isVisible(batch.bounds)
                     && RenderDistanceRules.draw(batch.bounds, camera, WallGunConfig.maxRenderDistance());
             if(!batch.primed && batch.entries.equals(entries)) {
@@ -203,9 +281,22 @@ public final class WallBatches {
                 batch.buffer.bind();
                 batch.buffer.drawWithShader(modelView,event.getProjectionMatrix(),RenderSystem.getShader());
                 batch.primed=true;
-                if(visible) {lastDraws++;for(Entry entry:entries)drawnGuns.add(entry.pos);}
+                if(visible) {lastDraws++;for(Entry entry:batch.entries){drawnGuns.add(entry.pos);DRAWN_POSES.put(entry.pos,entry.roll);}}
             } finally { VertexBuffer.unbind();key.type.clearRenderState(); }
         }
+        for(var edit:EDITS.values())if(edit.active)for(var previous:edit.visible){
+            var live=RESIDENTS.get(previous.pos);
+            if(live==null || live.gun!=previous.gun || live.mesh!=previous.mesh)continue;
+            // Network ticks can update pose after RenderFrame.Pre; read the authoritative client BE at draw time.
+            int roll=live.gun.mountRoll()+live.gun.roll();
+            var pose=new DisplayPose(live.gun.getBlockState().getValue(WallGunBlock.FACING),roll,live.gun.flipped(),GunMeshes.WALL_GAP,live.mesh.maxDepth());
+            // Conservative bounds include oversized gun-pack geometry in any mounting orientation.
+            float radius=live.mesh.radius();
+            var bounds=new AABB(live.pos).inflate(radius);
+            if(!event.getFrustum().isVisible(bounds) || !RenderDistanceRules.draw(bounds,camera,WallGunConfig.maxRenderDistance()))continue;
+            if(EditMeshes.render(live.mesh,previous.light,pose,live.pos,event)){drawnGuns.add(live.pos);DRAWN_POSES.put(live.pos,roll);}
+        }
+        lastDraws+=EditMeshes.draws;
         lastGuns=drawnGuns.size();
     }
     private static void rebuild(Key key, Batch batch, List<Entry> entries) {
@@ -258,8 +349,9 @@ public final class WallBatches {
         batch.vertices=entries.stream().mapToInt(e->e.mesh.materials().get(key.type).size()).sum();
     }
     public static void clear() {
+        EDITS.clear();EditMeshes.clear();DRAWN_POSES.clear();
         DIMENSIONS.values().forEach(WallBatches::release);DIMENSIONS.clear();release(RESTORED);frustum=null;
         SPARES.values().forEach(Batch::close);SPARES.clear();STAGING.values().forEach(Batch::close);STAGING.clear();BATCHES.values().forEach(Batch::close);BATCHES.clear();RESIDENTS.clear();groups=Map.of();world=null;
     }
-    public static String stats() { return "preload="+WallGunConfig.PRELOAD_MODE.get()+", modelCache="+GunMeshes.cachedModels()+", modelVertices="+GunMeshes.cachedVertices()+", dimensionCacheHits="+dimensionCacheHits+", retainedDimensions="+DIMENSIONS.size()+", bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
+    public static String stats() { return "editCells="+EDITS.size()+", editUploads="+EditMeshes.uploads+", preload="+WallGunConfig.PRELOAD_MODE.get()+", modelCache="+GunMeshes.cachedModels()+", modelVertices="+GunMeshes.cachedVertices()+", dimensionCacheHits="+dimensionCacheHits+", retainedDimensions="+DIMENSIONS.size()+", bakes="+GunMeshes.bakes+", failures="+GunMeshes.failures+", uploads="+uploads+", draws="+lastDraws+", visible="+lastGuns+", cachedBatches="+BATCHES.size()+", uploadedVertices="+lastUploadedVertices+", maxBatchGuns="+maxBatchGuns+", pendingModels="+WallWarmup.pendingModels()+", pendingBatches="+pendingBatches()+", warming="+WallWarmup.loading(); }
 }

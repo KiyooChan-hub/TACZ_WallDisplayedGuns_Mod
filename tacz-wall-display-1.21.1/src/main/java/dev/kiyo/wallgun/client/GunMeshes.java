@@ -18,7 +18,15 @@ public final class GunMeshes {
     private static final WeightedCache<GunSnapshot,Mesh> CACHE = new WeightedCache<>(4_000_000,mesh->mesh.vertices(),mesh->{});
     public static int cacheHits, invalidations;
     public static int bakes, failures;
-    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped, float maxDepth) {
+    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped, float maxDepth, float radius) {
+        public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing,boolean canonicalFlipped,float maxDepth) {
+            this(materials,vertices,missing,canonicalFlipped,maxDepth,radius(materials));
+        }
+        private static float radius(Map<RenderType,List<Vertex>> materials){
+            float r=0;for(var list:materials.values())for(var v:list)
+                r=Math.max(r,(float)Math.sqrt((v.x()-.5F)*(v.x()-.5F)+(v.y()-.5F)*(v.y()-.5F)+v.z()*v.z()));
+            return r;
+        }
         public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing,boolean canonicalFlipped) { this(materials,vertices,missing,canonicalFlipped,depth(materials)); }
         private static float depth(Map<RenderType,List<Vertex>> materials) { float depth=WALL_GAP;for(var list:materials.values())for(var vertex:list)depth=Math.max(depth,vertex.z());return depth; }
         public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing) { this(materials,vertices,missing,false); }

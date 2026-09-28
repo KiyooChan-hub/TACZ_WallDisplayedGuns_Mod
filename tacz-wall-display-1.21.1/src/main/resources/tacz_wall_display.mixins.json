@@ -8,6 +8,7 @@
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",
     "ClientAssetsAccessor",
+    "RenderLightsAccessor",
     "GunTransformInvoker",
     "AccelerationCaptureMixin",
     "AttachmentCaptureMixin",

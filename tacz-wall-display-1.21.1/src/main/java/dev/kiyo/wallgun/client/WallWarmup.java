@@ -72,6 +72,7 @@ public final class WallWarmup {
             active.addAll(CreateMovingGuns.retainedSnapshots());
             if(loading())active.addAll(CreateMovingGuns.discover(world));
         }
+        var held=PlacementClient.prewarmSnapshot();if(held!=null)active.add(held);
         GunMeshes.retain(active);
         if(WallGunConfig.preloading()) {
             PENDING.retainAll(active);

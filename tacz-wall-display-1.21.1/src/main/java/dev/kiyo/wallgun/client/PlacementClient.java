@@ -25,6 +25,9 @@ public final class PlacementClient {
     private static KeyMapping toggle;
     private static KeyMapping adjustmentModifier;
     private static boolean enabled;
+    private static net.minecraft.world.item.ItemStack heldCopy=net.minecraft.world.item.ItemStack.EMPTY;
+    private static dev.kiyo.wallgun.GunSnapshot heldSnapshot;
+    public static dev.kiyo.wallgun.GunSnapshot prewarmSnapshot(){return heldSnapshot;}
     private static final ModeToggleGate TOGGLE_GATE = new ModeToggleGate();
     private static final DryFireWarning WARNING = new DryFireWarning();
     private static final ResourceLocation DEFAULT_DRY_FIRE = ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire");
@@ -47,6 +50,12 @@ public final class PlacementClient {
     }
     public static void tick(ClientTickEvent.Post event) {
         var mc = Minecraft.getInstance();
+        if(enabled && mc.player!=null && IGun.getIGunOrNull(mc.player.getMainHandItem())!=null){
+            var held=mc.player.getMainHandItem();
+            if(!net.minecraft.world.item.ItemStack.matches(heldCopy,held)){
+                heldCopy=held.copy();heldSnapshot=new dev.kiyo.wallgun.GunSnapshot(held);
+            }
+        }else {heldCopy=net.minecraft.world.item.ItemStack.EMPTY;heldSnapshot=null;}
         if (toggle == null) return;
         boolean clicked = false;
         while (toggle.consumeClick()) clicked = true;

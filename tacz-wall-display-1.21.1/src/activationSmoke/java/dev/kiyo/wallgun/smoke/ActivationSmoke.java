@@ -25,7 +25,7 @@ public final class ActivationSmoke {
     private boolean lastWaiting;
     private final StringBuilder results=new StringBuilder();
     public ActivationSmoke(){
-        if(FMLEnvironment.dist==Dist.CLIENT){ClientAcceptance.init();return;}
+        if(FMLEnvironment.dist==Dist.CLIENT){if(scenario.equals("editing"))EditAcceptance.init();else ClientAcceptance.init();return;}
         NeoForge.EVENT_BUS.addListener(this::setup);
         NeoForge.EVENT_BUS.addListener(this::login);
         NeoForge.EVENT_BUS.addListener(this::logout);
@@ -52,6 +52,8 @@ public final class ActivationSmoke {
             }
         }
         var fixture=event.getServer().overworld();
+        if(!scenario.equals("editing"))for(int x=-5;x<5;x++)for(int y=99;y<109;y++)
+            fixture.setBlock(new BlockPos(x,y,-8),Blocks.AIR.defaultBlockState(),3);
         var gun=(WallGunEntity)fixture.getBlockEntity(new BlockPos(-5,100,0));
         var chunk=fixture.getChunkAt(gun.getBlockPos());
         var before=LoadingSessions.describe(chunk);
@@ -66,12 +68,38 @@ public final class ActivationSmoke {
         fixture.setBlock(gun.getBlockPos(),gun.getBlockState(),3);
         ((WallGunEntity)fixture.getBlockEntity(gun.getBlockPos())).setSnapshot(gun.snapshot());
         if(!after.equals(LoadingSessions.describe(chunk)))throw new AssertionError("addition missed");
+        if(scenario.equals("editing")){
+            for(int x=-8;x<=8;x++)for(int y=99;y<=112;y++)for(int z=-2;z<=12;z++)fixture.setBlock(new BlockPos(x,y,z),Blocks.AIR.defaultBlockState(),3);
+            for(int row=0;row<10;row++)for(int col=0;col<10;col++){
+                var p=new BlockPos(col-5,99+row,-8);
+                fixture.setBlock(p,WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,Direction.SOUTH),3);
+                ((WallGunEntity)fixture.getBlockEntity(p)).setSnapshot(new GunSnapshot(equipped(fixture.registryAccess())));
+            }
+            for(int x=-2;x<=3;x++)for(int z=2;z<=5;z++)fixture.setBlock(new BlockPos(x,99,z),Blocks.STONE.defaultBlockState(),3);
+            for(int x=0;x<2;x++)for(int y=100;y<102;y++)for(int z=0;z<2;z++){
+                var p=new BlockPos(x,y,z);if(p.equals(new BlockPos(0,101,1)))continue;
+                fixture.setBlock(p,WallGuns.BLOCK.get().defaultBlockState().setValue(WallGunBlock.FACING,Direction.SOUTH),3);
+                ((WallGunEntity)fixture.getBlockEntity(p)).setSnapshot(new GunSnapshot(equipped(fixture.registryAccess())));
+            }
+        }
         event.getServer().overworld().setDefaultSpawnPos(new BlockPos(0,100,8),180);
     }
+    private static net.minecraft.world.item.ItemStack equipped(net.minecraft.core.HolderLookup.Provider lookup){
+        var gun=com.tacz.guns.api.item.builder.GunItemBuilder.create().setId(ResourceLocation.parse("spearhead:hk416d_145"))
+            .setAmmoCount(7).setAmmoInBarrel(true).setFireMode(com.tacz.guns.api.item.gun.FireMode.SEMI).build(lookup);
+        var api=com.tacz.guns.api.item.IGun.getIGunOrNull(gun);
+        for(var id:java.util.List.of("scope_acog_ta31","muzzle_silencer_knight_qd","grip_vertical_military","stock_ripstock","laser_peq15"))
+            api.installAttachment(lookup,gun,com.tacz.guns.api.item.builder.AttachmentItemBuilder.create().setId(ResourceLocation.parse("tacz:"+id)).build());
+        return gun;
+    }
     private void login(PlayerEvent.PlayerLoggedInEvent event){
-        var p=(ServerPlayer)event.getEntity();p.teleportTo(p.server.overworld(),0.5,100,8.5,180,0);p.setHealth(20);
+        var p=(ServerPlayer)event.getEntity();p.teleportTo(p.server.overworld(),0.5,100,8.5,180,0);p.setHealth(20);p.setGameMode(GameType.SURVIVAL);p.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);if(scenario.equals("editing")){p.setGameMode(GameType.CREATIVE);var held=equipped(p.registryAccess());
+            com.tacz.guns.api.item.IGun.getIGunOrNull(held).installAttachment(p.registryAccess(),held,
+                com.tacz.guns.api.item.builder.AttachmentItemBuilder.create().setId(ResourceLocation.parse("tacz:scope_elcan_4x")).build());
+            p.getInventory().setItem(0,held);p.getInventory().selected=0;p.teleportTo(p.server.overworld(),.5,100,4,180,0);}
     }
     private void logout(PlayerEvent.PlayerLoggedOutEvent event){
+        if(scenario.equals("editing")){((ServerPlayer)event.getEntity()).server.halt(false);return;}
         if(!scenario.equals("standard") && !scenario.equals("performance"))try {
             if(activeTicks!=0 || (scenario.equals("timeout") && waitTicks<2200))throw new AssertionError("failure path activated player or timed out early");
             Files.writeString(Path.of("SUCCESS-"+scenario+".txt"),"PASS "+scenario+" disconnected without activation; protected ticks="+waitTicks);
@@ -79,6 +107,7 @@ public final class ActivationSmoke {
         }catch(Exception ex){throw new RuntimeException(ex);}
     }
     private void tick(ServerTickEvent.Post event){
+        if(scenario.equals("editing"))return;
         if(event.getServer().getPlayerList().getPlayers().isEmpty()){if(phase==5)event.getServer().halt(false);return;}
         var p=event.getServer().getPlayerList().getPlayers().stream().filter(x->x.getGameProfile().getName().equals("Dev")).findFirst().orElse(null);
         if(p==null)return;
