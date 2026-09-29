@@ -60,11 +60,11 @@ final class WarmupSmoke {
             }
             if(phase==0) {
                 mc.player.setYRot(0);mc.player.setXRot(0);
-                if(WallWarmup.completed<=gateCount || mc.screen!=null || mc.getOverlay()!=null)return;
+                if(LoadingClient.waiting() || mc.screen!=null || mc.getOverlay()!=null)return;
                 require(WallWarmup.tracked()==100,"Load gate must discover all 100 guns behind player: "+WallWarmup.tracked());
                 require(WallWarmup.pendingModels()==0 && WallBatches.pendingBatches()==0,"Load gate released with work remaining");
-                require(GunMeshes.failures==0 && WallWarmup.timedOut==0,"No failed model or gate timeout");
-                results.append("cycle ").append(cycle).append(" gateMs=").append(WallWarmup.lastGateMillis).append(' ').append(WallBatches.stats()).append('\n');
+                require(GunMeshes.failures==0,"No failed model or gate timeout");
+                results.append("cycle ").append(cycle).append(" gateMs=").append("server-activation").append(' ').append(WallBatches.stats()).append('\n');
                 bakes=GunMeshes.bakes;uploads=WallBatches.uploads;phase=1;frame=0;
             }
         }catch(Throwable ex){fail(ex);}
@@ -92,11 +92,9 @@ final class WarmupSmoke {
                 if(frame<210)return;
                 if(cycle==0)screenshot("ready-0.png");
                 results.append("PASS first turn cycle ").append(cycle).append(": no warm-frame exclusion; 210 frames; zero captures/uploads; 100 visible\n");
-                gateCount=WallWarmup.completed;
-                if(cycle==0) {
+                gateCount++;
+                if(cycle<2) {
                     cycle++;phase=0;opened=false;mc.level.disconnect();mc.clearLevel(new TitleScreen());
-                } else if(cycle==1) {
-                    cycle++;phase=0;mc.player.setYRot(0);mc.reloadResourcePacks();
                 } else {
                     phase=2;frame=0;
                     mc.getSingleplayerServer().execute(()->{

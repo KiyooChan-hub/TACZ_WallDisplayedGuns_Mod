@@ -29,7 +29,7 @@ public final class WallGuns {
     public WallGuns() {
         net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.CLIENT,WallGunConfig.SPEC);
         var bus=FMLJavaModLoadingContext.get().getModEventBus();BLOCKS.register(bus);ITEMS.register(bus);ENTITIES.register(bus);RECIPES.register(bus);SOUNDS.register(bus);
-        PlacementPayloads.init();GunPlacement.init();LegacyGunMigration.init();
+        PlacementPayloads.init();LoadingPayloads.init();LoadingSessions.init();GunPlacement.init();LegacyGunMigration.init();
     }
     public static ItemStack stack(GunSnapshot snapshot) {
         if(snapshot==null)return ItemStack.EMPTY;

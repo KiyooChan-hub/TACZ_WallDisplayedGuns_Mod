@@ -4,9 +4,17 @@
   "minVersion": "0.8",
   "package": "dev.kiyo.wallgun.mixin",
   "compatibilityLevel": "JAVA_17",
-  "mixins": ["LegacyItemDecodeMixin", "ServerPreventGunBlockMixin"],
+  "mixins": [
+    "LegacyItemDecodeMixin",
+    "ServerPreventGunBlockMixin",
+    "LoadingPlayerMixin",
+    "LoadingLoginMixin",
+    "LoadingConnectionMixin",
+    "LoadingTargetMixin",
+    "LoadingPushMixin",
+    "LoadingConnectionAccess"
+  ],
   "client": [
-    "TerrainWarmupMixin",
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",
@@ -21,7 +29,11 @@
     "RendererInitializationAccess",
     "ClientPreventGunClickMixin",
     "ClientPreventGunBlockMixin",
-    "AutoReloadMixin"
+    "AutoReloadMixin",
+    "LoadingLocalPlayerMixin",
+    "LoadingTerrainMixin",
+    "LoadingClientLevelMixin",
+    "RenderLightsAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

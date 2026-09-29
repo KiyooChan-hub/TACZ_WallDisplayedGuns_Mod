@@ -14,8 +14,15 @@ public final class DisplayPose {
         double angle=Math.floorMod(roll,16)*Math.PI/8;
         cos=(float)Math.cos(angle); sin=(float)Math.sin(angle);
     }
-    public Vector3f point(float x,float y,float z) {
-        Vector3f v=normal(x-.5F,y-.5F,z-depthSum/2);
+    /** Build the same affine transform as point/normal, including all six mounting faces. */
+    public org.joml.Matrix4f matrix() {
+        var x=normal(1,0,0);var y=normal(0,1,0);var z=normal(0,0,1);var p=point(0,0,0);
+        return new org.joml.Matrix4f().set(
+            x.x,x.y,x.z,0, y.x,y.y,y.z,0, z.x,z.y,z.z,0, p.x,p.y,p.z,1);
+    }
+    public Vector3f point(float x,float y,float z) { return point(x,y,z,new Vector3f()); }
+    public Vector3f point(float x,float y,float z,Vector3f target) {
+        Vector3f v=normal(x-.5F,y-.5F,z-depthSum/2,target);
         return switch(facing) {
             case SOUTH -> v.add(.5F,.5F,depthSum/2);
             case NORTH -> v.add(.5F,.5F,1-depthSum/2);
@@ -25,16 +32,17 @@ public final class DisplayPose {
             case DOWN -> v.add(.5F,1-depthSum/2,.5F);
         };
     }
-    public Vector3f normal(float x,float y,float z) {
+    public Vector3f normal(float x,float y,float z) { return normal(x,y,z,new Vector3f()); }
+    public Vector3f normal(float x,float y,float z,Vector3f target) {
         if(flipped) {x=-x;z=-z;}
         float rx=cos*x+sin*y, ry=-sin*x+cos*y;
         return switch(facing) {
-            case SOUTH -> new Vector3f(rx,ry,z);
-            case NORTH -> new Vector3f(-rx,ry,-z);
-            case EAST -> new Vector3f(z,ry,-rx);
-            case WEST -> new Vector3f(-z,ry,rx);
-            case UP -> new Vector3f(rx,z,-ry);
-            case DOWN -> new Vector3f(rx,-z,ry);
+            case SOUTH -> target.set(rx,ry,z);
+            case NORTH -> target.set(-rx,ry,-z);
+            case EAST -> target.set(z,ry,-rx);
+            case WEST -> target.set(-z,ry,rx);
+            case UP -> target.set(rx,z,-ry);
+            case DOWN -> target.set(rx,-z,ry);
         };
     }
 }

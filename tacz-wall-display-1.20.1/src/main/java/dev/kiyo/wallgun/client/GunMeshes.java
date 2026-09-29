@@ -15,15 +15,31 @@ import static dev.kiyo.wallgun.client.MeshCapture.Vertex;
 
 public final class GunMeshes {
     public static final float WALL_GAP=.001F;
-    private static final Map<GunSnapshot, Mesh> CACHE = new HashMap<>();
+    private static final WeightedCache<GunSnapshot,Mesh> CACHE = new WeightedCache<>(4_000_000,mesh->mesh.vertices(),mesh->{});
+    public static int cacheHits, invalidations;
     public static int bakes, failures;
-    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped) {
+    public record Mesh(Map<RenderType, List<Vertex>> materials, int vertices, boolean missing, boolean canonicalFlipped, float maxDepth, float radius) {
+        public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing,boolean canonicalFlipped,float maxDepth) {
+            this(materials,vertices,missing,canonicalFlipped,maxDepth,radius(materials));
+        }
+        private static float radius(Map<RenderType,List<Vertex>> materials){
+            float r=0;for(var list:materials.values())for(var v:list)
+                r=Math.max(r,(float)Math.sqrt((v.x()-.5F)*(v.x()-.5F)+(v.y()-.5F)*(v.y()-.5F)+v.z()*v.z()));
+            return r;
+        }
+        public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing,boolean canonicalFlipped) { this(materials,vertices,missing,canonicalFlipped,depth(materials)); }
+        private static float depth(Map<RenderType,List<Vertex>> materials) { float depth=WALL_GAP;for(var list:materials.values())for(var vertex:list)depth=Math.max(depth,vertex.z());return depth; }
         public Mesh(Map<RenderType,List<Vertex>> materials,int vertices,boolean missing) { this(materials,vertices,missing,false); }
     }
-    public static Mesh get(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.computeIfAbsent(snapshot, GunMeshes::bake); }
+    public static Mesh get(GunSnapshot snapshot) { if(snapshot==null)return MissingHolder.MESH;
+        Mesh mesh=CACHE.get(snapshot);if(mesh!=null){cacheHits++;return mesh;}
+        CACHE.pin(snapshot);mesh=bake(snapshot);CACHE.put(snapshot,mesh);return mesh; }
     /** Cache lookup only. World rendering must never synchronously capture a missing appearance. */
     public static Mesh peek(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.get(snapshot); }
-    public static void clear() { CACHE.clear(); GunOrientation.clear(); }
+    public static void retain(Set<GunSnapshot> active) {CACHE.pins(active);CACHE.limit(dev.kiyo.wallgun.WallGunConfig.modelCacheVertices());}
+    public static long cachedVertices() {return CACHE.weight();}
+    public static int cachedModels() {return CACHE.size();}
+    public static void clear() { invalidations++;CACHE.clear(); GunOrientation.clear(); }
     private static Mesh bake(GunSnapshot snapshot) {
         long start = System.nanoTime();
         var stack = snapshot.copyGun();

@@ -10,13 +10,14 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
-import net.minecraftforge.event.TickEvent;
+
 import org.joml.Matrix4f;
 
 import java.util.*;
 
 /** Optional Create bridge. Never loaded unless Create is installed. */
 public final class CreateMovingGuns {
+    private static final BufferBuilder BUILDER=new BufferBuilder(65536);
     private static final int MAX_CACHED_VERTICES = 8_000_000;
     private static final LinkedHashMap<Key, Bundle> BUFFERS = new LinkedHashMap<>(64, .75f, true);
     private static final LinkedHashMap<Key, Integer> PENDING = new LinkedHashMap<>();
@@ -28,6 +29,7 @@ public final class CreateMovingGuns {
     private record Key(GunSnapshot snapshot, Direction facing, int roll, boolean flipped) {}
     private static final class Bundle implements AutoCloseable {
         final Map<RenderType, VertexBuffer> materials = new LinkedHashMap<>();
+        boolean primed;
         final int vertices;
         Bundle(int vertices) { this.vertices = vertices; }
         @Override public void close() { materials.values().forEach(VertexBuffer::close); }
@@ -40,6 +42,7 @@ public final class CreateMovingGuns {
         if (gun.snapshot() == null) return true;
         var snapshot = gun.snapshot();
         var mesh = GunMeshes.peek(snapshot);
+        if(mesh==null && !WallWarmup.loading()) {mesh=GunMeshes.get(snapshot);}
         if (mesh == null) return true; // Captured by the frame-budgeted discovery path.
         var key = new Key(snapshot, gun.getBlockState().getValue(WallGunBlock.FACING),
                 gun.mountRoll() + gun.roll(), gun.flipped());
@@ -62,10 +65,18 @@ public final class CreateMovingGuns {
                 type.clearRenderState();
             }
         }
+        bundle.primed=true;
         frameDrawNanos += System.nanoTime()-started;
         return true;
     }
 
+    /** Already requested moving models only: OFF must not discover unseen structures. */
+    public static Set<GunSnapshot> retainedSnapshots() {
+        Set<GunSnapshot> result=new HashSet<>();
+        for(var key:BUFFERS.keySet())result.add(key.snapshot());
+        for(var key:PENDING.keySet())result.add(key.snapshot());
+        return result;
+    }
     /** Discover original guns in assembled structures before they enter the camera frustum. */
     public static Set<GunSnapshot> discover(ClientLevel level) {
         if (world != level) { clear(); world = level; }
@@ -84,12 +95,19 @@ public final class CreateMovingGuns {
             });
             if (snapshots.isEmpty()) CONTRAPTIONS.remove(moving);
             result.addAll(snapshots);
+            if(WallWarmup.loading()) {
+                var view=moving.getContraption().getOrCreateClientContraptionLazy();
+                for(var blockEntity:view.renderedBlockEntityView)if(blockEntity instanceof WallGunEntity gun && gun.snapshot()!=null) {
+                    var key=new Key(gun.snapshot(),gun.getBlockState().getValue(WallGunBlock.FACING),gun.mountRoll()+gun.roll(),gun.flipped());
+                    if(!BUFFERS.containsKey(key))PENDING.putIfAbsent(key,net.minecraft.client.renderer.LevelRenderer.getLightColor(level,moving.blockPosition()));
+                }
+            }
         }
         return result;
     }
 
-    public static void frame(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.START) return;
+    public static void frame(net.minecraftforge.event.TickEvent.RenderTickEvent event) {
+        if(event.phase!=net.minecraftforge.event.TickEvent.Phase.START)return;
         lastFrameDrawNanos=frameDrawNanos; peakFrameDrawNanos=Math.max(peakFrameDrawNanos,frameDrawNanos); frameDrawNanos=0;
         frameUploads = 0;
         var current = Minecraft.getInstance().level;
@@ -108,7 +126,7 @@ public final class CreateMovingGuns {
                     BUFFERS.put(request.getKey(), bundle);
                     cachedVertices += bundle.vertices;
                     frameUploads++; uploads++;
-                    while (cachedVertices > MAX_CACHED_VERTICES && BUFFERS.size() > 1) {
+                    while (!WallWarmup.loading() && cachedVertices > MAX_CACHED_VERTICES && BUFFERS.size() > 1) {
                         var oldest = BUFFERS.entrySet().iterator();
                         var entry = oldest.next(); oldest.remove();
                         cachedVertices -= entry.getValue().vertices;
@@ -120,6 +138,22 @@ public final class CreateMovingGuns {
         }
     }
 
+    public static boolean prepared() {return PENDING.isEmpty() && BUFFERS.values().stream().allMatch(b->b.primed);}
+    public static void prime(net.minecraftforge.client.event.RenderLevelStageEvent event) {
+        if(!WallWarmup.loading() || event.getStage()!=net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
+        var budget=new WorkBudget(8_000_000);int count=0;
+        for(var bundle:BUFFERS.values())if(!bundle.primed) {
+            if(count++>=8 || !budget.start())break;
+            // Exercise the real world material pass outside the visible scene.
+            var matrix=new Matrix4f(event.getPoseStack().last().pose()).translate(0,-100000,0);
+            for(var entry:bundle.materials.entrySet()) {
+                entry.getKey().setupRenderState();
+                try {entry.getValue().bind();entry.getValue().drawWithShader(matrix,event.getProjectionMatrix(),RenderSystem.getShader());}
+                finally {VertexBuffer.unbind();entry.getKey().clearRenderState();}
+            }
+            bundle.primed=true;
+        }
+    }
     private static Bundle build(Key key, GunMeshes.Mesh mesh, int light) {
         float maxDepth = mesh.materials().values().stream().flatMap(List::stream)
                 .map(MeshCapture.Vertex::z).max(Float::compare).orElse(GunMeshes.WALL_GAP);
@@ -128,8 +162,7 @@ public final class CreateMovingGuns {
         try {
             for (var material : mesh.materials().entrySet()) {
                 {
-                    var out = new BufferBuilder(65536);
-                    out.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+                    var out=BUILDER;out.discard();out.begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.NEW_ENTITY);
                     for (var vertex : material.getValue()) {
                         var point = position.point(vertex.x(), vertex.y(), vertex.z());
                         var normal = position.normal(vertex.nx(), vertex.ny(), vertex.nz());
