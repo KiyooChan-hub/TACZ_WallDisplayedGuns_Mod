@@ -40,6 +40,7 @@ public final class LoadingClient {
             case "seal" -> {expected=tag.getInt("count");sealed=true;}
             case "release" -> {
                 WallGuns.LOG.info("Wall gun client prepared id={} chunks={} bakes={} uploads={} waitMs={}",id,CHUNKS.size(),GunMeshes.bakes,WallBatches.uploads,(System.nanoTime()-started)/1_000_000);
+                if(tag.getBoolean("placementDisabled"))PlacementClient.disableAfterDimensionChange();
                 boolean close=fallbackScreen;reset();if(close && mc.screen instanceof ReceivingLevelScreen screen)screen.onClose();
             }
         }

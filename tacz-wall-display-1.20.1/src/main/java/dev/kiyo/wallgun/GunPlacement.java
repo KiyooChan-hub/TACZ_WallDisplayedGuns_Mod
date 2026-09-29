@@ -24,7 +24,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class GunPlacement {
     private static final Set<UUID> ENABLED=ConcurrentHashMap.newKeySet();
     private GunPlacement() {}
-    public static void init(){MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent e)->ENABLED.remove(e.getEntity().getUUID()));}
+    public static void init(){
+        MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent e)->ENABLED.remove(e.getEntity().getUUID()));
+        MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e)->{
+            if(e.getEntity() instanceof ServerPlayer player && enabled(player)){
+                set(player,false);LoadingSessions.markPlacementDisabled(player);
+            }
+        });
+    }
     public static boolean enabled(Player player){return player!=null && ENABLED.contains(player.getUUID());}
     public static void set(ServerPlayer player,boolean enabled){if(enabled)ENABLED.add(player.getUUID());else ENABLED.remove(player.getUUID());}
     public static void place(ServerPlayer player,BlockHitResult requested){

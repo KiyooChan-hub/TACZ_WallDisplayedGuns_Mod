@@ -17,7 +17,14 @@ final class ClientAcceptance {
     private static CompoundTag offer;
     private static int delay,completed,stable;
     private static long deadline=System.nanoTime()+600_000_000_000L;
-    private static boolean wasWaiting;
+    private static boolean wasWaiting,placementClientDisabled,dimensionScreenshotPending;
+    private static int dimensionScreenshotDelay;
+    private static void placementEnabled(boolean value)throws ReflectiveOperationException{
+        var field=PlacementClient.class.getDeclaredField("enabled");field.setAccessible(true);field.setBoolean(null,value);
+    }
+    private static boolean placementEnabled()throws ReflectiveOperationException{
+        var field=PlacementClient.class.getDeclaredField("enabled");field.setAccessible(true);return field.getBoolean(null);
+    }
     static void init(){NeoForge.EVENT_BUS.addListener(ClientAcceptance::tick);}
     private static void tick(ClientTickEvent.Post event){
         var mc=Minecraft.getInstance();
@@ -39,6 +46,12 @@ final class ClientAcceptance {
             if(wasWaiting && !waiting && mc.level!=null){
                 if(!scenario.equals("off") && (WallBatches.pendingBatches()!=0 || WallWarmup.pendingModels()!=0))throw new AssertionError("released before GPU preparation");
                 completed++;stable=0;
+                if(completed==1 && scenario.equals("standard"))placementEnabled(true);
+                if(completed==2 && scenario.equals("standard")){
+                    if(placementEnabled())throw new AssertionError("client placement mode survived dimension release");
+                    placementClientDisabled=true;
+                    dimensionScreenshotPending=true;
+                }
                 if(completed==3 && (scenario.equals("standard") || scenario.equals("performance"))) {
                     if(scenario.equals("performance") && WallBatches.dimensionCacheHits==0)throw new AssertionError("return trip reused no GPU batches");
                     mc.reloadResourcePacks();
@@ -46,11 +59,16 @@ final class ClientAcceptance {
                 Files.writeString(mc.gameDirectory.toPath().resolve("progress.txt"),"sessions="+completed+" "+WallBatches.stats());
             }
             wasWaiting=waiting;
+            if(dimensionScreenshotPending && !waiting && mc.level!=null && mc.screen==null && ++dimensionScreenshotDelay>5){
+                try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(mc.gameDirectory.toPath().resolve("dimension-mode-off.png"));}
+                dimensionScreenshotPending=false;
+            }
             if(scenario.equals("observer") && completed>=1 && !waiting && ++stable>1200){Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS-observer.txt"),"PASS independent client active while other player loads");mc.stop();return;}
             if(completed>=5 && !waiting && ++stable>100){
                 try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(mc.gameDirectory.toPath().resolve("completed-scene.png"));}
                 if(GunMeshes.failures!=0)throw new AssertionError("model capture failure");
-                Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS.txt"),"PASS five sessions, vanilla screen, stale confirmations; scenario="+scenario+"; GPU readiness checked="+!scenario.equals("off")+"\n"+WallBatches.stats());mc.stop();
+                if(scenario.equals("standard") && !placementClientDisabled)throw new AssertionError("dimension placement reset was not observed");
+                Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS.txt"),"PASS five sessions, vanilla screen, stale confirmations; placement mode disabled on dimension release="+placementClientDisabled+"; scenario="+scenario+"; GPU readiness checked="+!scenario.equals("off")+"\n"+WallBatches.stats());mc.stop();
             }
         }catch(Throwable ex){ex.printStackTrace();try{Files.writeString(mc.gameDirectory.toPath().resolve("FAILED.txt"),ex.toString());}catch(Exception ignored){}mc.stop();}
     }

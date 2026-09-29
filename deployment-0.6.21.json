@@ -1,0 +1,15 @@
+{
+  "version": "0.6.21",
+  "change": "Automatically leave placement mode after a successful dimension change and replay the normal close feedback after terrain loading",
+  "deployed": {
+    "1.21.1": "E:\\GAME\\Minecraft\\Minecraft 1.21.1\\.minecraft\\mods\\tacz-wall-display-1.21.1-0.6.21.jar",
+    "1.20.1": "E:\\GAME\\Minecraft\\Minecraft 1.20.1\\.minecraft\\mods\\tacz-wall-display-1.20.1-forge-0.6.21.jar"
+  },
+  "sha256": {
+    "1.21.1": "ACB6E1E7110F4455152556F7EA86C850D02F0B3C2D053DF93AB812CED06FCFDC",
+    "1.20.1": "077644AC18320CD3C1FE90EEF485886E8208937A1DE0E180194B28197BB6CE4A"
+  },
+  "backupDirectory": "E:\\GAME\\Minecraft\\Codex_Output\\wall-display-0.6.21-20260929-132914\\deployment-backup",
+  "date": "2026-09-29T13:29:14+08:00",
+  "tests": "Both versions: 30 JUnit tests passed and production builds succeeded. 1.21.1 dedicated server/client completed five activation sessions. 1.20.1 integrated client completed placement-mode dimension transfer. Test audio used music 0, master 0.5, other categories 1.0."
+}

@@ -25,6 +25,7 @@ public final class PlacementClient {
     private static KeyMapping toggle;
     private static KeyMapping adjustmentModifier;
     private static boolean enabled;
+    private static boolean dimensionFeedbackPending;
     private static net.minecraft.world.item.ItemStack heldCopy=net.minecraft.world.item.ItemStack.EMPTY;
     private static dev.kiyo.wallgun.GunSnapshot heldSnapshot;
     public static dev.kiyo.wallgun.GunSnapshot prewarmSnapshot(){return heldSnapshot;}
@@ -50,6 +51,10 @@ public final class PlacementClient {
     }
     public static void tick(ClientTickEvent.Post event) {
         var mc = Minecraft.getInstance();
+        if (dimensionFeedbackPending && mc.player != null && mc.level != null && mc.screen == null) {
+            dimensionFeedbackPending = false;
+            announceMode(mc);
+        }
         if(enabled && mc.player!=null && IGun.getIGunOrNull(mc.player.getMainHandItem())!=null){
             var held=mc.player.getMainHandItem();
             if(!net.minecraft.world.item.ItemStack.matches(heldCopy,held)){
@@ -61,19 +66,41 @@ public final class PlacementClient {
         while (toggle.consumeClick()) clicked = true;
         boolean available = mc.player != null && mc.level != null && mc.screen == null && mc.isWindowActive();
         if (TOGGLE_GATE.accept(clicked, boundKeyDown(toggle, mc), available)) {
-            enabled = !enabled;
-            WARNING.clear();
-            mc.gui.getChat().addMessage(Component.translatable(enabled
-                    ? "chat.tacz_wall_display.mode_on" : "chat.tacz_wall_display.mode_off"));
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(
-                    enabled ? WallGuns.MODE_OPEN.get() : WallGuns.MODE_CLOSE.get(), 1.0F, 1.0F));
-            if (enabled && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null) {
-                var operator = com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator.fromLocalPlayer(mc.player);
-                operator.aim(false);
-                operator.chargeShoot(false);
-            }
-            PacketDistributor.sendToServer(new PlacementPayloads.Mode(enabled));
+            setEnabled(!enabled, true);
         }
+    }
+    private static void setEnabled(boolean value, boolean syncServer) {
+        enabled = value;
+        WARNING.clear();
+        if (!enabled) {
+            heldCopy = net.minecraft.world.item.ItemStack.EMPTY;
+            heldSnapshot = null;
+        }
+        var mc = Minecraft.getInstance();
+        if (mc.player != null) announceMode(mc);
+        if (enabled && mc.player != null && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null) {
+            var operator = com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator.fromLocalPlayer(mc.player);
+            operator.aim(false);
+            operator.chargeShoot(false);
+        }
+        if (syncServer) PacketDistributor.sendToServer(new PlacementPayloads.Mode(enabled));
+    }
+    private static void announceMode(Minecraft mc) {
+        mc.gui.getChat().addMessage(Component.translatable(enabled
+                ? "chat.tacz_wall_display.mode_on" : "chat.tacz_wall_display.mode_off"));
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                enabled ? WallGuns.MODE_OPEN.get() : WallGuns.MODE_CLOSE.get(), 1.0F, 1.0F));
+    }
+    /** The server has already cleared its authoritative state before activation resumes. */
+    public static void disableAfterDimensionChange() {
+        if (!enabled) return;
+        enabled = false;
+        WARNING.clear();
+        heldCopy = net.minecraft.world.item.ItemStack.EMPTY;
+        heldSnapshot = null;
+        var mc = Minecraft.getInstance();
+        if (mc.player != null && mc.level != null && mc.screen == null) announceMode(mc);
+        else dimensionFeedbackPending = true;
     }
     public static void mouse(InputEvent.MouseButton.Pre event) {
         if (!active() || event.getAction() != GLFW.GLFW_PRESS) return;
@@ -132,7 +159,7 @@ public final class PlacementClient {
                 return InputConstants.isKeyDown(window, code);
         return false;
     }
-    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; WARNING.clear(); TOGGLE_GATE.reset(); }
+    public static void reset(ClientPlayerNetworkEvent.LoggingOut event) { enabled = false; dimensionFeedbackPending=false; WARNING.clear(); TOGGLE_GATE.reset(); }
     public static void render(RenderGuiEvent.Post event) {
         var mc = Minecraft.getInstance();
         if (!enabled || mc.player == null || mc.options.hideGui || mc.screen != null) return;

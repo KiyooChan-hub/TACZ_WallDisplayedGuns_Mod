@@ -22,7 +22,7 @@ import java.nio.file.*;
 public final class ActivationSmoke {
     private final String scenario=System.getProperty("wallgun.scenario","standard");
     private int phase,activeTicks,waitTicks,checks,observerTicks,stressTicks,stressAdded;
-    private boolean lastWaiting;
+    private boolean lastWaiting,placementServerDisabled;
     private final StringBuilder results=new StringBuilder();
     public ActivationSmoke(){
         if(FMLEnvironment.dist==Dist.CLIENT){if(scenario.equals("editing"))EditAcceptance.init();else ClientAcceptance.init();return;}
@@ -126,6 +126,10 @@ public final class ActivationSmoke {
         try {
             boolean waiting=LoadingSessions.waiting(p);
             if(waiting){
+                if(phase==1){
+                    if(GunPlacement.enabled(p))throw new AssertionError("server placement mode survived dimension change");
+                    placementServerDisabled=true;
+                }
                 for(var other:event.getServer().getPlayerList().getPlayers())if(other!=p && !LoadingSessions.waiting(other))observerTicks++;
                 if(!lastWaiting){waitTicks=0;activeTicks=0;}waitTicks++;
                 float health=p.getHealth();int food=p.getFoodData().getFoodLevel();
@@ -137,11 +141,11 @@ public final class ActivationSmoke {
                 if(lastWaiting){if(!scenario.equals("performance") && waitTicks<40)throw new AssertionError("test did not exercise delayed handshake");results.append("PASS phase ").append(phase).append(" protected ticks=").append(waitTicks).append('\n');}
                 if(++activeTicks==60) {
                     activeTicks=0;
-                    if(phase==0){phase=1;p.teleportTo(event.getServer().getLevel(Level.NETHER),0.5,100,8.5,180,0);}
+                    if(phase==0){GunPlacement.set(p,true);phase=1;p.teleportTo(event.getServer().getLevel(Level.NETHER),0.5,100,8.5,180,0);}
                     else if(phase==1){phase=2;p.teleportTo(event.getServer().overworld(),0.5,100,8.5,180,0);}
                     else if(phase==2){phase=3;p.setRespawnPosition(Level.NETHER,new BlockPos(0,100,8),180,true,false);p.setHealth(0);var next=event.getServer().getPlayerList().respawn(p,false,Entity.RemovalReason.KILLED);p.connection.player=next;}
                     else if(phase==3){phase=4;p.teleportTo(event.getServer().overworld(),0.5,100,8.5,180,0);p.teleportTo(event.getServer().getLevel(Level.NETHER),0.5,100,8.5,180,0);}
-                    else if(phase==4){phase=5;Files.writeString(Path.of("SUCCESS.txt"),results+"PASS damage/target/push checks="+checks+"; login, dimensions, new respawn instance, consecutive transfers; other-player ticks during waits="+observerTicks+"\n");}
+                    else if(phase==4){if(!placementServerDisabled)throw new AssertionError("dimension placement reset was not observed");phase=5;Files.writeString(Path.of("SUCCESS.txt"),results+"PASS damage/target/push checks="+checks+"; placement mode disabled on dimension change; login, dimensions, new respawn instance, consecutive transfers; other-player ticks during waits="+observerTicks+"\n");}
                 }
             }
             lastWaiting=waiting;

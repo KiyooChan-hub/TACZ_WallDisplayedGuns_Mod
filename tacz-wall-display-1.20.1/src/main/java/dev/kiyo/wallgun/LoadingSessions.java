@@ -22,7 +22,7 @@ public final class LoadingSessions {
         final long id=++nextId, started=System.nanoTime();
         ServerGamePacketListenerImpl connection;
         String dimension;
-        boolean offered,configured,enabled,sealed,verifying,failed;
+        boolean offered,configured,enabled,sealed,verifying,failed,placementDisabled;
         int radius=8,cursor,revision,retries,bytes;
         long scanNanos;
         List<ChunkPos> chunks;
@@ -37,6 +37,9 @@ public final class LoadingSessions {
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;
     }
     public static boolean waiting(ServerPlayer player) {return WAITING.containsKey(player);}
+    public static void markPlacementDisabled(ServerPlayer player) {
+        var session=WAITING.get(player);if(session!=null)session.placementDisabled=true;
+    }
     public static void fail(ServerPlayer player,String reason) {
         // Keep the guard until disconnection is processed; never fail open.
         var session=WAITING.get(player);if(session!=null)session.failed=true;
@@ -66,7 +69,8 @@ public final class LoadingSessions {
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
         player.connection.teleport(player.getX(),player.getY(),player.getZ(),player.getYRot(),player.getXRot());
         player.connection.resetPosition();
-        LoadingPayloads.send(player,packet(s,"release"));WAITING.remove(player);
+        var release=packet(s,"release");release.putBoolean("placementDisabled",s.placementDisabled);
+        LoadingPayloads.send(player,release);WAITING.remove(player);
         WallGuns.LOG.info("Wall gun activation id={} dimension={} chunks={} waitMs={} enabled={} revisions={} scanMs={}",s.id,s.dimension,s.manifest.size(),(System.nanoTime()-s.started)/1_000_000,s.enabled,s.revision,s.scanNanos/1_000_000);
     }
     private record GunState(long pos, GunSnapshot snapshot, int roll, int mount, boolean flip,

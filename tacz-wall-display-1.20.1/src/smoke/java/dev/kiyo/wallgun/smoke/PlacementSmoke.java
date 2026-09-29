@@ -15,7 +15,7 @@ import java.nio.file.*;
 /** Creates its own isolated world; does not require any pre-existing save. */
 final class PlacementSmoke {
     private boolean opened,started,finished;
-    private int ticks,clientPhase,clientTicks;
+    private int ticks,clientPhase,clientTicks,dimensionTicks;
     private volatile Throwable failure;
     PlacementSmoke(){MinecraftForge.EVENT_BUS.addListener(this::tick);}
     private void tick(TickEvent.ClientTickEvent event){
@@ -101,7 +101,23 @@ final class PlacementSmoke {
                     try(var image=net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())){
                         image.writeToFile(output.resolve("dry-fire-warning.png"));
                     }
-                    Files.writeString(output.resolve("client.txt"),"PASS: TACZ P key, placement input gate, HUD and dry-fire warning.\n");
+                    var server=mc.getSingleplayerServer();var player=server.getPlayerList().getPlayers().get(0);
+                    if(!dev.kiyo.wallgun.GunPlacement.enabled(player))throw new AssertionError("Server placement mode was not enabled before travel");
+                    server.execute(()->player.teleportTo(server.getLevel(net.minecraft.world.level.Level.NETHER),.5,100,8.5,180,0));
+                    clientPhase=3;clientTicks=0;
+                }else if(clientPhase==3){
+                    if(++dimensionTicks>1200)throw new AssertionError("Dimension placement reset timed out");
+                    if(mc.level.dimension()!=net.minecraft.world.level.Level.NETHER || dev.kiyo.wallgun.client.LoadingClient.waiting() || mc.screen!=null)return;
+                    if(++clientTicks<5)return;
+                    var serverPlayer=mc.getSingleplayerServer().getPlayerList().getPlayers().get(0);
+                    if(dev.kiyo.wallgun.GunPlacement.enabled(serverPlayer))throw new AssertionError("Server placement mode survived dimension change");
+                    var enabled=PlacementClient.class.getDeclaredField("enabled");enabled.setAccessible(true);
+                    if(enabled.getBoolean(null))throw new AssertionError("Client placement mode survived dimension release");
+                    if(!com.tacz.guns.util.InputExtraCheck.isInGame())throw new AssertionError("TACZ input did not resume after dimension release");
+                    try(var image=net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())){
+                        image.writeToFile(output.resolve("dimension-mode-off.png"));
+                    }
+                    Files.writeString(output.resolve("client.txt"),"PASS: TACZ P key, placement input gate, HUD, dry-fire warning, and synchronized dimension auto-close.\n");
                     finished=true;mc.stop();
                 }
             }

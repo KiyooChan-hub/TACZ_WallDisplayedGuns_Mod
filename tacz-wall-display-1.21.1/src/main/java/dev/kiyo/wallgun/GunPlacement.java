@@ -27,6 +27,12 @@ public final class GunPlacement {
     private GunPlacement() {}
     public static void init() {
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent e) -> ENABLED.remove(e.getEntity().getUUID()));
+        NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e) -> {
+            if (e.getEntity() instanceof ServerPlayer player && enabled(player)) {
+                set(player, false);
+                LoadingSessions.markPlacementDisabled(player);
+            }
+        });
     }
     public static boolean enabled(Player player) { return player != null && ENABLED.contains(player.getUUID()); }
     public static void set(ServerPlayer player, boolean enabled) {
