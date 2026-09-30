@@ -103,7 +103,7 @@ public final class ActivationSmoke {
     }
     private void logout(PlayerEvent.PlayerLoggedOutEvent event){
         if(scenario.equals("editing")){((ServerPlayer)event.getEntity()).server.halt(false);return;}
-        if(!scenario.equals("standard") && !scenario.equals("performance"))try {
+        if(!scenario.equals("standard") && !scenario.equals("performance") && !scenario.equals("off") && !scenario.equals("fallback"))try {
             if(activeTicks!=0 || (scenario.equals("timeout") && waitTicks<2200))throw new AssertionError("failure path activated player or timed out early");
             Files.writeString(Path.of("SUCCESS-"+scenario+".txt"),"PASS "+scenario+" disconnected without activation; protected ticks="+waitTicks);
             ((ServerPlayer)event.getEntity()).server.halt(false);
@@ -138,7 +138,7 @@ public final class ActivationSmoke {
                 p.push(1,1,1);if(p.getDeltaMovement().lengthSqr()!=0)throw new AssertionError("waiting player pushed");
                 p.getFoodData().setFoodLevel(food);checks++;
             } else {
-                if(lastWaiting){if(!scenario.equals("performance") && waitTicks<40)throw new AssertionError("test did not exercise delayed handshake");results.append("PASS phase ").append(phase).append(" protected ticks=").append(waitTicks).append('\n');}
+                if(lastWaiting){if(!scenario.equals("performance") && !scenario.equals("off") && waitTicks<40)throw new AssertionError("test did not exercise delayed handshake");results.append("PASS phase ").append(phase).append(" protected ticks=").append(waitTicks).append('\n');}
                 if(++activeTicks==60) {
                     activeTicks=0;
                     if(phase==0){GunPlacement.set(p,true);phase=1;p.teleportTo(event.getServer().getLevel(Level.NETHER),0.5,100,8.5,180,0);}

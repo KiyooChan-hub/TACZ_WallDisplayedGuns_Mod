@@ -12,10 +12,10 @@ import java.nio.file.*;
 
 final class ClientAcceptance {
     private static final String scenario=System.getProperty("wallgun.scenario","standard");
-    private static boolean connected,installed;
+    private static boolean connected,installed,firstOfferDropped,failureInjected,budgetInjected;
     private static java.util.function.Consumer<CompoundTag> original;
     private static CompoundTag offer;
-    private static int delay,completed,stable;
+    private static int delay,completed,releaseCount,stable;
     private static long deadline=System.nanoTime()+600_000_000_000L;
     private static boolean wasWaiting,placementClientDisabled,dimensionScreenshotPending;
     private static int dimensionScreenshotDelay;
@@ -25,6 +25,10 @@ final class ClientAcceptance {
     private static boolean placementEnabled()throws ReflectiveOperationException{
         var field=PlacementClient.class.getDeclaredField("enabled");field.setAccessible(true);return field.getBoolean(null);
     }
+    private static void exhaustPreloadBudget()throws ReflectiveOperationException{
+        var field=LoadingClient.class.getDeclaredField("started");field.setAccessible(true);
+        field.setLong(null,System.nanoTime()-91_000_000_000L);
+    }
     static void init(){NeoForge.EVENT_BUS.addListener(ClientAcceptance::tick);}
     private static void tick(ClientTickEvent.Post event){
         var mc=Minecraft.getInstance();
@@ -32,19 +36,28 @@ final class ClientAcceptance {
             if(System.nanoTime()>deadline)throw new AssertionError("client timeout "+WallBatches.stats());
             if(!installed && mc.screen instanceof TitleScreen && mc.getOverlay()==null){
                 installed=true;original=LoadingPayloads.client;
-                LoadingPayloads.client=tag->{if(!scenario.equals("observer") && tag.getString("kind").equals("offer")){offer=tag;delay=0;}else original.accept(tag);};
+                LoadingPayloads.client=tag->{
+                    if(scenario.equals("off") && tag.getString("kind").equals("offer")){
+                        if(!firstOfferDropped){firstOfferDropped=true;return;}
+                        original.accept(tag);
+                        if(!failureInjected){GunMeshes.failures++;failureInjected=true;}
+                    }else if(!scenario.equals("observer") && tag.getString("kind").equals("offer")){
+                        if(offer==null || offer.getLong("id")!=tag.getLong("id")){offer=tag;delay=0;}
+                    }
+                    else {original.accept(tag);if(scenario.equals("off") && tag.getString("kind").equals("release"))releaseCount++;}
+                };
                 WallGunConfig.PRELOAD_MODE.set(scenario.equals("off")?WallGunConfig.PreloadMode.OFF:WallGunConfig.PreloadMode.LOADING);
             }
             if(installed && !connected){connected=true;ConnectScreen.startConnecting(mc.screen,mc,ServerAddress.parseString("127.0.0.1:25586"),new ServerData("Acceptance","127.0.0.1:25586",ServerData.Type.OTHER),false,null);}
-            if(offer!=null && !scenario.equals("timeout") && ++delay>=(scenario.equals("performance")?1:60)){original.accept(offer);var stale=offer.copy();stale.putString("kind","ready");stale.putLong("id",offer.getLong("id")-1);LoadingPayloads.send(stale);if(scenario.equals("failure")){var failure=offer.copy();failure.putString("kind","failure");LoadingPayloads.send(failure);}offer=null;}
-            if(connected && !scenario.equals("standard") && !scenario.equals("performance") && mc.screen instanceof DisconnectedScreen) {
+            if(offer!=null && !scenario.equals("timeout") && ++delay>=(scenario.equals("performance")?1:60)){original.accept(offer);if(scenario.equals("fallback")){if(!failureInjected){GunMeshes.failures++;failureInjected=true;}else if(completed==1 && !budgetInjected){exhaustPreloadBudget();budgetInjected=true;}}var stale=offer.copy();stale.putString("kind","ready");stale.putLong("id",offer.getLong("id")-1);LoadingPayloads.send(stale);if(scenario.equals("failure")){var failure=offer.copy();failure.putString("kind","failure");LoadingPayloads.send(failure);}offer=null;}
+            if(connected && (scenario.equals("failure") || scenario.equals("timeout")) && mc.screen instanceof DisconnectedScreen) {
                 if(!scenario.equals("observer") && completed!=0)throw new AssertionError("failed session was released");
                 Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS-"+scenario+".txt"),"PASS explicit disconnection, no activation: "+scenario);mc.stop();return;
             }
             boolean waiting=LoadingClient.waiting();
             if(waiting && mc.level!=null && !(mc.screen instanceof ReceivingLevelScreen))throw new AssertionError("lost vanilla terrain screen during wait");
-            if(wasWaiting && !waiting && mc.level!=null){
-                if(!scenario.equals("off") && (WallBatches.pendingBatches()!=0 || WallWarmup.pendingModels()!=0))throw new AssertionError("released before GPU preparation");
+            if(((wasWaiting && !waiting) || (scenario.equals("off") && releaseCount>completed && !waiting)) && mc.level!=null){
+                if(!scenario.equals("off") && !(scenario.equals("fallback") && completed<2) && (WallBatches.pendingBatches()!=0 || WallWarmup.pendingModels()!=0))throw new AssertionError("released before GPU preparation");
                 completed++;stable=0;
                 if(completed==1 && scenario.equals("standard"))placementEnabled(true);
                 if(completed==2 && scenario.equals("standard")){
@@ -66,7 +79,9 @@ final class ClientAcceptance {
             if(scenario.equals("observer") && completed>=1 && !waiting && ++stable>1200){Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS-observer.txt"),"PASS independent client active while other player loads");mc.stop();return;}
             if(completed>=5 && !waiting && ++stable>100){
                 try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(mc.gameDirectory.toPath().resolve("completed-scene.png"));}
-                if(GunMeshes.failures!=0)throw new AssertionError("model capture failure");
+                if(GunMeshes.failures!=((scenario.equals("off") || scenario.equals("fallback"))?1:0))throw new AssertionError("unexpected model capture failure");
+                if(scenario.equals("off") && (!firstOfferDropped || !failureInjected))throw new AssertionError("OFF retry/failure guard not exercised");
+                if(scenario.equals("fallback") && (!failureInjected || !budgetInjected))throw new AssertionError("LOADING fallback paths not exercised");
                 if(scenario.equals("standard") && !placementClientDisabled)throw new AssertionError("dimension placement reset was not observed");
                 Files.writeString(mc.gameDirectory.toPath().resolve("SUCCESS.txt"),"PASS five sessions, vanilla screen, stale confirmations; placement mode disabled on dimension release="+placementClientDisabled+"; scenario="+scenario+"; GPU readiness checked="+!scenario.equals("off")+"\n"+WallBatches.stats());mc.stop();
             }

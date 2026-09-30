@@ -22,7 +22,7 @@ public final class LoadingPayloads {
         var tag=new CompoundTag();tag.putString("kind",kind);tag.putLong("id",id);tag.putString("dimension",dimension);return tag;
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("activation-1").playBidirectional(Message.TYPE,Message.CODEC,(payload,context)->{
+        event.registrar("activation-2").playBidirectional(Message.TYPE,Message.CODEC,(payload,context)->{
             if(context.player() instanceof ServerPlayer player) LoadingSessions.receive(player,payload.data());
             else client.accept(payload.data());
         });

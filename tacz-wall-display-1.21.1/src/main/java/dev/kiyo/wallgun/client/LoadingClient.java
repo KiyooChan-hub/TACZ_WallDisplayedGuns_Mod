@@ -12,26 +12,23 @@ import java.util.*;
 
 /** The terrain screen is released only by the server's matching activation response. */
 public final class LoadingClient {
-    private static boolean waiting,sealed,sent,fallbackScreen;
-    private static long id,started;
+    private static boolean waiting,sealed,sent,fallbackScreen,skipRequested;
+    private static long id,started,lastSkip;
     private static String dimension="";
+    private static String skipReason="";
     private static int revision,expected,failures;
+    private static CompoundTag pendingOffer;
+    private static final long PRELOAD_BUDGET_NANOS=90_000_000_000L;
+    private static final long SKIP_RETRY_NANOS=2_000_000_000L;
     private static final Map<ChunkPos,CompoundTag> CHUNKS=new LinkedHashMap<>();
     public static boolean waiting(){return waiting;}
-    public static void reset(){waiting=false;sealed=false;sent=false;id=0;CHUNKS.clear();}
+    public static boolean skipping(){return skipRequested;}
+    public static void reset(){waiting=false;sealed=false;sent=false;skipRequested=false;id=0;lastSkip=0;skipReason="";pendingOffer=null;CHUNKS.clear();}
     public static void entering(){reset();waiting=true;started=System.nanoTime();failures=GunMeshes.failures;}
     private static CompoundTag message(String kind){var t=LoadingPayloads.message(kind,id,dimension);t.putInt("revision",revision);return t;}
     public static void receive(CompoundTag tag) {
         var mc=Minecraft.getInstance();String kind=tag.getString("kind");
-        if(kind.equals("offer")) {
-            if(mc.level==null || !mc.level.dimension().location().toString().equals(tag.getString("dimension")))return;
-            entering();id=tag.getLong("id");dimension=tag.getString("dimension");
-            fallbackScreen=!(mc.screen instanceof ReceivingLevelScreen);
-            if(fallbackScreen)mc.setScreen(new ReceivingLevelScreen(()->false,ReceivingLevelScreen.Reason.OTHER));
-            var reply=message("preferences");reply.putBoolean("enabled",WallGunConfig.preloading());
-            reply.putInt("radius",RenderDistanceRules.scanRadius(WallGunConfig.maxRenderDistance(),mc.options.getEffectiveRenderDistance()));
-            LoadingPayloads.send(reply);return;
-        }
+        if(kind.equals("offer")){pendingOffer=tag.copy();acceptOffer(mc);return;}
         if(!waiting || id!=tag.getLong("id") || !dimension.equals(tag.getString("dimension")))return;
         if(kind.equals("begin")){revision=tag.getInt("revision");CHUNKS.clear();sealed=false;sent=false;return;}
         if(tag.getInt("revision")!=revision)return;
@@ -45,18 +42,40 @@ public final class LoadingClient {
             }
         }
     }
+    private static void acceptOffer(Minecraft mc) {
+        if(pendingOffer==null || mc.level==null || !mc.level.dimension().location().toString().equals(pendingOffer.getString("dimension")))return;
+        var offer=pendingOffer;pendingOffer=null;
+        if(!waiting || id!=offer.getLong("id") || !dimension.equals(offer.getString("dimension"))) {
+            entering();id=offer.getLong("id");dimension=offer.getString("dimension");
+            fallbackScreen=!(mc.screen instanceof ReceivingLevelScreen);
+            if(fallbackScreen)mc.setScreen(new ReceivingLevelScreen(()->false,ReceivingLevelScreen.Reason.OTHER));
+        }
+        var reply=message("preferences");reply.putBoolean("enabled",WallGunConfig.preloading());
+        reply.putInt("radius",RenderDistanceRules.scanRadius(WallGunConfig.maxRenderDistance(),mc.options.getEffectiveRenderDistance()));
+        LoadingPayloads.send(reply);
+        WallGuns.LOG.info("Wall gun activation offer id={} dimension={} preload={}",id,dimension,WallGunConfig.PRELOAD_MODE.get());
+    }
+    private static void skip(String reason) {
+        if(id==0)return;
+        long now=System.nanoTime();
+        if(!skipRequested){skipRequested=true;skipReason=reason;WallGuns.LOG.warn("Wall gun preloading skipped id={} dimension={}: {}",id,dimension,reason);}
+        if(lastSkip==0 || now-lastSkip>=SKIP_RETRY_NANOS){
+            var request=message("skip");request.putString("reason",skipReason);LoadingPayloads.send(request);lastSkip=now;
+        }
+    }
     public static void rejectMissingModel() {
-        if(id!=0)LoadingPayloads.send(message("failure"));
-        var connection=Minecraft.getInstance().getConnection();
-        if(connection!=null)connection.getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun initial scene contains a failed model; repair the gun pack or select OFF"));
+        skip("initial scene contains a failed model");
     }
     public static void tick(ClientTickEvent.Post event) {
-        if(!waiting)return;var mc=Minecraft.getInstance();
-        if(System.nanoTime()-started>LoadingSessions.TIMEOUT_NANOS || GunMeshes.failures>failures) {
-            if(id!=0)LoadingPayloads.send(message("failure"));
-            if(mc.getConnection()!=null)mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun initial preparation failed or timed out"));
+        if(!waiting)return;var mc=Minecraft.getInstance();acceptOffer(mc);
+        long elapsed=System.nanoTime()-started;
+        if(elapsed>LoadingSessions.TIMEOUT_NANOS) {
+            if(mc.getConnection()!=null)mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun activation timed out (stage="+(id==0?"offer":skipRequested?"skip release":sent?"server verification":"initial scene")+")"));
             return;
         }
+        if(id!=0 && WallGunConfig.preloading() && (GunMeshes.failures>failures || elapsed>PRELOAD_BUDGET_NANOS))
+            skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded 90 seconds");
+        if(skipRequested){skip("waiting for server release");return;}
         if(id==0 || sent || mc.level==null || mc.player==null || mc.getOverlay()!=null)return;
         boolean received=true,changed=false;
         for(var entry:CHUNKS.entrySet()) {
