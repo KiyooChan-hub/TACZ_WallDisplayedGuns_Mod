@@ -13,18 +13,17 @@ import java.util.*;
 /** The terrain screen is released only by the server's matching activation response. */
 public final class LoadingClient {
     private static boolean waiting,sealed,sent,fallbackScreen,skipRequested;
-    private static long id,started,lastSkip;
+    private static long id,started,lastSkip,preloadBudgetNanos;
     private static String dimension="";
     private static String skipReason="";
     private static int revision,expected,failures;
     private static CompoundTag pendingOffer;
-    private static final long PRELOAD_BUDGET_NANOS=90_000_000_000L;
     private static final long SKIP_RETRY_NANOS=2_000_000_000L;
     private static final Map<ChunkPos,CompoundTag> CHUNKS=new LinkedHashMap<>();
     public static boolean waiting(){return waiting;}
     public static boolean skipping(){return skipRequested;}
     public static void reset(){waiting=false;sealed=false;sent=false;skipRequested=false;id=0;lastSkip=0;skipReason="";pendingOffer=null;CHUNKS.clear();}
-    public static void entering(){reset();waiting=true;started=System.nanoTime();failures=GunMeshes.failures;}
+    public static void entering(){reset();waiting=true;started=System.nanoTime();preloadBudgetNanos=WallGunConfig.preloadTimeoutSeconds()*1_000_000_000L;failures=GunMeshes.failures;}
     private static CompoundTag message(String kind){var t=LoadingPayloads.message(kind,id,dimension);t.putInt("revision",revision);return t;}
     public static void receive(CompoundTag tag) {
         var mc=Minecraft.getInstance();String kind=tag.getString("kind");
@@ -73,8 +72,8 @@ public final class LoadingClient {
             if(mc.getConnection()!=null)mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun activation timed out (stage="+(id==0?"offer":skipRequested?"skip release":sent?"server verification":"initial scene")+")"));
             return;
         }
-        if(id!=0 && WallGunConfig.preloading() && (GunMeshes.failures>failures || elapsed>PRELOAD_BUDGET_NANOS))
-            skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded 90 seconds");
+        if(id!=0 && !sent && WallGunConfig.preloading() && (GunMeshes.failures>failures || elapsed>preloadBudgetNanos))
+            skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded "+preloadBudgetNanos/1_000_000_000L+" seconds");
         if(skipRequested){skip("waiting for server release");return;}
         if(id==0 || sent || mc.level==null || mc.player==null || mc.getOverlay()!=null)return;
         boolean received=true,changed=false;

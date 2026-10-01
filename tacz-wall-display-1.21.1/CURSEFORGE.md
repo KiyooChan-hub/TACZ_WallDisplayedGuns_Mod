@@ -30,7 +30,7 @@ Additional gun packs are optional. To display a gun from an additional pack, kee
 - Reuse the gun's detailed model, textures, and inventory icon directly from TACZ and installed gun packs.
 - Place displays on all six block faces and remove their supports afterward.
 - On 1.21.1, rotate a display with right-click and flip it with Left Alt + scroll in Free Gun Placement Mode.
-- On 1.21.1 v0.6.16+, prepare nearby displays incrementally without extending terrain-loading screens. Reuse model memory across dimension changes and validate cached batches when returning to a dimension.
+- On 1.21.1 v0.6.23+, prepare the initial display scene inside the vanilla terrain-loading screen, with a configurable preparation limit and safe server-confirmed fallback. Reuse model memory across dimension changes and validate cached batches when returning to a dimension.
 - On the 1.21.1 build, super-glue displays to Create moving structures; their static meshes follow rotation and retain the original gun when disassembled.
 
 Gun-pack and attachment compatibility depends on the source models. Unusual custom rendering may need additional support.
@@ -55,16 +55,17 @@ The server controls this setting in multiplayer. On Forge 1.20.1, edit the file 
 
 The selected item's own right-click behavior is not specially handled. Choose an appropriate item for your setup.
 
-## Non-blocking Loading (1.21.1 v0.6.16+)
+## Initial Scene Preparation (1.21.1 v0.6.23+)
 
-The addon never delays closing the vanilla terrain-loading screen. Decorative guns may appear gradually while the world remains playable. It does not pause the server or add player invulnerability.
+In `LOADING` mode, the addon prepares the initial decorative-gun scene inside the vanilla terrain-loading screen. The server temporarily suspends this player's gameplay activation until the matching client session confirms preparation or safely skips it. Network and chunk delivery continue; this is not player invulnerability.
 
 In `config/tacz_wall_display-client.toml`, choose:
 
 ```toml
-preloadMode = "BACKGROUND"
+preloadMode = "LOADING"
+preloadTimeoutSeconds = 10
 ```
 
-`BACKGROUND` is the default and prepares guns incrementally, including during existing vanilla loading time. Set `preloadMode = "OFF"` to disable proactive scanning and capture models only when they first become visible. **OFF can cause severe first-view stutters**, especially with large gun collections. There is no BLOCKING option.
+`LOADING` is the default. Its preparation limit is configurable from 1 to 240 seconds; if preparation fails or exceeds the limit, the client requests a safe skip and waits for server release before gameplay resumes. The separate 300-second activation safety deadline remains in force if the handshake cannot finish. Set `preloadMode = "OFF"` to skip initial preparation; models are captured when first visible. **OFF can cause severe first-view stutters**, especially with large gun collections. Both modes require the matching client and server protocol.
 
 Model memory is reused within the running game and invalidated by resource reloads. `modelCacheVertexLimit` defaults to 4,000,000 vertices; active models remain pinned to avoid repeated loading. Inactive dimension GPU buffers have a shared `dimensionCacheVertexLimit` of 2,000,000 vertices and retain at most two dimensions. Set that limit to 0 to disable dimension GPU retention. Buffers are checked against current gun models, poses, positions and lighting before reuse, and released on logout or resource reload. This is memory caching; it does not persist across game restarts.

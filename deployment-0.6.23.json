@@ -1,0 +1,13 @@
+{
+  "version": "0.6.23",
+  "change": "Configurable LOADING preparation timeout, default 10 seconds, with server-confirmed safe skip",
+  "deployed": {
+    "1.21.1": "E:\\GAME\\Minecraft\\Minecraft 1.21.1\\.minecraft\\mods\\tacz-wall-display-1.21.1-0.6.23.jar"
+  },
+  "sha256": {
+    "1.21.1": "125EC0FEFC52157DA96D83EC81F0E35D1678A2E157AC61F802183E079393AC02"
+  },
+  "backupDirectory": "E:\\GAME\\Minecraft\\Codex_Output\\wall-display-0.6.23-20261001-081021",
+  "date": "2026-10-01T08:10:21+08:00",
+  "tests": "1.21.1: 30 JUnit tests, build and activation smoke compilation passed; isolated server/client fallback scenario completed five activation sessions with model-failure and 10-second timeout skips, plus 344 protected-wait checks. Test audio: music 0, master 0.5, other categories 1.0."
+}

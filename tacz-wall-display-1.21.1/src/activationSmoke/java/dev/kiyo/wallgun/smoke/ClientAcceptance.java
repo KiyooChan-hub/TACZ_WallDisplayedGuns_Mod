@@ -27,7 +27,7 @@ final class ClientAcceptance {
     }
     private static void exhaustPreloadBudget()throws ReflectiveOperationException{
         var field=LoadingClient.class.getDeclaredField("started");field.setAccessible(true);
-        field.setLong(null,System.nanoTime()-91_000_000_000L);
+        field.setLong(null,System.nanoTime()-(WallGunConfig.preloadTimeoutSeconds()+1L)*1_000_000_000L);
     }
     static void init(){NeoForge.EVENT_BUS.addListener(ClientAcceptance::tick);}
     private static void tick(ClientTickEvent.Post event){
@@ -46,6 +46,7 @@ final class ClientAcceptance {
                     }
                     else {original.accept(tag);if(scenario.equals("off") && tag.getString("kind").equals("release"))releaseCount++;}
                 };
+                if(scenario.equals("fallback") && WallGunConfig.preloadTimeoutSeconds()!=10)throw new AssertionError("unexpected default preload timeout");
                 WallGunConfig.PRELOAD_MODE.set(scenario.equals("off")?WallGunConfig.PreloadMode.OFF:WallGunConfig.PreloadMode.LOADING);
             }
             if(installed && !connected){connected=true;ConnectScreen.startConnecting(mc.screen,mc,ServerAddress.parseString("127.0.0.1:25586"),new ServerData("Acceptance","127.0.0.1:25586",ServerData.Type.OTHER),false,null);}
