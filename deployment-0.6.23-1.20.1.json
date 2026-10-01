@@ -1,0 +1,21 @@
+{
+  "project": "TACZ_WallDisplayedGuns_Mod",
+  "modId": "tacz_wall_display",
+  "version": "0.6.23",
+  "minecraft": "1.20.1",
+  "loader": "Forge 47.4.21",
+  "sourceCommit": "2fc8c113760a9727d1fbbd9d544e99a5ddb05853",
+  "sourceWorktree": "clean at build and deployment",
+  "buildTime": "2026-10-01T12:38:34+08:00",
+  "buildArtifact": "D:\\FORK\\TACZ_WallDisplayedGuns_Mod\\tacz-wall-display-1.20.1\\build\\libs\\tacz-wall-display-1.20.1-forge-0.6.23.jar",
+  "buildArtifactBytes": 178323,
+  "sha256": "E91062A995F7EB10BD7978AD4DD66CB6D19DE75332A8239F37375039B4754976",
+  "sourceDevice": "LAPTOP-DDENV4FM",
+  "forkAccount": "Kiyo_Zheng (confirmed by user)",
+  "sourceSelection": "Local build fallback; MSI was unreachable and no MSI artifact share was mapped",
+  "deployed": "E:\\GAME\\Minecraft\\Minecraft 1.20.1\\.minecraft\\mods\\tacz-wall-display-1.20.1-forge-0.6.23.jar",
+  "backup": "E:\\GAME\\Minecraft\\Codex_Output\\wall-display-1.20.1-0.6.23-20261001-123921\\tacz-wall-display-1.20.1-forge-0.6.21.jar",
+  "backupSha256": "077644AC18320CD3C1FE90EEF485886E8208937A1DE0E180194B28197BB6CE4A",
+  "deployedAt": "2026-10-01T12:39:21+08:00",
+  "verification": "Offline Gradle test/build successful, 30 JUnit tests with zero failures; previous isolated activation fallback and normal LOADING/placement smoke runs passed; deployed SHA-256 matches the source artifact"
+}
