@@ -18,7 +18,7 @@ public final class WallWarmup {
     private static ClientLevel world;
 
     public static int frameBakes,frameUploads;
-    public static boolean loading() {return WallGunConfig.preloading() && LoadingClient.waiting();}
+    public static boolean loading() {return WallGunConfig.preloading() && LoadingClient.waiting() && !LoadingClient.skipping();}
     public static int pendingModels() {return PENDING.size();}
     public static int tracked() {return TRACKED.size();}
     public static void reset() {TRACKED.clear();PENDING.clear();world=null;}
@@ -35,7 +35,7 @@ public final class WallWarmup {
         ensureWorld();
         if(gun.getLevel()!=world || gun.isRemoved() || gun.snapshot()==null)return;
         TRACKED.put(gun.getBlockPos(),gun);
-        if(WallGunConfig.preloading() && GunMeshes.peek(gun.snapshot())==null)PENDING.add(gun.snapshot());
+        if(loading() && GunMeshes.peek(gun.snapshot())==null)PENDING.add(gun.snapshot());
     }
     public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent event) {
         if(event.phase!=net.minecraftforge.event.TickEvent.Phase.END)return;
@@ -76,7 +76,7 @@ public final class WallWarmup {
         }
         var held=PlacementClient.prewarmSnapshot();if(held!=null)active.add(held);
         GunMeshes.retain(active);
-        if(WallGunConfig.preloading()) {
+        if(WallGunConfig.preloading() && !LoadingClient.skipping()) {
             PENDING.retainAll(active);
             for(var snapshot:active)if(GunMeshes.peek(snapshot)==null)PENDING.add(snapshot);
         } else PENDING.clear();

@@ -17,9 +17,11 @@ import java.util.*;
 public final class LoadingSessions {
     private static final Map<ServerPlayer,Session> WAITING=new IdentityHashMap<>();
     private static long nextId;
-    public static final long TIMEOUT_NANOS=120_000_000_000L;
+    public static final long TIMEOUT_NANOS=300_000_000_000L;
+    private static final long OFFER_RETRY_NANOS=2_000_000_000L;
     private static final class Session {
         final long id=++nextId, started=System.nanoTime();
+        long lastOffer;
         ServerGamePacketListenerImpl connection;
         String dimension;
         boolean offered,configured,enabled,sealed,verifying,failed,placementDisabled;
@@ -59,6 +61,10 @@ public final class LoadingSessions {
                 if(s.configured)return;
                 s.configured=true;s.enabled=tag.getBoolean("enabled");s.radius=Math.max(1,Math.min(32,tag.getInt("radius")));
                 if(!s.enabled)release(player,s);
+            }
+            case "skip" -> {
+                WallGuns.LOG.warn("Wall gun initial scene skipped for {}: {}",player.getGameProfile().getName(),tag.getString("reason"));
+                release(player,s);
             }
             case "refresh" -> {if(s.sealed && tag.getInt("revision")==s.revision){if(++s.retries>8){fail(player,"initial scene kept changing");return;} s.revision++;s.cursor=0;s.sealed=false;s.verifying=false;s.manifest.clear();s.bytes=0;LoadingPayloads.send(player,packet(s,"begin"));}}
             case "ready" -> {if(!s.verifying && s.sealed && tag.getInt("revision")==s.revision){s.verifying=true;s.cursor=0;}}
@@ -103,13 +109,18 @@ public final class LoadingSessions {
             if(player.connection==null)continue;
             if(!player.connection.isAcceptingMessages() || player.connection.player!=player || player.isRemoved()) {WAITING.remove(player);continue;}
             if(s.failed)continue;
-            if(System.nanoTime()-s.started>TIMEOUT_NANOS){fail(player,"120 second session deadline exceeded");continue;}
+            long now=System.nanoTime();
+            if(now-s.started>TIMEOUT_NANOS){fail(player,"300 second session deadline exceeded");continue;}
             player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
             if(!s.offered) {
-                s.offered=true;s.connection=player.connection;s.dimension=player.level().dimension().location().toString();
+                s.offered=true;s.connection=player.connection;s.dimension=player.level().dimension().location().toString();s.lastOffer=now;
                 LoadingPayloads.send(player,packet(s,"offer"));continue;
             }
-            if(!s.configured || !s.enabled)continue;
+            if(!s.configured) {
+                if(now-s.lastOffer>=OFFER_RETRY_NANOS){s.lastOffer=now;LoadingPayloads.send(player,packet(s,"offer"));}
+                continue;
+            }
+            if(!s.enabled)continue;
             if(s.chunks==null) {
                 if(!player.serverLevel().getChunkSource().chunkMap.getPlayers(player.chunkPosition(),false).contains(player))continue;
                 s.chunks=new ArrayList<>();var center=player.chunkPosition();
