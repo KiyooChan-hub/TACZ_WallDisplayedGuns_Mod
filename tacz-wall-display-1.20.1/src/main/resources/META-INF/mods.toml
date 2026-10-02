@@ -7,7 +7,7 @@ version="${modVersion}"
 displayName="TACZ Wall Display"
 authors="Kiyo"
 description='''Display equipped TACZ guns as blocks using the P-key placement mode. Right-click to place, Alt+right-click to flip, Alt+scroll to rotate, and break to recover the original gun.
-Requires Minecraft 1.20.1, Forge, and TACZ 1.1.8-hotfix (exact version). Recommended Forge: 47.4.21; no platform version requirement is imposed by this addon. Install this mod and TACZ on both client and server.'''
+Requires Minecraft 1.20.1, Forge, and TaCZ. Recommended Forge: 47.4.21; no TaCZ or platform version requirement is imposed by this addon. Install this mod and TaCZ on both client and server.'''
 # Require the correct platform, but do not gate its version.
 # [0,) also works on old Forge; an empty range is not accepted there.
 [[dependencies.tacz_wall_display]]
@@ -22,11 +22,12 @@ mandatory=true
 versionRange="[1.20.1]"
 ordering="NONE"
 side="BOTH"
-# Exact TACZ pin: static capture mixins use internal rendering classes and methods.
+# TaCZ remains required; its version is not gated. Internal rendering compatibility
+# with versions beyond the 1.1.8-hotfix build baseline still requires runtime testing.
 # Keep required on BOTH sides: recipes and saved original guns also need TACZ.
 [[dependencies.tacz_wall_display]]
 modId="tacz"
 mandatory=true
-versionRange="[1.1.8-hotfix]"
+versionRange="[0,)"
 ordering="AFTER"
 side="BOTH"
