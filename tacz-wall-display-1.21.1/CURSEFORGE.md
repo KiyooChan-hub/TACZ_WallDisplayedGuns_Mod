@@ -4,14 +4,14 @@ Build a large armory with decorative TACZ guns, including their equipped attachm
 
 ## Requirements
 
-**Install TACZ Wall Display and the matching TACZ version on both the client and the server.** For single-player, install both in your game instance.
+**Install TACZ Wall Display and the matching TACZ project on both the client and the server.** For single-player, install both in your game instance.
 
-| Minecraft | Mod loader / recommended version | Required TACZ version | Java |
+| Minecraft | Mod loader / recommended version | Required TACZ dependency | Java |
 | --- | --- | --- | --- |
-| 1.21.1 | NeoForge; recommended: **21.1.248** | [UNOFFICIAL TaCZ NeoForge Port — 1.1.8-hotfix-r6](https://www.curseforge.com/minecraft/mc-mods/tacz-1-21-1/files/8547439) | 21 |
+| 1.21.1 | NeoForge; recommended: **21.1.248** | [UNOFFICIAL TaCZ NeoForge Port](https://www.curseforge.com/minecraft/mc-mods/tacz-1-21-1) (required; version not gated by this addon) | 21 |
 | 1.20.1 | Forge; recommended: **47.4.21** | [TaCZ: Timeless and Classics Zero Guns — 1.1.8-hotfix](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero/files/8141310) | 17 or a compatible newer runtime |
 
-These requirements apply to the matching Minecraft builds. **The Forge and NeoForge versions above are recommendations, not minimum requirements. This addon does not impose a platform version gate.** You do not need to update your loader just to match the recommended number if your current setup is compatible. TACZ and other installed mods retain their own requirements. **The listed TACZ versions are exact requirements, not minimum versions.** The mod declares mandatory dependencies and rejects missing or mismatched TACZ versions. Static model capture integrates with TACZ's internal renderer, so other TACZ versions need separate compatibility testing.
+These requirements apply to the matching Minecraft builds. **The Forge and NeoForge versions above are recommendations, not minimum requirements. This addon does not impose a platform version gate.** You do not need to update your loader just to match the recommended number if your current setup is compatible. TACZ and other installed mods retain their own requirements. Both builds require their matching TACZ project; the 1.20.1 build still requires exactly 1.1.8-hotfix, while the 1.21.1 build does not gate the TaCZ version. The 1.21.1 build was compiled against r6; r7 runtime compatibility has not yet been verified. Static model capture integrates with TaCZ's internal renderer, so removing the loader gate does not guarantee compatibility with other versions.
 
 Older-loader verification: Forge **47.3.5** and NeoForge **21.1.1** passed an isolated in-game test covering equipped model display, configuration, six-face rotation/flipping, Creative flight Shift input, synchronization, and sounds. This does not guarantee every historical loader version or mod combination.
 

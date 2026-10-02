@@ -3,11 +3,11 @@ loaderVersion="[0,)"
 license="GPL-3.0-only"
 [[mods]]
 modId="tacz_wall_display"
-version="0.6.23"
+version="0.6.24"
 displayName="TACZ Wall Display"
 authors="Kiyo"
 description='''Press P to toggle free placement mode and place equipped TACZ guns directly as decorative blocks on six faces. Recover the original gun in survival. Legacy decorative items restore on load.
-Requires Minecraft 1.21.1, NeoForge, and TACZ 1.1.8-hotfix-r6 (exact version). Recommended NeoForge: 21.1.248; no platform version requirement is imposed by this addon. Install this mod and TACZ on both client and server.'''
+Requires Minecraft 1.21.1, NeoForge, and the unofficial TaCZ NeoForge Port. Recommended NeoForge: 21.1.248; no TaCZ or platform version requirement is imposed by this addon. Install this mod and TaCZ on both client and server.'''
 [[mixins]]
 config="tacz_wall_display.mixins.json"
 # Require the correct platform, but do not gate its version.
@@ -24,12 +24,13 @@ type="required"
 versionRange="[1.21.1]"
 ordering="NONE"
 side="BOTH"
-# Exact TACZ pin: static capture mixins use internal rendering classes and methods.
+# TaCZ remains required; its version is not gated. Internal rendering compatibility
+# with versions beyond the r6 build baseline still requires runtime testing.
 # Keep required on BOTH sides: recipes and saved original guns also need TACZ.
 [[dependencies.tacz_wall_display]]
 modId="tacz"
 type="required"
-reason="Requires the unofficial TaCZ NeoForge Port 1.1.8-hotfix-r6; static model capture uses its internal rendering API."
-versionRange="[1.1.8-hotfix-r6]"
+reason="Requires the unofficial TaCZ NeoForge Port; static model capture uses its internal rendering API."
+versionRange="[0,)"
 ordering="AFTER"
 side="BOTH"
