@@ -30,6 +30,7 @@ public final class LoadingClient {
         if(kind.equals("offer")){pendingOffer=tag.copy();acceptOffer(mc);return;}
         if(!waiting || id!=tag.getLong("id") || !dimension.equals(tag.getString("dimension")))return;
         if(kind.equals("begin")){revision=tag.getInt("revision");CHUNKS.clear();sealed=false;sent=false;return;}
+        if(kind.equals("skip")){skip("server activation exceeded 60 seconds");return;}
         if(tag.getInt("revision")!=revision)return;
         switch(kind) {
             case "chunk" -> {var data=tag.getCompound("data");CHUNKS.put(new ChunkPos(data.getLong("chunk")),data);}
@@ -69,10 +70,7 @@ public final class LoadingClient {
         if(event.phase!=net.minecraftforge.event.TickEvent.Phase.END)return;
         if(!waiting)return;var mc=Minecraft.getInstance();acceptOffer(mc);
         long elapsed=System.nanoTime()-started;
-        if(elapsed>LoadingSessions.TIMEOUT_NANOS) {
-            if(mc.getConnection()!=null)mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal("Wall gun activation timed out (stage="+(id==0?"offer":skipRequested?"skip release":sent?"server verification":"initial scene")+")"));
-            return;
-        }
+        if(id!=0 && elapsed>LoadingSessions.ACTIVATION_SKIP_NANOS)skip("activation exceeded 60 seconds");
         if(id!=0 && !sent && WallGunConfig.preloading() && (GunMeshes.failures>failures || elapsed>preloadBudgetNanos))
             skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded "+preloadBudgetNanos/1_000_000_000L+" seconds");
         if(skipRequested){skip("waiting for server release");return;}

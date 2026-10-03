@@ -17,14 +17,14 @@ import java.util.*;
 public final class LoadingSessions {
     private static final Map<ServerPlayer,Session> WAITING=new IdentityHashMap<>();
     private static long nextId;
-    public static final long TIMEOUT_NANOS=300_000_000_000L;
+    public static final long ACTIVATION_SKIP_NANOS=60_000_000_000L;
     private static final long OFFER_RETRY_NANOS=2_000_000_000L;
     private static final class Session {
         final long id=++nextId, started=System.nanoTime();
-        long lastOffer;
+        long lastOffer,lastSkipInstruction;
         ServerGamePacketListenerImpl connection;
         String dimension;
-        boolean offered,configured,enabled,sealed,verifying,failed,placementDisabled;
+        boolean offered,configured,enabled,sealed,verifying,failed,placementDisabled,deadlineReached;
         int radius=8,cursor,revision,retries,bytes;
         long scanNanos;
         List<ChunkPos> chunks;
@@ -60,7 +60,7 @@ public final class LoadingSessions {
             case "preferences" -> {
                 if(s.configured)return;
                 s.configured=true;s.enabled=tag.getBoolean("enabled");s.radius=Math.clamp(tag.getInt("radius"),1,32);
-                if(!s.enabled)release(player,s);
+                if(!s.enabled || s.deadlineReached || System.nanoTime()-s.started>ACTIVATION_SKIP_NANOS)release(player,s);
             }
             case "skip" -> {
                 WallGuns.LOG.warn("Wall gun initial scene skipped for {}: {}",player.getGameProfile().getName(),tag.getString("reason"));
@@ -109,14 +109,23 @@ public final class LoadingSessions {
             if(!player.connection.isAcceptingMessages() || player.connection.player!=player || player.isRemoved()) {WAITING.remove(player);continue;}
             if(s.failed)continue;
             long now=System.nanoTime();
-            if(now-s.started>TIMEOUT_NANOS){fail(player,"300 second session deadline exceeded");continue;}
             player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
+            if(!s.deadlineReached && now-s.started>ACTIVATION_SKIP_NANOS) {
+                s.deadlineReached=true;
+                WallGuns.LOG.warn("Wall gun activation exceeded 60 seconds for {}; waiting for client before safe release",player.getGameProfile().getName());
+            }
             if(!s.offered) {
                 s.offered=true;s.connection=player.connection;s.dimension=player.level().dimension().location().toString();s.lastOffer=now;
                 LoadingPayloads.send(player,packet(s,"offer"));continue;
             }
             if(!s.configured) {
                 if(now-s.lastOffer>=OFFER_RETRY_NANOS){s.lastOffer=now;LoadingPayloads.send(player,packet(s,"offer"));}
+                continue;
+            }
+            if(s.deadlineReached) {
+                if(now-s.lastSkipInstruction>=OFFER_RETRY_NANOS) {
+                    s.lastSkipInstruction=now;LoadingPayloads.send(player,packet(s,"skip"));
+                }
                 continue;
             }
             if(!s.enabled)continue;
