@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'net.neoforged.moddev' version '2.0.74'
 }
-version = '0.6.27'
+version = '0.6.28'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -12,7 +12,10 @@ dependencies {
     compileOnly files("${instance}/mods/wthit-1.21.1-neo-12.10.2.jar")
     compileOnly files("${instance}/mods/create-1.21.1-6.0.10.jar")
     compileOnly fileTree(dir: layout.buildDirectory.dir('create-compile-deps'), include: '*.jar')
-    implementation files("${instance}/mods/tacz-neoforge-1.21.1-1.1.8-hotfix-r6.jar")
+    implementation files("${instance}/mods/tacz-neoforge-1.21.1-1.1.8-hotfix-r7.jar")
+    compileOnly files("${instance}/mods/tacz-mesh-loader-neoforge-1.21.1-0.1.8.jar")
+    testRuntimeOnly files("${instance}/mods/tacz-mesh-loader-neoforge-1.21.1-0.1.8.jar")
+    testCompileOnly files("${instance}/mods/tacz-mesh-loader-neoforge-1.21.1-0.1.8.jar")
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
@@ -31,7 +34,10 @@ tasks.register('extractCreateCompileDeps', Copy) {
     into layout.buildDirectory.dir('create-compile-deps')
 }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; dependsOn 'extractCreateCompileDeps' }
-test { useJUnitPlatform() }
+test {
+    useJUnitPlatform()
+    systemProperty 'wallgun.meshPack', "${instance}/tacz/duyupack+1.21.1.zip"
+}
 if (providers.gradleProperty('smoke').isPresent()) {
     sourceSets { smoke { compileClasspath += sourceSets.main.output; runtimeClasspath += sourceSets.main.output } }
     configurations.smokeImplementation.extendsFrom(configurations.implementation)
