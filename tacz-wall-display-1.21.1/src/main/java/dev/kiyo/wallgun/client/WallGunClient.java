@@ -25,6 +25,9 @@ public final class WallGunClient {
         NeoForge.EVENT_BUS.addListener(PlacementClient::scroll);
         NeoForge.EVENT_BUS.addListener(PlacementClient::render);
         NeoForge.EVENT_BUS.addListener(PlacementClient::reset);
+        NeoForge.EVENT_BUS.addListener(PlacementJoinHint::login);
+        NeoForge.EVENT_BUS.addListener(PlacementJoinHint::logout);
+        NeoForge.EVENT_BUS.addListener(PlacementJoinHint::tick);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{LoadingClient.reset();WallBatches.clear();GunMeshes.retain(java.util.Set.of());WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()+(ModList.get().isLoaded("create") ? ", "+CreateMovingGuns.stats() : "")),false);return 1;})));
     }

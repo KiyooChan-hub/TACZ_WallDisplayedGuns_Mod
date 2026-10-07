@@ -16,6 +16,8 @@ import java.util.*;
 /** Main-server-thread state only. Network/terrain delivery continues while gameplay is suspended. */
 public final class LoadingSessions {
     private static final Map<ServerPlayer,Session> WAITING=new IdentityHashMap<>();
+    private record Completion(ServerGamePacketListenerImpl connection,CompoundTag packet) {}
+    private static final Map<ServerPlayer,Completion> COMPLETED=new IdentityHashMap<>();
     private static long nextId;
     public static final long ACTIVATION_SKIP_NANOS=60_000_000_000L;
     private static final long OFFER_RETRY_NANOS=2_000_000_000L;
@@ -32,11 +34,30 @@ public final class LoadingSessions {
     }
     public static void init() {
         NeoForge.EVENT_BUS.addListener(LoadingSessions::tick);
-        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event)->WAITING.clear());
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event)->{WAITING.clear();COMPLETED.clear();});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event)->{
+            if(event.getEntity() instanceof ServerPlayer player){WAITING.remove(player);COMPLETED.remove(player);}
+        });
     }
     public static void arm(ServerPlayer player) {
-        WAITING.put(player,new Session());
+        arm(player,player.level().dimension().location().toString());
+    }
+    public static void arm(ServerPlayer player,String destination) {
+        var session=new Session();session.dimension=destination;
+        var previous=WAITING.put(player,session);
+        if(previous!=null)session.placementDisabled=previous.placementDisabled;
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;
+    }
+    public static void commandKill(ServerPlayer player) {
+        var session=WAITING.get(player);
+        if(session==null)return;
+        if(!session.offered && player.connection!=null) {
+            session.offered=true;session.connection=player.connection;
+            LoadingPayloads.send(player,packet(session,"offer"));
+        }
+        release(player,session);
+        // Vanilla also protects a player until the dimension teleport is acknowledged.
+        player.hasChangedDimension();
     }
     public static boolean waiting(ServerPlayer player) {return WAITING.containsKey(player);}
     public static void markPlacementDisabled(ServerPlayer player) {
@@ -53,6 +74,29 @@ public final class LoadingSessions {
     }
     public static void receive(ServerPlayer player,CompoundTag tag) {
         var s=WAITING.get(player);
+        if(tag.getString("kind").equals("status")) {
+            String dimension=player.level().dimension().location().toString();
+            if(!dimension.equals(tag.getString("dimension")))return;
+            boolean placementDisabled=false;
+            if(s!=null && !s.failed && s.dimension.equals(dimension) && s.id<=tag.getLong("retired")) {
+                placementDisabled=s.placementDisabled;
+                release(player,s);s=null;
+            }
+            if(s==null) {
+                var active=LoadingPayloads.message("active",0,dimension);
+                active.putBoolean("placementDisabled",placementDisabled);
+                active.putLong("generation",tag.getLong("generation"));LoadingPayloads.send(player,active);
+            } else if(s.offered && s.connection==player.connection && s.dimension.equals(dimension)) {
+                LoadingPayloads.send(player,packet(s,"offer"));
+            }
+            return;
+        }
+        var completed=COMPLETED.get(player);
+        if(completed!=null && completed.connection==player.connection
+            && completed.packet.getLong("id")==tag.getLong("id")
+            && completed.packet.getString("dimension").equals(tag.getString("dimension"))) {
+            LoadingPayloads.send(player,completed.packet.copy());return;
+        }
         if(s==null || s.failed || !s.offered || s.connection!=player.connection || s.connection.player!=player
             || s.id!=tag.getLong("id") || !s.dimension.equals(tag.getString("dimension"))
             || !s.dimension.equals(player.level().dimension().location().toString()))return;
@@ -62,7 +106,7 @@ public final class LoadingSessions {
                 s.configured=true;s.enabled=tag.getBoolean("enabled");s.radius=Math.clamp(tag.getInt("radius"),1,32);
                 if(!s.enabled || s.deadlineReached || System.nanoTime()-s.started>ACTIVATION_SKIP_NANOS)release(player,s);
             }
-            case "skip" -> {
+            case "skip", "resume" -> {
                 WallGuns.LOG.warn("Wall gun initial scene skipped for {}: {}",player.getGameProfile().getName(),tag.getString("reason"));
                 release(player,s);
             }
@@ -72,11 +116,15 @@ public final class LoadingSessions {
         }
     }
     private static void release(ServerPlayer player,Session s) {
+        // Retire all protection before any acknowledgement can restore client controls.
+        if(!WAITING.remove(player,s))return;
+        if(player.connection==null){COMPLETED.remove(player);return;}
+        var release=packet(s,"release");release.putBoolean("placementDisabled",s.placementDisabled);
+        COMPLETED.put(player,new Completion(player.connection,release.copy()));
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
         player.connection.teleport(player.getX(),player.getY(),player.getZ(),player.getYRot(),player.getXRot());
         player.connection.resetPosition();
-        var release=packet(s,"release");release.putBoolean("placementDisabled",s.placementDisabled);
-        LoadingPayloads.send(player,release);WAITING.remove(player);
+        LoadingPayloads.send(player,release);
         WallGuns.LOG.info("Wall gun activation id={} dimension={} chunks={} waitMs={} enabled={} revisions={} scanMs={}",s.id,s.dimension,s.manifest.size(),(System.nanoTime()-s.started)/1_000_000,s.enabled,s.revision,s.scanNanos/1_000_000);
     }
     private record GunState(long pos, GunSnapshot snapshot, int roll, int mount, boolean flip,
@@ -103,11 +151,20 @@ public final class LoadingSessions {
         result.putLong("chunk",chunk.getPos().toLong());result.put("guns",list);cache.put(chunk,new Description(states,result));return result;
     }
     private static void tick(ServerTickEvent.Post event) {
+        COMPLETED.entrySet().removeIf(entry->entry.getKey().isRemoved()
+            || entry.getKey().connection!=entry.getValue().connection
+            || entry.getValue().connection.player!=entry.getKey()
+            || !entry.getValue().connection.isAcceptingMessages());
         for(var player:new ArrayList<>(WAITING.keySet())) {
             var s=WAITING.get(player);
             if(player.connection==null)continue;
-            if(!player.connection.isAcceptingMessages() || player.connection.player!=player || player.isRemoved()) {WAITING.remove(player);continue;}
+            if(!player.connection.isAcceptingMessages() || player.connection.player!=player || player.isRemoved()) {WAITING.remove(player);COMPLETED.remove(player);continue;}
             if(s.failed)continue;
+            if(!s.dimension.equals(player.level().dimension().location().toString())
+                || (s.offered && s.connection!=player.connection)) {
+                WallGuns.LOG.warn("Replacing stale wall gun activation id={} for {}",s.id,player.getGameProfile().getName());
+                arm(player);continue;
+            }
             long now=System.nanoTime();
             player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
             if(!s.deadlineReached && now-s.started>ACTIVATION_SKIP_NANOS) {
@@ -115,7 +172,7 @@ public final class LoadingSessions {
                 WallGuns.LOG.warn("Wall gun activation exceeded 60 seconds for {}; waiting for client before safe release",player.getGameProfile().getName());
             }
             if(!s.offered) {
-                s.offered=true;s.connection=player.connection;s.dimension=player.level().dimension().location().toString();s.lastOffer=now;
+                s.offered=true;s.connection=player.connection;s.lastOffer=now;
                 LoadingPayloads.send(player,packet(s,"offer"));continue;
             }
             if(!s.configured) {

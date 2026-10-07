@@ -39,6 +39,8 @@ Gun-pack and attachment compatibility depends on the source models. Unusual cust
 
 **Minecraft 1.21.1:** Press **P** to enter Free Gun Placement Mode; rebind it in the TACZ section of Controls. Hold a TACZ gun and right-click a block to display it on that face. Left-click retains normal block breaking, and decorative guns break with one empty-hand click in Survival. Right-click an existing display with any item or an empty hand to rotate it by 22.5 degrees. Hold **Left Alt** and scroll over a display to flip it. Hold a real gun and **Left Alt + right-click** a display to place another gun in the clicked face's neighboring cell, including unsupported space. Gun actions are suspended in this mode. Press the mode key again to leave. Crafting conversion is no longer available. Existing decorative gun items restore their original guns when loaded; they cannot be placed directly. Creative pick-block returns the original gun.
 
+On 1.21.1 v0.6.26+, a local chat hint appears once after joining a world or server, using your current key binding. Respawns and dimension changes do not repeat it. Set `showPlacementHintOnJoin = false` in `config/tacz_wall_display-client.toml` to hide it.
+
 **Minecraft 1.20.1:** Put one TACZ gun in a crafting grid to obtain its decorative block, and craft the block alone to restore the gun. This version retains its previous crafting workflow until it is explicitly updated.
 
 For either version, break a display in Survival to recover the original usable gun with its saved attachments and other data. Creative-mode breaking produces no drop. On **1.20.1 only**, hold a stick or the configured adjustment item and right-click to rotate by 22.5 degrees; Shift + right-click flips it.
@@ -57,7 +59,7 @@ The selected item's own right-click behavior is not specially handled. Choose an
 
 ## Initial Scene Preparation (1.21.1 v0.6.23+)
 
-In `LOADING` mode, the addon prepares the initial decorative-gun scene inside the vanilla terrain-loading screen. The server temporarily suspends this player's gameplay activation until the matching client session confirms preparation or safely skips it. Network and chunk delivery continue; this is not player invulnerability.
+In `LOADING` mode, the addon prepares the initial decorative-gun scene inside the terrain-loading screen. The server temporarily suspends this player's gameplay and prevents damage and mob targeting until the matching client session confirms preparation or safely skips it. Network and chunk delivery continue. This protection is confined to loading, not a gameplay invulnerability feature. In 1.21.1 v0.6.26, cancelled and same-dimension transfers do not create a cross-dimension session; leaving the loading screen requests release, and stale offers cannot reopen it. The server removes protection before confirming release. The explicit `/kill` damage source is not blocked by this addon.
 
 In `config/tacz_wall_display-client.toml`, choose:
 
@@ -66,6 +68,6 @@ preloadMode = "LOADING"
 preloadTimeoutSeconds = 10
 ```
 
-`LOADING` is the default. Its preparation limit is configurable from 1 to 240 seconds; if preparation fails or exceeds the limit, the client requests a safe skip and waits for server release before gameplay resumes. A separate 60-second activation threshold can skip preparation sooner; it never releases an unresponsive client or disconnects due to this timer. Set `preloadMode = "OFF"` to skip initial preparation; models are captured when first visible. **OFF can cause severe first-view stutters**, especially with large gun collections. Both modes require the matching client and server protocol (`activation-3`).
+`LOADING` is the default. Its preparation limit is configurable from 1 to 240 seconds; if preparation fails or exceeds the limit, the client requests a safe skip and waits for server release before gameplay resumes. A separate 60-second activation threshold can skip preparation sooner; it never releases an unresponsive client or disconnects due to this timer. Set `preloadMode = "OFF"` to skip initial preparation; models are captured when first visible. **OFF can cause severe first-view stutters**, especially with large gun collections. Both modes require the matching client and server protocol (`activation-4` for 1.21.1 v0.6.26; update both sides).
 
 Model memory is reused within the running game and invalidated by resource reloads. `modelCacheVertexLimit` defaults to 4,000,000 vertices; active models remain pinned to avoid repeated loading. Inactive dimension GPU buffers have a shared `dimensionCacheVertexLimit` of 2,000,000 vertices and retain at most two dimensions. Set that limit to 0 to disable dimension GPU retention. Buffers are checked against current gun models, poses, positions and lighting before reuse, and released on logout or resource reload. This is memory caching; it does not persist across game restarts.
