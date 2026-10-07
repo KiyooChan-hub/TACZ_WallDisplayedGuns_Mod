@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.6.27'
+version = '0.6.28'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -10,6 +10,8 @@ dependencies {
     implementation fg.deobf('local:tacz-1.20.1:1.1.8-hotfix')
     compileOnly fg.deobf('local:wthit-1.20.1-forge:8.21.1')
     compileOnly fg.deobf('local:create-1.20.1:6.0.8')
+    compileOnly fg.deobf('local:tacz-mesh-loader-forge-1.20.1:0.1.8')
+    testImplementation fg.deobf('local:tacz-mesh-loader-forge-1.20.1:0.1.8')
     if (providers.gradleProperty('compatSmoke').isPresent()) {
         runtimeOnly fg.deobf('local:wthit-1.20.1-forge:8.21.1')
         runtimeOnly fg.deobf('local:create-1.20.1:6.0.8')
@@ -40,7 +42,10 @@ minecraft {
 }
 tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17 }
 tasks.named('compileJava', JavaCompile) { options.compilerArgs += ['-processor', 'org.spongepowered.tools.obfuscation.MixinObfuscationProcessorInjection,org.spongepowered.tools.obfuscation.MixinObfuscationProcessorTargets', '-AdefaultObfuscationEnv=searge', '-AreobfSrgFile=' + project.file('build/generated/refmap/mcp-to-srg.srg').absolutePath, '-AoutRefMapFile=' + project.file('build/generated/refmap/tacz_wall_display.refmap.json').absolutePath]; dependsOn 'mixinSrgMappings'; outputs.file('build/generated/refmap/tacz_wall_display.refmap.json'); doFirst { project.file('build/generated/refmap').mkdirs() } }
-test { useJUnitPlatform() }
+test {
+    useJUnitPlatform()
+    systemProperty 'wallgun.meshPack', "${instance}/tacz/duyupack+1.21.1.zip"
+}
 processResources { inputs.property 'modVersion', project.version; filesMatching('META-INF/mods.toml') { expand(modVersion: project.version) } }
 jar { from('build/generated/refmap') { include '*.refmap.json' }; manifest { attributes 'MixinConfigs':'tacz_wall_display.mixins.json' }; finalizedBy 'reobfJar' }
 if (providers.gradleProperty('smoke').isPresent()) {

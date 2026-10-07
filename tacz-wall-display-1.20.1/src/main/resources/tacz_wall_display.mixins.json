@@ -15,6 +15,9 @@
     "LoadingConnectionAccess"
   ],
   "client": [
+    "MeshGunCaptureMixin",
+    "MeshAttachmentCaptureMixin",
+    "PolyMeshStateAccessor",
     "LoadingGunDrawMixin",
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
