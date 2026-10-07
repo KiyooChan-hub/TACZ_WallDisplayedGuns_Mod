@@ -11,4 +11,6 @@ public abstract class LoadingClientLevelMixin {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet,(ClientPacketListener)(Object)this,net.minecraft.client.Minecraft.getInstance());
         LoadingClient.entering();
     }
+    @Inject(method={"handleLogin","handleRespawn"},at=@At("RETURN"))
+    private void screenOpened(@Coerce net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> packet,CallbackInfo ci){LoadingClient.screenOpened();}
 }

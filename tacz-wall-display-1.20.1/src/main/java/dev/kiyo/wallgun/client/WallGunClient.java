@@ -25,6 +25,9 @@ public final class WallGunClient {
         MinecraftForge.EVENT_BUS.addListener(PlacementClient::scroll);
         MinecraftForge.EVENT_BUS.addListener(PlacementClient::render);
         MinecraftForge.EVENT_BUS.addListener(PlacementClient::reset);
+        MinecraftForge.EVENT_BUS.addListener(PlacementJoinHint::login);
+        MinecraftForge.EVENT_BUS.addListener(PlacementJoinHint::logout);
+        MinecraftForge.EVENT_BUS.addListener(PlacementJoinHint::tick);
         MinecraftForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{LoadingClient.reset();WallBatches.clear();GunMeshes.retain(java.util.Set.of());WallWarmup.reset();if(ModList.get().isLoaded("create"))CreateMovingGuns.clear();});
         MinecraftForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()+(ModList.get().isLoaded("create") ? ", "+CreateMovingGuns.stats() : "")),false);return 1;})));
     }

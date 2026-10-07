@@ -15,6 +15,7 @@
     "LoadingConnectionAccess"
   ],
   "client": [
+    "LoadingGunDrawMixin",
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",

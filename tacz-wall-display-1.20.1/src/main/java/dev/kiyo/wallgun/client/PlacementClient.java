@@ -34,6 +34,8 @@ public final class PlacementClient {
     private static final DryFireWarning WARNING = new DryFireWarning();
     private static final ResourceLocation DEFAULT_DRY_FIRE = ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire");
     private PlacementClient() {}
+    public static boolean hasToggleKey(){return toggle!=null && !toggle.isUnbound();}
+    public static Component toggleKeyName(){return hasToggleKey()?toggle.getTranslatedKeyMessage():Component.translatable("key.keyboard.unknown");}
     public static boolean interceptGun() {
         var mc = Minecraft.getInstance();
         return enabled && mc.player != null && mc.screen == null && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null;

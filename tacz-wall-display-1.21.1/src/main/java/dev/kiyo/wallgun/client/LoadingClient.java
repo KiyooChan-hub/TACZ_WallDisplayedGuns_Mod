@@ -37,6 +37,7 @@ public final class LoadingClient {
             if(mc.level!=null && mc.level.dimension().location().toString().equals(tag.getString("dimension"))
                 && GATE.confirmActive(tag.getLong("generation"))) {
                 clearScene();loadingScreen=null;
+                if(tag.getBoolean("restoredDraw"))LoadingGunClient.restoredDraw();
                 if(tag.getBoolean("placementDisabled"))PlacementClient.disableAfterDimensionChange();
             }
             return;
@@ -49,6 +50,7 @@ public final class LoadingClient {
         // Terminal messages end the session even if the scene revision changed in flight.
         if(kind.equals("release")) {
             if(!GATE.finish(id))return;
+            if(tag.getBoolean("restoredDraw"))LoadingGunClient.restoredDraw();
             WallGuns.LOG.info("Wall gun client released id={} waitMs={}",id,(System.nanoTime()-started)/1_000_000);
             boolean disablePlacement=tag.getBoolean("placementDisabled");
             var screen=loadingScreen;clearScene();loadingScreen=null;

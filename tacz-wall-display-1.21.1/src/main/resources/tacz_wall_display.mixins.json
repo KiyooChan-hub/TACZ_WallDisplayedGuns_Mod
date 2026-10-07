@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": ["LoadingPlayerMixin", "LoadingLoginMixin", "LoadingConnectionMixin", "LoadingTargetMixin", "LoadingPushMixin", "LegacyItemDecodeMixin", "ServerPreventGunBlockMixin"],
   "client": [
+    "LoadingGunDrawMixin",
     "LoadingLocalPlayerMixin", "LoadingTerrainMixin", "LoadingClientLevelMixin", "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",

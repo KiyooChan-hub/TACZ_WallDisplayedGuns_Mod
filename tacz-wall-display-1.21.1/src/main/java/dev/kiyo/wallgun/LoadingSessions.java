@@ -23,6 +23,8 @@ public final class LoadingSessions {
     private static final long OFFER_RETRY_NANOS=2_000_000_000L;
     private static final class Session {
         final long id=++nextId, started=System.nanoTime();
+        final DeferredGunDraw gunDraw=new DeferredGunDraw();
+        boolean endingForKill,restoredDraw;
         long lastOffer,lastSkipInstruction;
         ServerGamePacketListenerImpl connection;
         String dimension;
@@ -45,7 +47,7 @@ public final class LoadingSessions {
     public static void arm(ServerPlayer player,String destination) {
         var session=new Session();session.dimension=destination;
         var previous=WAITING.put(player,session);
-        if(previous!=null)session.placementDisabled=previous.placementDisabled;
+        if(previous!=null){session.placementDisabled=previous.placementDisabled;if(previous.gunDraw.pending())session.gunDraw.request();}
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;
     }
     public static void commandKill(ServerPlayer player) {
@@ -55,11 +57,14 @@ public final class LoadingSessions {
             session.offered=true;session.connection=player.connection;
             LoadingPayloads.send(player,packet(session,"offer"));
         }
-        release(player,session);
+        session.endingForKill=true;release(player,session);
         // Vanilla also protects a player until the dimension teleport is acknowledged.
         player.hasChangedDimension();
     }
     public static boolean waiting(ServerPlayer player) {return WAITING.containsKey(player);}
+    public static void deferGunDraw(ServerPlayer player) {
+        var session=WAITING.get(player);if(session!=null)session.gunDraw.request();
+    }
     public static void markPlacementDisabled(ServerPlayer player) {
         var session=WAITING.get(player);if(session!=null)session.placementDisabled=true;
     }
@@ -77,14 +82,15 @@ public final class LoadingSessions {
         if(tag.getString("kind").equals("status")) {
             String dimension=player.level().dimension().location().toString();
             if(!dimension.equals(tag.getString("dimension")))return;
-            boolean placementDisabled=false;
+            boolean placementDisabled=false,restoredDraw=false;
             if(s!=null && !s.failed && s.dimension.equals(dimension) && s.id<=tag.getLong("retired")) {
                 placementDisabled=s.placementDisabled;
-                release(player,s);s=null;
+                release(player,s);restoredDraw=s.restoredDraw;s=WAITING.get(player);
             }
             if(s==null) {
                 var active=LoadingPayloads.message("active",0,dimension);
                 active.putBoolean("placementDisabled",placementDisabled);
+                active.putBoolean("restoredDraw",restoredDraw);
                 active.putLong("generation",tag.getLong("generation"));LoadingPayloads.send(player,active);
             } else if(s.offered && s.connection==player.connection && s.dimension.equals(dimension)) {
                 LoadingPayloads.send(player,packet(s,"offer"));
@@ -116,10 +122,25 @@ public final class LoadingSessions {
         }
     }
     private static void release(ServerPlayer player,Session s) {
+        if(WAITING.get(player)!=s)return;
+        if(player.connection!=null && !s.endingForKill)try {
+            var operator=com.tacz.guns.api.entity.IGunOperator.fromLivingEntity(player);
+            boolean missing=operator.getDataHolder().currentGunItem==null
+                && com.tacz.guns.api.item.IGun.getIGunOrNull(player.getMainHandItem())!=null;
+            // Match TaCZ's draw handler: bind the final server-selected slot, not a saved stack.
+            if(s.gunDraw.finish(missing,()->{
+                var inventory=player.getInventory();int slot=inventory.selected;
+                operator.draw(()->inventory.getItem(slot));
+            })){s.restoredDraw=true;WallGuns.LOG.info("Wall gun restored held-gun initialization id={} slot={}",s.id,player.getInventory().selected);}
+        }catch(RuntimeException ex){
+            WallGuns.LOG.error("Could not restore held-gun initialization",ex);
+            fail(player,"held-gun initialization failed");return;
+        }
         // Retire all protection before any acknowledgement can restore client controls.
         if(!WAITING.remove(player,s))return;
         if(player.connection==null){COMPLETED.remove(player);return;}
         var release=packet(s,"release");release.putBoolean("placementDisabled",s.placementDisabled);
+        release.putBoolean("restoredDraw",s.restoredDraw);
         COMPLETED.put(player,new Completion(player.connection,release.copy()));
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
         player.connection.teleport(player.getX(),player.getY(),player.getZ(),player.getYRot(),player.getXRot());

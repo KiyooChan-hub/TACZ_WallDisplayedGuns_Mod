@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /** Required activation protocol. Mismatched versions fail connection negotiation. */
 public final class LoadingPayloads {
     public static final ResourceLocation ID=new ResourceLocation(WallGuns.ID,"loading_session");
-    private static final String PROTOCOL="activation-3";
+    private static final String PROTOCOL="activation-5";
     private static final SimpleChannel CHANNEL=NetworkRegistry.newSimpleChannel(ID,()->PROTOCOL,PROTOCOL::equals,PROTOCOL::equals);
     public static Consumer<CompoundTag> client=tag->{};
     public record Message(CompoundTag data) {}

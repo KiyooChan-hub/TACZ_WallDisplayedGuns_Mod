@@ -33,10 +33,11 @@ class LoadingHookContractTest {
     }
     @Test void releaseRemovesExactSessionBeforeTeleportAndAcknowledgement() throws IOException {
         var method=method("dev/kiyo/wallgun/LoadingSessions","release");
-        boolean removed=false,sent=false;
+        boolean initialized=false,removed=false,sent=false;
         for(var insn:method.instructions)if(insn instanceof MethodInsnNode call) {
+            if(call.owner.equals("dev/kiyo/wallgun/DeferredGunDraw") && call.name.equals("finish"))initialized=true;
             if(call.owner.equals("java/util/Map") && call.name.equals("remove")
-                && call.desc.equals("(Ljava/lang/Object;Ljava/lang/Object;)Z"))removed=true;
+                && call.desc.equals("(Ljava/lang/Object;Ljava/lang/Object;)Z")){assertTrue(initialized);removed=true;}
             if(call.name.equals("teleport"))assertTrue(removed);
             if(call.owner.equals("dev/kiyo/wallgun/LoadingPayloads") && call.name.equals("send")) {
                 assertTrue(removed);sent=true;
@@ -54,5 +55,31 @@ class LoadingHookContractTest {
             }
             assertTrue(genericKill);assertEquals(java.util.List.of("commandKill","waiting"),calls);
         }
+    }
+
+    @Test void taczDrawInitializesTheStateRequiredByShoot() throws IOException {
+        var draw=method("com/tacz/guns/entity/shooter/LivingEntityDrawGun","draw");
+        boolean initializes=false;
+        for(var insn:draw.instructions)if(insn instanceof FieldInsnNode field
+            && field.getOpcode()==Opcodes.PUTFIELD && field.name.equals("currentGunItem"))initializes=true;
+        assertTrue(initializes);
+        try(var stream=getClass().getClassLoader().getResourceAsStream("com/tacz/guns/entity/shooter/LivingEntityShoot.class")) {
+            assertNotNull(stream);var type=new ClassNode();new ClassReader(stream).accept(type,0);
+            boolean checksMissing=false,rejectsMissing=false;
+            for(var m:type.methods)if(m.name.equals("shoot"))for(var insn:m.instructions)if(insn instanceof FieldInsnNode field) {
+                if(field.name.equals("currentGunItem"))checksMissing=true;
+                if(field.name.equals("NOT_DRAW"))rejectsMissing=true;
+            }
+            assertTrue(checksMissing && rejectsMissing);
+        }
+    }
+    @Test void slotSelectionIsNotInTheGameplayDropList() throws IOException {
+        var m=method("dev/kiyo/wallgun/mixin/LoadingConnectionMixin","noGameplay");
+        var annotations=new ArrayList<AnnotationNode>();
+        if(m.visibleAnnotations!=null)annotations.addAll(m.visibleAnnotations);
+        if(m.invisibleAnnotations!=null)annotations.addAll(m.invisibleAnnotations);
+        var inject=annotations.stream().filter(a->a.desc.endsWith("/Inject;")).findFirst().orElseThrow();
+        assertFalse(inject.values.toString().contains("handleSetCarriedItem"));
+        assertTrue(inject.values.toString().contains("handleUseItem"));
     }
 }

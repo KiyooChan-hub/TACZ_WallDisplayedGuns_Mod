@@ -17,7 +17,7 @@ public abstract class LoadingConnectionMixin {
     private void keepNetworkAlive(CallbackInfo ci) {
         if(LoadingSessions.waiting(player)){clientIsFloating=false;clientVehicleIsFloating=false;aboveGroundTickCount=0;aboveGroundVehicleTickCount=0;}
     }
-    @Inject(method={"handleMovePlayer","handleMoveVehicle","handlePlayerInput","handlePlayerAction","handleUseItemOn","handleUseItem","handleInteract","handlePlayerCommand","handleContainerClick","handleContainerButtonClick","handleSetCreativeModeSlot","handlePlaceRecipe","handlePlayerAbilities","handleSetCarriedItem","handlePaddleBoat","handleTeleportToEntityPacket","handleAnimate","handleChatCommand","handleSignedChatCommand","handleClientCommand"},at=@At("HEAD"),cancellable=true)
+    @Inject(method={"handleMovePlayer","handleMoveVehicle","handlePlayerInput","handlePlayerAction","handleUseItemOn","handleUseItem","handleInteract","handlePlayerCommand","handleContainerClick","handleContainerButtonClick","handleSetCreativeModeSlot","handlePlaceRecipe","handlePlayerAbilities","handlePaddleBoat","handleTeleportToEntityPacket","handleAnimate","handleChatCommand","handleSignedChatCommand","handleClientCommand"},at=@At("HEAD"),cancellable=true)
     private void noGameplay(@Coerce net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ServerGamePacketListener> packet,CallbackInfo ci) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet,(ServerGamePacketListenerImpl)(Object)this,player.serverLevel());
         if(LoadingSessions.waiting(player))ci.cancel();
@@ -27,6 +27,8 @@ public abstract class LoadingConnectionMixin {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet,(ServerGamePacketListenerImpl)(Object)this,player.serverLevel());
         if(!LoadingSessions.waiting(player))return;
         var id=packet.payload().type().id();
-        if(id.getNamespace().equals("tacz") || (id.getNamespace().equals(WallGuns.ID) && !id.equals(LoadingPayloads.Message.TYPE.id())))ci.cancel();
+        if(id.getNamespace().equals("tacz")) {
+            if(LoadingGunPackets.block(player,packet.payload()))ci.cancel();
+        } else if(id.getNamespace().equals(WallGuns.ID) && !id.equals(LoadingPayloads.Message.TYPE.id()))ci.cancel();
     }
 }

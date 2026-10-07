@@ -18,7 +18,7 @@ public abstract class LoadingConnectionMixin {
             access.wallgun$groundTicks(0);access.wallgun$vehicleGroundTicks(0);
         }
     }
-    @Inject(method={"handleMovePlayer","handleMoveVehicle","handlePlayerInput","handlePlayerAction","handleUseItemOn","handleUseItem","handleInteract","handlePlayerCommand","handleContainerClick","handleContainerButtonClick","handleSetCreativeModeSlot","handlePlaceRecipe","handlePlayerAbilities","handleSetCarriedItem","handlePaddleBoat","handleTeleportToEntityPacket","handleAnimate","handleChatCommand","handleClientCommand"},at=@At("HEAD"),cancellable=true)
+    @Inject(method={"handleMovePlayer","handleMoveVehicle","handlePlayerInput","handlePlayerAction","handleUseItemOn","handleUseItem","handleInteract","handlePlayerCommand","handleContainerClick","handleContainerButtonClick","handleSetCreativeModeSlot","handlePlaceRecipe","handlePlayerAbilities","handlePaddleBoat","handleTeleportToEntityPacket","handleAnimate","handleChatCommand","handleClientCommand"},at=@At("HEAD"),cancellable=true)
     private void noGameplay(@Coerce net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ServerGamePacketListener> packet,CallbackInfo ci) {
         var player=wallgun$player();
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet,(ServerGamePacketListenerImpl)(Object)this,player.serverLevel());
@@ -30,6 +30,8 @@ public abstract class LoadingConnectionMixin {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet,(ServerGamePacketListenerImpl)(Object)this,player.serverLevel());
         if(!LoadingSessions.waiting(player))return;
         var id=packet.getIdentifier();
-        if(id.getNamespace().equals("tacz") || (id.getNamespace().equals(WallGuns.ID) && !id.equals(LoadingPayloads.ID)))ci.cancel();
+        if(id.getNamespace().equals("tacz")) {
+            if(LoadingGunPackets.block(player,packet))ci.cancel();
+        } else if(id.getNamespace().equals(WallGuns.ID) && !id.equals(LoadingPayloads.ID))ci.cancel();
     }
 }
