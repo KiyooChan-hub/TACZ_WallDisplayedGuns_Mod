@@ -30,7 +30,7 @@ public final class GunPlacement {
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e) -> {
             if (e.getEntity() instanceof ServerPlayer player && enabled(player)) {
                 set(player, false);
-                LoadingSessions.markPlacementDisabled(player);
+                PlacementPayloads.disableAfterDimensionChange(player);
             }
         });
     }

@@ -14,7 +14,7 @@ public final class PlacementJoinHint {
     public static void tick(ClientTickEvent.Post event) {
         var mc=Minecraft.getInstance();
         if(!pending || mc.player==null || mc.level==null || mc.screen!=null
-            || mc.getOverlay()!=null || !LoadingClient.readyForGameplay())return;
+            || mc.getOverlay()!=null)return;
         pending=false;
         if(!WallGunConfig.SHOW_PLACEMENT_HINT_ON_JOIN.get())return;
         var text=PlacementClient.hasToggleKey()

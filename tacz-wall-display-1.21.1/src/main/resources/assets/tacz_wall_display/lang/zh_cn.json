@@ -19,11 +19,5 @@
   "chat.tacz_wall_display.join_hint_config": "可在 %s 中设置 %s，关闭此提示。",
   "chat.tacz_wall_display.mode_on": "枪械摆放模式：开启",
   "chat.tacz_wall_display.mode_off": "枪械摆放模式：关闭",
-  "hud.tacz_wall_display.cannot_fire": "不能在枪械摆放模式下开火！",
-  "wallgun.loading.handshake": "装饰枪：等待服务端握手",
-  "wallgun.loading.manifest": "装饰枪：检查附近区块",
-  "wallgun.loading.server_release": "装饰枪：已跳过准备，等待服务端恢复操作",
-  "wallgun.loading.server_verification": "装饰枪：等待服务端确认",
-  "wallgun.loading.models": "装饰枪：准备附近模型",
-  "wallgun.loading.chunks_and_batches": "装饰枪：等待区块数据／渲染批次"
+  "hud.tacz_wall_display.cannot_fire": "不能在枪械摆放模式下开火！"
 }

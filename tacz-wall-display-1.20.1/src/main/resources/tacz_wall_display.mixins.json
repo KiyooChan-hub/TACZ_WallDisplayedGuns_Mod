@@ -6,19 +6,12 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "LegacyItemDecodeMixin",
-    "ServerPreventGunBlockMixin",
-    "LoadingPlayerMixin",
-    "LoadingLoginMixin",
-    "LoadingConnectionMixin",
-    "LoadingTargetMixin",
-    "LoadingPushMixin",
-    "LoadingConnectionAccess"
+    "ServerPreventGunBlockMixin"
   ],
   "client": [
     "MeshGunCaptureMixin",
     "MeshAttachmentCaptureMixin",
     "PolyMeshStateAccessor",
-    "LoadingGunDrawMixin",
     "BedrockCaptureMixin",
     "HighDetailCaptureMixin",
     "GunDisplayAccessor",
@@ -34,9 +27,6 @@
     "ClientPreventGunClickMixin",
     "ClientPreventGunBlockMixin",
     "AutoReloadMixin",
-    "LoadingLocalPlayerMixin",
-    "LoadingTerrainMixin",
-    "LoadingClientLevelMixin",
     "RenderLightsAccessor"
   ],
   "injectors": {

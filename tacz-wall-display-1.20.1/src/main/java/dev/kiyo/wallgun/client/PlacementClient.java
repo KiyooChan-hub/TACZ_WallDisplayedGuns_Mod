@@ -27,9 +27,6 @@ public final class PlacementClient {
     private static KeyMapping adjustmentModifier;
     private static boolean enabled;
     private static boolean dimensionFeedbackPending;
-    private static net.minecraft.world.item.ItemStack heldCopy=net.minecraft.world.item.ItemStack.EMPTY;
-    private static dev.kiyo.wallgun.GunSnapshot heldSnapshot;
-    public static dev.kiyo.wallgun.GunSnapshot prewarmSnapshot(){return heldSnapshot;}
     private static final ModeToggleGate TOGGLE_GATE = new ModeToggleGate();
     private static final DryFireWarning WARNING = new DryFireWarning();
     private static final ResourceLocation DEFAULT_DRY_FIRE = ResourceLocation.fromNamespaceAndPath("tacz", "dry_fire");
@@ -59,12 +56,6 @@ public final class PlacementClient {
             dimensionFeedbackPending = false;
             announceMode(mc);
         }
-        if(enabled && mc.player!=null && IGun.getIGunOrNull(mc.player.getMainHandItem())!=null){
-            var held=mc.player.getMainHandItem();
-            if(!net.minecraft.world.item.ItemStack.matches(heldCopy,held)){
-                heldCopy=held.copy();heldSnapshot=new dev.kiyo.wallgun.GunSnapshot(held);
-            }
-        }else {heldCopy=net.minecraft.world.item.ItemStack.EMPTY;heldSnapshot=null;}
         if (toggle == null) return;
         boolean clicked = false;
         while (toggle.consumeClick()) clicked = true;
@@ -76,10 +67,6 @@ public final class PlacementClient {
     private static void setEnabled(boolean value, boolean syncServer) {
         enabled = value;
         WARNING.clear();
-        if (!enabled) {
-            heldCopy = net.minecraft.world.item.ItemStack.EMPTY;
-            heldSnapshot = null;
-        }
         var mc = Minecraft.getInstance();
         if (mc.player != null) announceMode(mc);
         if (enabled && mc.player != null && IGun.getIGunOrNull(mc.player.getMainHandItem()) != null) {
@@ -95,13 +82,11 @@ public final class PlacementClient {
         mc.getSoundManager().play(SimpleSoundInstance.forUI(
                 enabled ? WallGuns.MODE_OPEN.get() : WallGuns.MODE_CLOSE.get(), 1.0F, 1.0F));
     }
-    /** The server has already cleared its authoritative state before activation resumes. */
+    /** The server has already cleared its authoritative state when dimension travel completes. */
     public static void disableAfterDimensionChange() {
         if (!enabled) return;
         enabled = false;
         WARNING.clear();
-        heldCopy = net.minecraft.world.item.ItemStack.EMPTY;
-        heldSnapshot = null;
         var mc = Minecraft.getInstance();
         if (mc.player != null && mc.level != null && mc.screen == null) announceMode(mc);
         else dimensionFeedbackPending = true;

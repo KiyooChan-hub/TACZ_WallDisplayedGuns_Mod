@@ -12,6 +12,8 @@ TACZ 静态装饰枪模组的独立开发仓库，当前位置为 `D:/FORK/TACZ_
 
 此仓库只维护装饰枪模组及其测试，不包含 HK416D、L119A2 等独立枪包工程。开发和提交规则见 [AGENTS.md](AGENTS.md)。
 
+当前双版本为 0.6.31：已移除预加载与玩家保护；已请求模型和 GPU 缓冲保留至退出连接或资源重载。详见各版本 README 顶部当前说明。
+
 ## 远端仓库
 
 唯一维护远端：[GitHub — KiyooChan-hub/TACZ_WallDisplayedGuns_Mod](https://github.com/KiyooChan-hub/TACZ_WallDisplayedGuns_Mod)。默认分支 `master`，本地 `origin` 已切换至 GitHub。迁移与核验记录见 [GitHub 迁移记录](migration/GITHUB-MIGRATION.md)。

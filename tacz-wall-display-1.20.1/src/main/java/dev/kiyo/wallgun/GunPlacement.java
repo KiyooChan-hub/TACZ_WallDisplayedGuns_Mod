@@ -28,7 +28,7 @@ public final class GunPlacement {
         MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent e)->ENABLED.remove(e.getEntity().getUUID()));
         MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e)->{
             if(e.getEntity() instanceof ServerPlayer player && enabled(player)){
-                set(player,false);LoadingSessions.markPlacementDisabled(player);
+                set(player,false);PlacementPayloads.disableAfterDimensionChange(player);
             }
         });
     }

@@ -107,7 +107,7 @@ final class PlacementSmoke {
                     clientPhase=3;clientTicks=0;
                 }else if(clientPhase==3){
                     if(++dimensionTicks>1200)throw new AssertionError("Dimension placement reset timed out");
-                    if(mc.level.dimension()!=net.minecraft.world.level.Level.NETHER || dev.kiyo.wallgun.client.LoadingClient.waiting() || mc.screen!=null)return;
+                    if(mc.level.dimension()!=net.minecraft.world.level.Level.NETHER || mc.screen!=null)return;
                     if(++clientTicks<5)return;
                     var serverPlayer=mc.getSingleplayerServer().getPlayerList().getPlayers().get(0);
                     if(dev.kiyo.wallgun.GunPlacement.enabled(serverPlayer))throw new AssertionError("Server placement mode survived dimension change");

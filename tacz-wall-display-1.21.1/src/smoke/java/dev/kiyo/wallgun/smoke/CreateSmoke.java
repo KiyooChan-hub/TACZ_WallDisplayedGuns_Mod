@@ -97,7 +97,6 @@ final class CreateSmoke {
                 int renderBits=view.getAndAdjustShouldRenderBlockEntities().cardinality();
                 int virtualSnapshots=(int)view.renderedBlockEntityView.stream().filter(be->be instanceof WallGunEntity gun && gun.snapshot()!=null).count();
                 long clientData=moving.getContraption().getBlocks().values().stream().filter(info->info.state().is(WallGuns.BLOCK.get())&&info.nbt()!=null&&info.nbt().contains("OriginalGun")).count();
-                int discovered=CreateMovingGuns.discover(mc.level).size();
                 int clientEntities=0, clientSnapshots=0;
                 for (var entity : mc.level.entitiesForRendering()) if (entity instanceof com.simibubi.create.content.contraptions.AbstractContraptionEntity ce) {
                     clientEntities++;
@@ -108,7 +107,7 @@ final class CreateSmoke {
                 try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){image.writeToFile(out().resolve("precheck.png"));}
                 require(clientSnapshots==width*height,"Client restored "+clientSnapshots+" / "+(width*height)+" exact original guns");
                 require(CreateMovingGuns.draws>0,"Moving gun GPU draw never executed: "+CreateMovingGuns.stats()
-                        +" virtualGuns="+virtualGuns+" renderBits="+renderBits+" discovered="+discovered
+                        +" virtualGuns="+virtualGuns+" renderBits="+renderBits
                         +" virtualSnapshots="+virtualSnapshots+" clientJoins="+clientJoins+" joinAt="+joinAt+" clientLeaves="+clientLeaves+" leaveAt="+leaveAt+" leaveReason="+leaveReason+" clientEntities="+clientEntities+" clientSnapshots="+clientSnapshots+" clientEntityById="+mc.level.getEntity(moving.getId())+" clientAllEntities="+java.util.stream.StreamSupport.stream(mc.level.entitiesForRendering().spliterator(),false).count()+" clientEntityTypes="+java.util.stream.StreamSupport.stream(mc.level.entitiesForRendering().spliterator(),false).map(e->e.getType().toString()).distinct().toList()+" clientData="+clientData
                         +" movingBlocks="+moving.getContraption().getBlocks().size()+" bearingRunning="+bearing.isRunning()+" movingAlive="+moving.isAlive()+" movingRemoved="+moving.isRemoved()+" movingId="+moving.getId()+" movingTick="+moving.tickCount+" movingPos="+moving.position()+" playerPos="+mc.player.position()+" serverEntities="+mc.getSingleplayerServer().overworld().getEntitiesOfClass(com.simibubi.create.content.contraptions.AbstractContraptionEntity.class,new AABB(-32,-80,-32,32,0,32)).size()+" bakes="+GunMeshes.bakes);
                 require(GunMeshes.bakes-initialBakes<=1,"Unexpected repeated TACZ capture: "+(GunMeshes.bakes-initialBakes));

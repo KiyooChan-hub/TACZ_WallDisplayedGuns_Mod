@@ -20,30 +20,22 @@ public final class EditMeshes {
     private static final Set<Key> REQUESTED=new HashSet<>();
     private static final class Bundle {
         final Map<RenderType,VertexBuffer> buffers=new LinkedHashMap<>();
-        boolean primed;
-        long used=System.nanoTime();
         void close(){buffers.values().forEach(VertexBuffer::close);}
     }
-    public static int uploads,draws;
+    public static int uploads,draws,uploadedVertices;
     public static int cachedBundles(){return CACHE.size();}
     public static long cachedVertices(){return CACHE.keySet().stream().mapToLong(k->k.mesh.vertices()).sum();}
-    public static void begin(){REQUESTED.clear();draws=0;}
+    public static void begin(){REQUESTED.clear();draws=0;uploadedVertices=0;}
     public static void request(GunMeshes.Mesh mesh,int light){
-        var key=new Key(mesh,light);REQUESTED.add(key);CACHE.computeIfAbsent(key,k->new Bundle()).used=System.nanoTime();
+        var key=new Key(mesh,light);REQUESTED.add(key);CACHE.computeIfAbsent(key,k->new Bundle());
     }
     public static boolean ready(GunMeshes.Mesh mesh,int light){
-        var b=CACHE.get(new Key(mesh,light));return b!=null && b.primed;
+        var b=CACHE.get(new Key(mesh,light));return b!=null && b.buffers.size()==mesh.materials().size();
     }
     public static void prepare(WorkBudget budget) {
-        int count=0;long now=System.nanoTime();long weight=0;
-        for(var key:CACHE.keySet())weight+=key.mesh.vertices();
-        var it=CACHE.entrySet().iterator();
-        while(it.hasNext()){
-            var entry=it.next();var key=entry.getKey();var bundle=entry.getValue();
-            if(!REQUESTED.contains(key) && (now-bundle.used>10_000_000_000L || weight>4_000_000)){
-                weight-=key.mesh.vertices();bundle.close();it.remove();continue;
-            }
-            if(!REQUESTED.contains(key))continue;
+        int count=0;
+        for(var key:REQUESTED){
+            var bundle=CACHE.get(key);
             for(var material:key.mesh.materials().entrySet()){
                 if(bundle.buffers.containsKey(material.getKey()))continue;
                 if(count>=2 || !budget.start())return;
@@ -58,26 +50,15 @@ public final class EditMeshes {
                         try {buffer.bind();buffer.upload(data);bundle.buffers.put(material.getKey(),buffer);}
                         catch(RuntimeException ex){buffer.close();throw ex;}
                         finally {VertexBuffer.unbind();}
-                        uploads++;count++;
+                        uploads++;count++;uploadedVertices+=material.getValue().size();
                     }
                 }
             }
         }
     }
-    public static void prime(RenderLevelStageEvent event){
-        var budget=new WorkBudget(1_000_000);int count=0;
-        for(var key:REQUESTED){
-            var bundle=CACHE.get(key);
-            if(bundle.primed || bundle.buffers.size()!=key.mesh.materials().size())continue;
-            if(count++>=2 || !budget.start())break;
-            // All materials become visible together, after the real shader pass has been exercised.
-            draw(bundle,new Matrix4f(event.getPoseStack().last().pose()).translate(0,-100000,0),event);
-            bundle.primed=true;
-        }
-    }
     public static boolean render(GunMeshes.Mesh mesh,int light,DisplayPose pose,
                               net.minecraft.core.BlockPos pos,RenderLevelStageEvent event){
-        var bundle=CACHE.get(new Key(mesh,light));if(bundle==null || !bundle.primed)return false;
+        var bundle=CACHE.get(new Key(mesh,light));if(bundle==null || bundle.buffers.size()!=mesh.materials().size())return false;
         var camera=event.getCamera().getPosition();
         var matrix=new Matrix4f(event.getPoseStack().last().pose()).translate((float)(pos.getX()-camera.x),
             (float)(pos.getY()-camera.y),(float)(pos.getZ()-camera.z)).mul(pose.matrix());

@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.6.30'
+version = '0.6.31'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -36,7 +36,7 @@ minecraft {
             args '-mixin.config=tacz_wall_display.mixins.json'
             mods { tacz_wall_display { source sourceSets.main } }
         }
-        client { jvmArgs '-Xmx6G'; if (providers.gradleProperty('firstPersonSmoke').isPresent()) jvmArgs '-Dwallgun.firstPersonSmoke=true'; if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgs '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('placementSmoke').isPresent()) jvmArgs '-Dwallgun.placementSmoke=true'; if (providers.gradleProperty('warmupSmoke').isPresent()) jvmArgs '-Dwallgun.warmupSmoke=true'; if (providers.gradleProperty('activationSmoke').isPresent()) jvmArgs '-Dwallgun.activationSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgs '-Dwallgun.audit=true'; args '--width','1280','--height','900' }
+        client { jvmArgs '-Xmx6G'; if (providers.gradleProperty('firstPersonSmoke').isPresent()) jvmArgs '-Dwallgun.firstPersonSmoke=true'; if (providers.gradleProperty('lodSmoke').isPresent()) jvmArgs '-Dwallgun.lodSmoke=true'; if (providers.gradleProperty('placementSmoke').isPresent()) jvmArgs '-Dwallgun.placementSmoke=true'; if (providers.gradleProperty('audit').isPresent()) jvmArgs '-Dwallgun.audit=true'; args '--width','1280','--height','900' }
         server { workingDirectory project.file('run-server'); args '--nogui' }
     }
 }
@@ -55,7 +55,7 @@ if (providers.gradleProperty('smoke').isPresent()) {
     tasks.register('smokeJar', Jar) {
         archiveClassifier = 'test-only'
         from sourceSets.smoke.output
-        // Production pose/warmup tests do not need the dev-only reference-render mixin.
+        // Production pose tests do not need the dev-only reference-render mixin.
         exclude 'wall_display_smoke.mixins.json', 'dev/kiyo/wallgun/smoke/mixin/**'
     }
     reobf { smokeJar {} }

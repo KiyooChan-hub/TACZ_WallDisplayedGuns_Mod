@@ -36,7 +36,6 @@ public class WallSmoke {
         if (Boolean.getBoolean("wallgun.magazineSmoke")) {new MagazineSmoke();return;}
         if (Boolean.getBoolean("wallgun.compatibilitySmoke")) {new DisplayCompatibilitySmoke();return;}
         if (Boolean.getBoolean("wallgun.lodSmoke")) {new LodSmoke();return;}
-        if (Boolean.getBoolean("wallgun.warmupSmoke")) {new WarmupSmoke();return;}
         if (Boolean.getBoolean("wallgun.audit")) {new CatalogAudit();return;}
         NeoForge.EVENT_BUS.addListener(this::tick);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RenderLevelStageEvent e)->{
@@ -118,7 +117,7 @@ public class WallSmoke {
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Equipped wall motion rebuilt geometry");
                 var dir=mc.gameDirectory.toPath().resolve("verification");
                 Files.writeString(dir.resolve("equipped-frames.csv"),equippedFrames);
-                Files.writeString(dir.resolve("equipped-stress.txt"),"100 equipped SCAR-L guns, 4 materials each, 120 bounded batches; stable and 360-tick near motion upload delta=0; "+WallBatches.stats()+"\n");
+                Files.writeString(dir.resolve("equipped-stress.txt"),"100 equipped SCAR-L guns, 4 materials each, 400 local-space draws; stable and 360-tick near motion upload delta=0; "+WallBatches.stats()+"\n");
                 mc.getSingleplayerServer().execute(()->{
                     try {
                         var world=mc.getSingleplayerServer().overworld();
@@ -159,7 +158,7 @@ public class WallSmoke {
                         if(!remove)((WallGunEntity)world.getBlockEntity(pos)).setSnapshot(new GunSnapshot(sourceStack(ResourceLocation.parse("tacz:scar_l"))));
                     });
                 }
-                if(WallBatches.maxBatchGuns>4)throw new AssertionError("Wall edit rebuilt more than four guns: "+WallBatches.stats());
+                if(WallBatches.uploads!=stableUploads)throw new AssertionError("Pose-only edit uploaded geometry: "+WallBatches.stats());
                 if(WallBatches.lastUploadedVertices>4*GunMeshes.get(new GunSnapshot(sourceStack(ResourceLocation.parse("tacz:scar_l")))).vertices())throw new AssertionError("Edit upload exceeded one local cell: "+WallBatches.stats());
                 if(++ticks<420)return;
                 Path output=mc.gameDirectory.toPath().resolve("verification");
@@ -210,7 +209,7 @@ public class WallSmoke {
                 });
                 phase=4;ticks=0;
             } else if(phase==4) {
-                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=30)throw new AssertionError("Expected 100 guns in 30 bounded cells: "+WallBatches.stats());
+                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=100)throw new AssertionError("Expected 100 local-space gun draws: "+WallBatches.stats());
                 screenshot("100-guns.png");stableUploads=WallBatches.uploads;phase=5;ticks=0;
             } else if(phase==5) {
                 if(WallBatches.uploads!=stableUploads)throw new AssertionError("Dense static scene rebuilt mesh");
@@ -245,7 +244,7 @@ public class WallSmoke {
                     phase++;ticks=0;
                 }
             } else if(phase==11) {
-                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=120)throw new AssertionError("Equipped stress material batches: "+WallBatches.stats());
+                if(WallBatches.lastGuns!=100 || WallBatches.lastDraws!=400)throw new AssertionError("Equipped stress material draws: "+WallBatches.stats());
                 screenshot("100-equipped.png");stableUploads=WallBatches.uploads;phase=12;ticks=0;
             }
         } catch(Throwable failure) {

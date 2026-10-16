@@ -14,12 +14,9 @@ public final class WallGunRenderer implements BlockEntityRenderer<WallGunEntity>
     public WallGunRenderer(BlockEntityRendererProvider.Context context) {}
     @Override public void render(WallGunEntity gun, float partial, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
         if (ModList.get().isLoaded("create") && CreateMovingGuns.renderIfVirtual(gun, pose, light)) return;
-        if(!WallGunConfig.preloading()) {
-            if(!WallBatches.visible(new AABB(gun.getBlockPos()).inflate(1.0)))return;
-            WallWarmup.onDemand(gun);
-        }
-        WallWarmup.request(gun);
-        if(LoadingClient.waiting() && (!WallWarmup.loading() || !WallWarmup.inInitialRange(gun.getBlockPos())))return;
+        var mesh=GunMeshes.peek(gun.snapshot());
+        if(!WallBatches.visible(new AABB(gun.getBlockPos()).inflate(mesh==null?1.0:Math.max(1.0,mesh.radius()))))return;
+        RenderQueue.request(gun);
         WallBatches.enqueue(gun, light);
     }
     // The anchor section may be outside the frustum while a long barrel is still visible.

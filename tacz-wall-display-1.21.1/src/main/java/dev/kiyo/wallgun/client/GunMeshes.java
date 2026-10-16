@@ -15,7 +15,7 @@ import static dev.kiyo.wallgun.client.MeshCapture.Vertex;
 
 public final class GunMeshes {
     public static final float WALL_GAP=.001F;
-    private static final WeightedCache<GunSnapshot,Mesh> CACHE = new WeightedCache<>(4_000_000,mesh->mesh.vertices(),mesh->{});
+    private static final SessionCache<GunSnapshot,Mesh> CACHE = new SessionCache<>(mesh->mesh.vertices(),mesh->{});
     private static final Map<GunSnapshot,ModelRetry> RETRIES=new WeakHashMap<>();
     public static int cacheHits, invalidations;
     public static int bakes, failures;
@@ -34,7 +34,7 @@ public final class GunMeshes {
     }
     public static Mesh get(GunSnapshot snapshot) { if(snapshot==null)return MissingHolder.MESH;
         Mesh mesh=CACHE.get(snapshot);if(mesh!=null){cacheHits++;return mesh;}
-        CACHE.pin(snapshot);mesh=bake(snapshot);CACHE.put(snapshot,mesh);
+        mesh=bake(snapshot);CACHE.put(snapshot,mesh);
         if(mesh.missing())RETRIES.computeIfAbsent(snapshot,k->new ModelRetry()).failed(System.nanoTime());
         else RETRIES.remove(snapshot);
         return mesh; }
@@ -55,7 +55,6 @@ public final class GunMeshes {
     }
     /** Cache lookup only. World rendering must never synchronously capture a missing appearance. */
     public static Mesh peek(GunSnapshot snapshot) { return snapshot == null ? MissingHolder.MESH : CACHE.get(snapshot); }
-    public static void retain(Set<GunSnapshot> active) {CACHE.pins(active);CACHE.limit(dev.kiyo.wallgun.WallGunConfig.modelCacheVertices());}
     public static long cachedVertices() {return CACHE.weight();}
     public static int cachedModels() {return CACHE.size();}
     public static void clear() { invalidations++;CACHE.clear();RETRIES.clear(); GunOrientation.clear(); }
@@ -63,7 +62,7 @@ public final class GunMeshes {
         long start = System.nanoTime();
         var stack = snapshot.copyGun();
         var id = com.tacz.guns.api.item.IGun.getIGunOrNull(stack).getGunId(stack);
-        WallGuns.LOG.info("Wall gun capture begin gun={} appearance={} phase={}",id,Integer.toHexString(snapshot.hashCode()),LoadingClient.waiting()?"initial":"on-demand");
+        WallGuns.LOG.info("Wall gun capture begin gun={} appearance={} phase={}",id,Integer.toHexString(snapshot.hashCode()),"on-demand");
         try {
             var original = TimelessAPI.getGunDisplay(stack).orElseThrow();
             // A separate display owns the mutable gun model; never capture the player's live animated model.

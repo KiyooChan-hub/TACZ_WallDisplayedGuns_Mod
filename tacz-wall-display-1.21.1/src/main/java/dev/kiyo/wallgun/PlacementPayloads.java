@@ -13,6 +13,15 @@ import net.minecraft.core.Direction;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 public final class PlacementPayloads {
+    public static Runnable clientModeDisabled=()->{};
+    public record ModeDisabled(boolean disabled) implements CustomPacketPayload {
+        public static final Type<ModeDisabled> TYPE=new Type<>(ResourceLocation.fromNamespaceAndPath(WallGuns.ID,"mode_disabled"));
+        public static final StreamCodec<ByteBuf,ModeDisabled> CODEC=StreamCodec.composite(ByteBufCodecs.BOOL,ModeDisabled::disabled,ModeDisabled::new);
+        @Override public Type<? extends CustomPacketPayload> type(){return TYPE;}
+    }
+    public static void disableAfterDimensionChange(ServerPlayer player){
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new ModeDisabled(true));
+    }
     private PlacementPayloads() {}
     public record Mode(boolean enabled) implements CustomPacketPayload {
         public static final Type<Mode> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WallGuns.ID, "placement_mode"));
@@ -31,7 +40,8 @@ public final class PlacementPayloads {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("1");
+        var registrar = event.registrar("2");
+        registrar.playToClient(ModeDisabled.TYPE,ModeDisabled.CODEC,(payload,context)->clientModeDisabled.run());
         registrar.playToServer(Mode.TYPE, Mode.CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) GunPlacement.set(player, payload.enabled());
         });

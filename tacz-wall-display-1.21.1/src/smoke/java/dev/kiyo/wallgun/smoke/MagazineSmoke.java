@@ -145,7 +145,7 @@ public final class MagazineSmoke {
                     var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst(); player.getAbilities().flying = true; player.onUpdateAbilities();
                     player.connection.teleport(.5, -57.4, 10.5, 180, 0); level.setDayTime(6000); level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, mc.getSingleplayerServer()); ready = true;
                 } catch (Throwable ex) { failure = ex; } }); ticks = 0;
-            } else if (ready && ticks > 180 && !WallWarmup.loading()) {
+            } else if (ready && ticks > 180) {
                 require(WallBatches.lastGuns == 8, "Eight magazine/flip displays rendered: " + WallBatches.stats());
                 require(GunMeshes.failures == 0, "Mesh capture failures");
                 String name = seedOld ? "legacy" : reopen ? "reopened" : "fixed";

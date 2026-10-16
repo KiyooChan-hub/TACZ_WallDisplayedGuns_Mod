@@ -19,11 +19,5 @@
   "chat.tacz_wall_display.join_hint_config": "In %s, set %s to hide this message.",
   "chat.tacz_wall_display.mode_on": "Gun placement mode：On",
   "chat.tacz_wall_display.mode_off": "Gun placement mode：Off",
-  "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!",
-  "wallgun.loading.handshake": "Wall guns: waiting for server handshake",
-  "wallgun.loading.manifest": "Wall guns: checking nearby chunks",
-  "wallgun.loading.server_release": "Wall guns: preparation skipped; waiting for server release",
-  "wallgun.loading.server_verification": "Wall guns: waiting for server verification",
-  "wallgun.loading.models": "Wall guns: preparing nearby models",
-  "wallgun.loading.chunks_and_batches": "Wall guns: waiting for chunk data / GPU batches"
+  "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!"
 }

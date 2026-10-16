@@ -11,15 +11,23 @@ import net.minecraft.world.phys.Vec3;
 
 /** Server validates every placement and adjustment against the player's current ray trace. */
 public final class PlacementPayloads {
-    private static final String PROTOCOL="1";
+    private static final String PROTOCOL="2";
     private static final SimpleChannel CHANNEL=NetworkRegistry.newSimpleChannel(
             new ResourceLocation(WallGuns.ID,"placement"),()->PROTOCOL,PROTOCOL::equals,PROTOCOL::equals);
     public record Mode(boolean enabled) {}
     public record Place(BlockPos pos, Direction face) {}
     /** 0 flips; +1 raises the muzzle; -1 lowers it. */
     public record Adjust(BlockPos pos, int operation) {}
+    public static Runnable clientModeDisabled=()->{};
+    public record ModeDisabled() {}
+    public static void disableAfterDimensionChange(ServerPlayer player){
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(()->player),new ModeDisabled());
+    }
     private PlacementPayloads() {}
     public static void init() {
+        CHANNEL.registerMessage(3,ModeDisabled.class,(m,b)->{},b->new ModeDisabled(),(m,s)->{
+            var ctx=s.get();ctx.enqueueWork(()->clientModeDisabled.run());ctx.setPacketHandled(true);
+        },java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(0,Mode.class,(m,b)->b.writeBoolean(m.enabled()),b->new Mode(b.readBoolean()),(m,s)->{
             var ctx=s.get();ctx.enqueueWork(()->{ServerPlayer p=ctx.getSender();if(p!=null)GunPlacement.set(p,m.enabled());});ctx.setPacketHandled(true);
         });

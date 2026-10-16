@@ -15,11 +15,10 @@ public final class WallGunClient {
     @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(WallGuns.ENTITY.get(),WallGunRenderer::new);
         NeoForge.EVENT_BUS.addListener(WallBatches::render);
-        dev.kiyo.wallgun.LoadingPayloads.client=LoadingClient::receive;
-        NeoForge.EVENT_BUS.addListener(LoadingClient::tick);
-        NeoForge.EVENT_BUS.addListener(WallWarmup::tick);
-        NeoForge.EVENT_BUS.addListener(WallWarmup::frame);
-        if (ModList.get().isLoaded("create")) {NeoForge.EVENT_BUS.addListener(CreateMovingGuns::frame);NeoForge.EVENT_BUS.addListener(CreateMovingGuns::prime);}
+        dev.kiyo.wallgun.PlacementPayloads.clientModeDisabled=PlacementClient::disableAfterDimensionChange;
+        NeoForge.EVENT_BUS.addListener(RenderQueue::tick);
+        NeoForge.EVENT_BUS.addListener(RenderQueue::frame);
+        if (ModList.get().isLoaded("create")) {NeoForge.EVENT_BUS.addListener(CreateMovingGuns::frame);}
         NeoForge.EVENT_BUS.addListener(PlacementClient::tick);
         NeoForge.EVENT_BUS.addListener(PlacementClient::mouse);
         NeoForge.EVENT_BUS.addListener(PlacementClient::scroll);
@@ -28,7 +27,7 @@ public final class WallGunClient {
         NeoForge.EVENT_BUS.addListener(PlacementJoinHint::login);
         NeoForge.EVENT_BUS.addListener(PlacementJoinHint::logout);
         NeoForge.EVENT_BUS.addListener(PlacementJoinHint::tick);
-        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{LoadingClient.reset();WallBatches.clear();GunMeshes.retain(java.util.Set.of());WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
+        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e)->{WallBatches.clear();GunMeshes.clear();RenderQueue.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e)->e.getDispatcher().register(net.minecraft.commands.Commands.literal("wallgun_stats").executes(context->{context.getSource().sendSuccess(()->net.minecraft.network.chat.Component.literal(WallBatches.stats()+(ModList.get().isLoaded("create") ? ", "+CreateMovingGuns.stats() : "")),false);return 1;})));
     }
     @SubscribeEvent public static void keys(RegisterKeyMappingsEvent event) { PlacementClient.register(event); }
@@ -38,6 +37,6 @@ public final class WallGunClient {
         },WallGuns.ITEM.get());
     }
     @SubscribeEvent public static void reload(RegisterClientReloadListenersEvent event) {
-        event.registerReloadListener((ResourceManagerReloadListener) resources -> {WallBatches.clear();GunMeshes.clear();WallWarmup.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
+        event.registerReloadListener((ResourceManagerReloadListener) resources -> {WallBatches.clear();GunMeshes.clear();RenderQueue.reset();if (ModList.get().isLoaded("create")) CreateMovingGuns.clear();});
     }
 }
