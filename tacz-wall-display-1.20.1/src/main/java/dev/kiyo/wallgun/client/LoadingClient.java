@@ -13,6 +13,7 @@ import java.util.*;
 /** The terrain screen is released only by the server's matching activation response. */
 public final class LoadingClient {
     private static final ActivationGate GATE=new ActivationGate();
+    private static final PreparationWindow WINDOW=new PreparationWindow();
     private static boolean sealed,sent,skipRequested,resumeRequested;
     private static Screen loadingScreen;
     private static long id,started,lastSkip,lastStatus,lastDiagnostic,lastReady,preloadBudgetNanos;
@@ -36,7 +37,7 @@ public final class LoadingClient {
     private static void clearScene(){sealed=false;sent=false;skipRequested=false;resumeRequested=false;id=0;lastSkip=lastStatus=lastDiagnostic=lastReady=0;revision=expected=0;dimension="";skipReason="";pendingOffer=null;CHUNKS.clear();}
     public static void reset(){GATE.disconnect();clearScene();loadingScreen=null;}
     public static void entering(){GATE.entering();clearScene();loadingScreen=null;startBudget();}
-    private static void startBudget(){started=System.nanoTime();preloadBudgetNanos=WallGunConfig.preloadTimeoutSeconds()*1_000_000_000L;failures=GunMeshes.failures;}
+    private static void startBudget(){started=System.nanoTime();preloadBudgetNanos=WallGunConfig.preloadTimeoutSeconds()*1_000_000_000L;WINDOW.enter(started,preloadBudgetNanos);failures=GunMeshes.failures;}
     public static void screenOpened(){loadingScreen=Minecraft.getInstance().screen;}
     private static CompoundTag message(String kind){var t=LoadingPayloads.message(kind,id,dimension);t.putInt("revision",revision);return t;}
     public static void receive(CompoundTag tag) {
@@ -74,7 +75,7 @@ public final class LoadingClient {
         }
     }
     private static void acceptOffer(Minecraft mc) {
-        if(pendingOffer==null || mc.level==null || !mc.level.dimension().location().toString().equals(pendingOffer.getString("dimension")))return;
+        if(pendingOffer==null || mc.level==null || mc.player==null || !mc.level.dimension().location().toString().equals(pendingOffer.getString("dimension")))return;
         var offer=pendingOffer;pendingOffer=null;
         long offeredId=offer.getLong("id");
         var decision=GATE.offer(offeredId);
@@ -88,6 +89,9 @@ public final class LoadingClient {
         if(decision==ActivationGate.Offer.RESUME || resumeRequested || (loadingScreen!=null && mc.screen!=loadingScreen)) {
             resumeRequested=true;skip("client has left the loading screen");return;
         }
+        if(WINDOW.activationExpired(System.nanoTime())){skip("activation exceeded 60 seconds before preparation");return;}
+        if(WINDOW.begin(System.nanoTime()))
+            WallGuns.LOG.info("Wall gun preparation started id={} handshakeMs={} budgetMs={} radius={}",id,(System.nanoTime()-started)/1_000_000,preloadBudgetNanos/1_000_000,WallGunConfig.preloadRadiusChunks());
         var reply=message("preferences");reply.putBoolean("enabled",WallGunConfig.preloading());
         reply.putInt("radius",WallGunConfig.preloadRadiusChunks());
         LoadingPayloads.send(reply);
@@ -115,15 +119,14 @@ public final class LoadingClient {
         long diagnosticNow=System.nanoTime();
         if(diagnosticNow-lastDiagnostic>=5_000_000_000L) {
             lastDiagnostic=diagnosticNow;
-            WallGuns.LOG.info("Wall gun client progress id={} generation={} dimension={} stage={} elapsedMs={} chunks={}/{} models={} batches={} screen={}",
-                id,GATE.generation(),mc.level==null?"none":mc.level.dimension().location(),stage(),(diagnosticNow-started)/1_000_000,
+            WallGuns.LOG.info("Wall gun client progress id={} generation={} dimension={} stage={} elapsedMs={} prepareMs={} chunks={}/{} models={} batches={} screen={}",
+                id,GATE.generation(),mc.level==null?"none":mc.level.dimension().location(),stage(),(diagnosticNow-started)/1_000_000,WINDOW.preparationElapsed(diagnosticNow)/1_000_000,
                 CHUNKS.size(),expected,WallWarmup.pendingModels(),WallBatches.pendingBatches(),mc.screen==null?"none":mc.screen.getClass().getSimpleName());
         }
         if(waiting() && id==0 && mc.level!=null && mc.player!=null) {
             long now=System.nanoTime();
             if(lastStatus==0 || now-lastStatus>=SKIP_RETRY_NANOS) {
                 var request=LoadingPayloads.message("status",0,mc.level.dimension().location().toString());
-                if(System.nanoTime()-started>Math.min(preloadBudgetNanos,LoadingSessions.ACTIVATION_SKIP_NANOS))resumeRequested=true;
                 request.putLong("generation",GATE.generation());request.putLong("retired",GATE.retired());
                 LoadingPayloads.send(request);lastStatus=now;
             }
@@ -132,10 +135,9 @@ public final class LoadingClient {
             && (mc.screen==null || (loadingScreen!=null && mc.screen!=loadingScreen))) {
             resumeRequested=true;skip("client has left the loading screen");
         }
-        long elapsed=System.nanoTime()-started;
-        if(id!=0 && elapsed>LoadingSessions.ACTIVATION_SKIP_NANOS)skip("activation exceeded 60 seconds");
-        if(id!=0 && !sent && WallGunConfig.preloading() && (GunMeshes.failures>failures || elapsed>preloadBudgetNanos))
-            skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded "+preloadBudgetNanos/1_000_000_000L+" seconds");
+        if(id!=0 && WINDOW.activationExpired(System.nanoTime()))skip("activation exceeded 60 seconds");
+        if(id!=0 && !sent && WallGunConfig.preloading() && (GunMeshes.failures>failures || WINDOW.preparationExpired(System.nanoTime())))
+            skip(GunMeshes.failures>failures?"model capture failed":"preparation exceeded "+preloadBudgetNanos/1_000_000_000L+" seconds (stage="+stage()+")");
         if(skipRequested){skip("waiting for server release");return;}
         if(sent && sealed && System.nanoTime()-lastReady>=SKIP_RETRY_NANOS) {
             LoadingPayloads.send(message("ready"));lastReady=System.nanoTime();
@@ -154,6 +156,7 @@ public final class LoadingClient {
             // Requesting a cached model still needs one frame to enqueue/verify its GPU batches.
             if(!WallWarmup.initialPrepared(CHUNKS.keySet()))return;
             com.mojang.blaze3d.systems.RenderSystem.assertOnRenderThread();
+            WallGuns.LOG.info("Wall gun preparation ready id={} chunks={} prepareMs={} result={}",id,CHUNKS.size(),WINDOW.preparationElapsed(System.nanoTime())/1_000_000,CHUNKS.isEmpty()?"empty-static-scene":"models-and-batches-ready");
             sent=true;lastReady=System.nanoTime();LoadingPayloads.send(message("ready"));
         }
     }

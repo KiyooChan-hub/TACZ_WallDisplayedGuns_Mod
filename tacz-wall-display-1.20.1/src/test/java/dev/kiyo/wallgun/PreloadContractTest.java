@@ -5,6 +5,19 @@ import org.objectweb.asm.tree.*;
 import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.*;
 class PreloadContractTest {
+    @Test void runtimeUsesTheTestedTimingAndChunkRetryPolicies() throws IOException {
+        boolean begins=false,checksPreparation=false,retriesUnknown=false;
+        for(var m:type("client/LoadingClient").methods)for(var i:m.instructions)if(i instanceof MethodInsnNode call) {
+            if(m.name.equals("acceptOffer") && call.owner.endsWith("/PreparationWindow")) {
+                assertNotEquals("enter",call.name);
+                if(call.name.equals("begin"))begins=true;
+            }
+            if(m.name.equals("pulse") && call.owner.endsWith("/PreparationWindow") && call.name.equals("preparationExpired"))checksPreparation=true;
+        }
+        for(var m:type("LoadingSessions").methods)if(m.name.equals("tick"))for(var i:m.instructions)
+            if(i instanceof MethodInsnNode call && call.owner.endsWith("/ChunkScan") && call.name.equals("retryLater"))retriesUnknown=true;
+        assertTrue(begins && checksPreparation && retriesUnknown);
+    }
     private ClassNode type(String name) throws IOException {
         try(var in=getClass().getClassLoader().getResourceAsStream("dev/kiyo/wallgun/"+name+".class")) {
             assertNotNull(in);var node=new ClassNode();new ClassReader(in).accept(node,0);return node;

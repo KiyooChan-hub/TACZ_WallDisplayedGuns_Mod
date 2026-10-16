@@ -203,9 +203,9 @@ public final class LoadingSessions {
             }
             if(now-s.lastDiagnostic>=5_000_000_000L) {
                 s.lastDiagnostic=now;
-                WallGuns.LOG.info("Wall gun server progress id={} dimension={} stage={} elapsedMs={} cursor={} chunks={} revision={}",
+                WallGuns.LOG.info("Wall gun server progress id={} dimension={} stage={} elapsedMs={} cursor={} chunks={} pending={} revision={}",
                     s.id,s.dimension,!s.configured?"preferences":s.deadlineReached?"client-release-ack":s.verifying?"verification":s.sealed?"client-ready":"scan",
-                    (now-s.started)/1_000_000,s.cursor,s.chunks==null?0:s.chunks.size(),s.revision);
+                    (now-s.started)/1_000_000,s.cursor,s.chunks==null?0:s.chunks.size(),s.chunks==null?0:s.chunks.size()-s.cursor,s.revision);
             }
             if(!s.offered) {
                 s.offered=true;s.connection=player.connection;s.lastOffer=now;
@@ -237,7 +237,7 @@ public final class LoadingSessions {
 
                     var full=player.serverLevel().getChunkSource().getChunkNow(pos.x,pos.z);
                     if(full==null || !player.getChunkTrackingView().contains(pos)) {
-                        s.unavailable++;s.cursor++;continue; // Never generate or wait for a chunk for decorative preparation.
+                        s.unavailable++;ChunkScan.retryLater(s.chunks,s.cursor);continue; // Unknown is not empty; retry without generating chunks.
                     }
                     var description=describe(full);
                     if(!s.verifying && description.getList("guns",Tag.TAG_COMPOUND).isEmpty()){s.cursor++;continue;}
@@ -257,9 +257,9 @@ public final class LoadingSessions {
                     s.cursor++;
                 }
                 s.scanNanos+=System.nanoTime()-scanStarted;
-                if(!s.deadlineReached && s.cursor==s.chunks.size()) {
+                if(!s.deadlineReached && ChunkScan.complete(s.chunks,s.cursor)) {
                     if(s.verifying)release(player,s);
-                    else if(!s.sealed){s.sealed=true;var done=packet(s,"seal");done.putInt("count",s.manifest.size());WallGuns.LOG.info("Wall gun manifest id={} chunks={} unavailable={} bytes={} scanMs={}",s.id,s.manifest.size(),s.unavailable,s.bytes,s.scanNanos/1_000_000);LoadingPayloads.send(player,done);}
+                    else if(!s.sealed){s.sealed=true;var done=packet(s,"seal");done.putInt("count",s.manifest.size());WallGuns.LOG.info("Wall gun manifest id={} chunks={} notReadyChecks={} bytes={} scanMs={}",s.id,s.manifest.size(),s.unavailable,s.bytes,s.scanNanos/1_000_000);LoadingPayloads.send(player,done);}
                 }
             }catch(RuntimeException ex){WallGuns.LOG.error("Could not prepare initial wall gun set",ex);defer(player,s,"invalid initial scene");}
         }
