@@ -12,6 +12,7 @@ public final class WeightedCache<K,V> {
     private long limit, size;
     public WeightedCache(long limit,ToLongFunction<V> weight,Consumer<V> dispose) {this.limit=limit;this.weight=weight;this.dispose=dispose;}
     public V get(K key) {return values.get(key);}
+    public void remove(K key) {V old=values.remove(key);if(old!=null){size-=weight.applyAsLong(old);dispose.accept(old);}}
     public void put(K key,V value) {V old=values.put(key,value);if(old!=null){size-=weight.applyAsLong(old);if(old!=value)dispose.accept(old);}size+=weight.applyAsLong(value);trim();}
     public void pin(K key) {var keys=new HashSet<>(pinned);keys.add(key);pinned=Set.copyOf(keys);}
     public void pins(Set<K> keys) {pinned=Set.copyOf(keys);trim();}

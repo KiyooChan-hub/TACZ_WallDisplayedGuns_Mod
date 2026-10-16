@@ -18,6 +18,8 @@ public final class WallGunRenderer implements BlockEntityRenderer<WallGunEntity>
             if(!WallBatches.visible(new AABB(gun.getBlockPos()).inflate(1.0)))return;
             WallWarmup.onDemand(gun);
         }
+        WallWarmup.request(gun);
+        if(LoadingClient.waiting() && (!WallWarmup.loading() || !WallWarmup.inInitialRange(gun.getBlockPos())))return;
         WallBatches.enqueue(gun, light);
     }
     // The anchor section may be outside the frustum while a long barrel is still visible.

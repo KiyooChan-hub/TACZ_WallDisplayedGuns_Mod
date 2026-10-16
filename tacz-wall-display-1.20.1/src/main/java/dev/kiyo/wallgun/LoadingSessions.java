@@ -29,7 +29,9 @@ public final class LoadingSessions {
         ServerGamePacketListenerImpl connection;
         String dimension;
         boolean offered,configured,enabled,sealed,verifying,failed,placementDisabled,deadlineReached;
-        int radius=8,cursor,revision,retries,bytes;
+        int radius=2,cursor,revision,retries,bytes,unavailable;
+        long lastDiagnostic;
+        String fallbackReason="";
         long scanNanos;
         List<ChunkPos> chunks;
         final Map<ChunkPos,CompoundTag> manifest=new LinkedHashMap<>();
@@ -48,6 +50,7 @@ public final class LoadingSessions {
         var session=new Session();session.dimension=destination;
         var previous=WAITING.put(player,session);
         if(previous!=null){session.placementDisabled=previous.placementDisabled;if(previous.gunDraw.pending())session.gunDraw.request();}
+        WallGuns.LOG.info("Wall gun activation armed id={} destination={} player={} position={} replaced={}",session.id,destination,player.getGameProfile().getName(),player.blockPosition(),previous==null?0:previous.id);
         player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;
     }
     public static void commandKill(ServerPlayer player) {
@@ -109,17 +112,23 @@ public final class LoadingSessions {
         switch(tag.getString("kind")) {
             case "preferences" -> {
                 if(s.configured)return;
-                s.configured=true;s.enabled=tag.getBoolean("enabled");s.radius=Math.max(1,Math.min(32,tag.getInt("radius")));
+                s.configured=true;s.enabled=tag.getBoolean("enabled");s.radius=Math.max(0,Math.min(8,tag.getInt("radius")));
                 if(!s.enabled || s.deadlineReached || System.nanoTime()-s.started>ACTIVATION_SKIP_NANOS)release(player,s);
             }
             case "skip", "resume" -> {
                 WallGuns.LOG.warn("Wall gun initial scene skipped for {}: {}",player.getGameProfile().getName(),tag.getString("reason"));
                 release(player,s);
             }
-            case "refresh" -> {if(s.sealed && tag.getInt("revision")==s.revision){if(++s.retries>8){fail(player,"initial scene kept changing");return;} s.revision++;s.cursor=0;s.sealed=false;s.verifying=false;s.manifest.clear();s.bytes=0;LoadingPayloads.send(player,packet(s,"begin"));}}
-            case "ready" -> {if(!s.verifying && s.sealed && tag.getInt("revision")==s.revision){s.verifying=true;s.cursor=0;}}
-            case "failure" -> fail(player,"client could not prepare the initial scene");
+            case "refresh" -> {if(s.sealed && tag.getInt("revision")==s.revision){if(++s.retries>8){defer(player,s,"initial scene kept changing");return;} s.revision++;s.cursor=0;s.sealed=false;s.verifying=false;s.manifest.clear();s.bytes=0;LoadingPayloads.send(player,packet(s,"begin"));}}
+            case "ready" -> {if(!s.verifying && s.sealed && tag.getInt("revision")==s.revision){s.verifying=true;s.chunks=new ArrayList<>(s.manifest.keySet());s.cursor=0;}}
+            case "failure" -> release(player,s);
         }
+    }
+    private static void defer(ServerPlayer player,Session s,String reason) {
+        s.deadlineReached=true;s.fallbackReason=reason;
+        WallGuns.LOG.warn("Wall gun preparation deferred id={} dimension={} reason={}",s.id,s.dimension,reason);
+        var skip=packet(s,"skip");skip.putString("reason",reason);LoadingPayloads.send(player,skip);
+        s.lastSkipInstruction=System.nanoTime();
     }
     private static void release(ServerPlayer player,Session s) {
         if(WAITING.get(player)!=s)return;
@@ -190,8 +199,14 @@ public final class LoadingSessions {
             long now=System.nanoTime();
             player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;player.resetLastActionTime();
             if(!s.deadlineReached && now-s.started>ACTIVATION_SKIP_NANOS) {
-                s.deadlineReached=true;
+                s.deadlineReached=true;s.fallbackReason="activation exceeded 60 seconds";
                 WallGuns.LOG.warn("Wall gun activation exceeded 60 seconds for {}; waiting for client before safe release",player.getGameProfile().getName());
+            }
+            if(now-s.lastDiagnostic>=5_000_000_000L) {
+                s.lastDiagnostic=now;
+                WallGuns.LOG.info("Wall gun server progress id={} dimension={} stage={} elapsedMs={} cursor={} chunks={} revision={}",
+                    s.id,s.dimension,!s.configured?"preferences":s.deadlineReached?"client-release-ack":s.verifying?"verification":s.sealed?"client-ready":"scan",
+                    (now-s.started)/1_000_000,s.cursor,s.chunks==null?0:s.chunks.size(),s.revision);
             }
             if(!s.offered) {
                 s.offered=true;s.connection=player.connection;s.lastOffer=now;
@@ -203,19 +218,16 @@ public final class LoadingSessions {
             }
             if(s.deadlineReached) {
                 if(now-s.lastSkipInstruction>=OFFER_RETRY_NANOS) {
-                    s.lastSkipInstruction=now;LoadingPayloads.send(player,packet(s,"skip"));
+                    s.lastSkipInstruction=now;var skip=packet(s,"skip");skip.putString("reason",s.fallbackReason);LoadingPayloads.send(player,skip);
                 }
                 continue;
             }
             if(!s.enabled)continue;
             if(s.chunks==null) {
-                if(!player.serverLevel().getChunkSource().chunkMap.getPlayers(player.chunkPosition(),false).contains(player))continue;
                 s.chunks=new ArrayList<>();var center=player.chunkPosition();
-                int radius=Math.min(s.radius,player.server.getPlayerList().getViewDistance());
-                for(int z=center.z-radius;z<=center.z+radius;z++)for(int x=center.x-radius;x<=center.x+radius;x++) {
-                    var pos=new ChunkPos(x,z);
-                    if(player.serverLevel().getChunkSource().chunkMap.getPlayers(pos,false).contains(player))s.chunks.add(pos);
-                }
+                for(int z=center.z-s.radius;z<=center.z+s.radius;z++)for(int x=center.x-s.radius;x<=center.x+s.radius;x++)
+                    s.chunks.add(new ChunkPos(x,z));
+                WallGuns.LOG.info("Wall gun scan id={} dimension={} center={} radius={} candidates={}",s.id,s.dimension,center,s.radius,s.chunks.size());
                 LoadingPayloads.send(player,packet(s,"begin"));
             }
             try {
@@ -223,34 +235,34 @@ public final class LoadingSessions {
                 int remaining=s.chunks.size()-s.cursor;
                 while(s.cursor<s.chunks.size() && remaining-->0 && System.nanoTime()-scanStarted<4_000_000L && (!s.sealed || s.verifying)) {
                     var pos=s.chunks.get(s.cursor);
-                    if(!player.serverLevel().getChunkSource().chunkMap.getPlayers(pos,false).contains(player)){fail(player,"initial chunk subscription changed");break;}
+
                     var full=player.serverLevel().getChunkSource().getChunkNow(pos.x,pos.z);
-                    if(full==null) {
-                        // Visit each pending position once per tick; a slow chunk must not block ready ones.
-                        s.chunks.remove(s.cursor);s.chunks.add(pos);continue;
+                    if(full==null || !player.serverLevel().getChunkSource().chunkMap.getPlayers(pos,false).contains(player)) {
+                        s.unavailable++;s.cursor++;continue; // Never generate or wait for a chunk for decorative preparation.
                     }
                     var description=describe(full);
+                    if(!s.verifying && description.getList("guns",Tag.TAG_COMPOUND).isEmpty()){s.cursor++;continue;}
                     if(s.verifying) {
                         if(!description.equals(s.manifest.get(pos))) {
-                            if(++s.retries>8){fail(player,"initial scene kept changing");break;}
+                            if(++s.retries>8){defer(player,s,"initial scene kept changing");break;}
                             s.revision++;s.cursor=0;s.sealed=false;s.verifying=false;s.manifest.clear();s.bytes=0;
                             LoadingPayloads.send(player,packet(s,"begin"));break;
                         }
                     } else {
-                        if(description.getList("guns",Tag.TAG_COMPOUND).size()>256) {fail(player,"more than 256 guns in one initial chunk");break;}
+                        if(description.getList("guns",Tag.TAG_COMPOUND).size()>256) {defer(player,s,"more than 256 guns in one initial chunk");break;}
                         var buffer=new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-                        try {buffer.writeNbt(description);s.bytes+=buffer.readableBytes();if(buffer.readableBytes()>524288 || s.bytes>33_554_432){fail(player,"initial description exceeds chunk/session byte limit");break;}}finally{buffer.release();}
+                        try {buffer.writeNbt(description);s.bytes+=buffer.readableBytes();if(buffer.readableBytes()>524288 || s.bytes>33_554_432){defer(player,s,"initial description exceeds chunk/session byte limit");break;}}finally{buffer.release();}
                         s.manifest.put(pos,description);
                         var message=packet(s,"chunk");message.put("data",description);LoadingPayloads.send(player,message);
                     }
                     s.cursor++;
                 }
                 s.scanNanos+=System.nanoTime()-scanStarted;
-                if(s.cursor==s.chunks.size()) {
+                if(!s.deadlineReached && s.cursor==s.chunks.size()) {
                     if(s.verifying)release(player,s);
-                    else if(!s.sealed){s.sealed=true;var done=packet(s,"seal");done.putInt("count",s.chunks.size());LoadingPayloads.send(player,done);}
+                    else if(!s.sealed){s.sealed=true;var done=packet(s,"seal");done.putInt("count",s.manifest.size());WallGuns.LOG.info("Wall gun manifest id={} chunks={} unavailable={} bytes={} scanMs={}",s.id,s.manifest.size(),s.unavailable,s.bytes,s.scanNanos/1_000_000);LoadingPayloads.send(player,done);}
                 }
-            }catch(RuntimeException ex){WallGuns.LOG.error("Could not prepare initial wall gun set",ex);fail(player,"invalid initial scene");}
+            }catch(RuntimeException ex){WallGuns.LOG.error("Could not prepare initial wall gun set",ex);defer(player,s,"invalid initial scene");}
         }
     }
 }

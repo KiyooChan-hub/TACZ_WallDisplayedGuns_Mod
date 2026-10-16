@@ -1,5 +1,5 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '[6.0.16,6.2)' }
-version = '0.6.28'
+version = '0.6.29'
 group = 'dev.kiyo'
 base { archivesName = 'tacz-wall-display-1.20.1-forge' }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -44,7 +44,7 @@ tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.re
 tasks.named('compileJava', JavaCompile) { options.compilerArgs += ['-processor', 'org.spongepowered.tools.obfuscation.MixinObfuscationProcessorInjection,org.spongepowered.tools.obfuscation.MixinObfuscationProcessorTargets', '-AdefaultObfuscationEnv=searge', '-AreobfSrgFile=' + project.file('build/generated/refmap/mcp-to-srg.srg').absolutePath, '-AoutRefMapFile=' + project.file('build/generated/refmap/tacz_wall_display.refmap.json').absolutePath]; dependsOn 'mixinSrgMappings'; outputs.file('build/generated/refmap/tacz_wall_display.refmap.json'); doFirst { project.file('build/generated/refmap').mkdirs() } }
 test {
     useJUnitPlatform()
-    systemProperty 'wallgun.meshPack', "${instance}/tacz/duyupack+1.21.1.zip"
+    systemProperty 'wallgun.meshPack', providers.gradleProperty('meshTestPack').getOrElse("${instance}/tacz/duyupack+1.21.1.zip")
 }
 processResources { inputs.property 'modVersion', project.version; filesMatching('META-INF/mods.toml') { expand(modVersion: project.version) } }
 jar { from('build/generated/refmap') { include '*.refmap.json' }; manifest { attributes 'MixinConfigs':'tacz_wall_display.mixins.json' }; finalizedBy 'reobfJar' }

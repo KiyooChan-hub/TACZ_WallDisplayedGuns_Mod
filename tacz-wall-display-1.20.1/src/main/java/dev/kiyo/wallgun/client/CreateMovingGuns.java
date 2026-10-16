@@ -39,10 +39,12 @@ public final class CreateMovingGuns {
     public static boolean renderIfVirtual(WallGunEntity gun, PoseStack pose, int light) {
         if (!(gun.getLevel() instanceof VirtualRenderWorld)) return false;
         virtualCalls++;
+        // Initial discovery owns this queue; visible out-of-range structures must not extend the gate.
+        if(LoadingClient.waiting())return true;
         if (gun.snapshot() == null) return true;
         var snapshot = gun.snapshot();
         var mesh = GunMeshes.peek(snapshot);
-        if(mesh==null && !WallWarmup.loading()) {mesh=GunMeshes.get(snapshot);}
+        if(!LoadingClient.waiting())WallWarmup.demand(snapshot);
         if (mesh == null) return true; // Captured by the frame-budgeted discovery path.
         var key = new Key(snapshot, gun.getBlockState().getValue(WallGunBlock.FACING),
                 gun.mountRoll() + gun.roll(), gun.flipped());
@@ -83,6 +85,7 @@ public final class CreateMovingGuns {
         Set<GunSnapshot> result = new LinkedHashSet<>();
         for (var entity : level.entitiesForRendering()) {
             if (!(entity instanceof AbstractContraptionEntity moving) || moving.getContraption() == null) continue;
+            if(LoadingClient.waiting() && !WallWarmup.inInitialRange(moving.blockPosition()))continue;
             var snapshots = CONTRAPTIONS.computeIfAbsent(moving, key -> {
                 Set<GunSnapshot> found = new LinkedHashSet<>();
                 // Create reconstructs client BEs from its update tags; reading its block-list NBT
@@ -138,6 +141,10 @@ public final class CreateMovingGuns {
         }
     }
 
+    public static void invalidate(GunSnapshot snapshot) {
+        var it=BUFFERS.entrySet().iterator();
+        while(it.hasNext()){var entry=it.next();if(entry.getKey().snapshot().equals(snapshot)){cachedVertices-=entry.getValue().vertices;entry.getValue().close();it.remove();}}
+    }
     public static boolean prepared() {return PENDING.isEmpty() && BUFFERS.values().stream().allMatch(b->b.primed);}
     public static void prime(net.minecraftforge.client.event.RenderLevelStageEvent event) {
         if(!WallWarmup.loading() || event.getStage()!=net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS)return;
