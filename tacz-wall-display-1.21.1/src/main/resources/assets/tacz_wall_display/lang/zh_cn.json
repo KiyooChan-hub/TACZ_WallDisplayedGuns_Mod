@@ -21,7 +21,7 @@
   "chat.tacz_wall_display.mode_off": "枪械摆放模式：关闭",
   "hud.tacz_wall_display.cannot_fire": "不能在枪械摆放模式下开火！",
   "config.tacz_wall_display.cacheDecorativeGuns": "缓存装饰枪",
-  "config.tacz_wall_display.cacheDecorativeGuns.tooltip": "开启：在本次连接期间跨维度保留模型与 GPU 缓存，减少重复加载卡顿，但会增加内存和显存占用。关闭：清理一次已有缓存，此后切换维度时释放；当前场景仍使用临时渲染缓存。退出连接或资源重载总会释放缓存。",
+  "config.tacz_wall_display.cacheDecorativeGuns.tooltip": "开启：在单次连接存档或服务器期间跨维度保留模型与 GPU 缓存，减少重复加载卡顿，但会增加内存和显存占用。关闭：每次切换维度都会清理一次已有缓存，此后切换维度时释放；当前场景仍使用临时渲染缓存，将导致装饰枪重复加载时卡顿。",
   "config.tacz_wall_display.maxRenderDistance": "最大渲染距离",
   "config.tacz_wall_display.maxRenderDistance.tooltip": "装饰枪的最大渲染距离，单位：方块。范围为 1–512；-1 表示不额外限制，但对应区块仍须已加载。",
   "config.tacz_wall_display.showPlacementHintOnJoin": "进入世界时显示摆放提示",
