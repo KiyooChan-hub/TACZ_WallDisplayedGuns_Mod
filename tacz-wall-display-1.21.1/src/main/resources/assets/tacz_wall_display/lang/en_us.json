@@ -21,7 +21,7 @@
   "chat.tacz_wall_display.mode_off": "Gun placement mode：Off",
   "hud.tacz_wall_display.cannot_fire": "Cannot fire in gun placement mode!",
   "config.tacz_wall_display.cacheDecorativeGuns": "Cache decorative guns",
-  "config.tacz_wall_display.cacheDecorativeGuns.tooltip": "Keep model and GPU caches across dimensions until disconnect or resource reload. Uses more memory/VRAM. Disabling clears existing caches once, then releases them on dimension changes; the active scene still uses temporary rendering caches.",
+  "config.tacz_wall_display.cacheDecorativeGuns.tooltip": "Enabled: Retains model and GPU caches across dimensions during a single world or server session, reducing stutters from repeated loading at the cost of increased RAM and VRAM usage. Disabled: Clears existing caches on every dimension change. The current scene still uses temporary rendering caches, so loading decorative guns again will cause stutters.",
   "config.tacz_wall_display.maxRenderDistance": "Maximum render distance",
   "config.tacz_wall_display.maxRenderDistance.tooltip": "Maximum decorative-gun render distance in blocks: 1–512. -1 removes this addon's distance limit; chunks must still be loaded.",
   "config.tacz_wall_display.showPlacementHintOnJoin": "Show placement hint on join",
