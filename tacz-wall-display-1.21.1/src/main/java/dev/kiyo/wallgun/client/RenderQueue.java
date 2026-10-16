@@ -14,14 +14,21 @@ public final class RenderQueue {
     private static final Set<GunSnapshot> PENDING=new LinkedHashSet<>();
     private static final Set<GunSnapshot> DEMANDED=new LinkedHashSet<>();
     private static ClientLevel world;
+    private static final CachePolicy CACHE_POLICY=new CachePolicy();
     public static int frameBakes,frameUploads;
     public static int pendingModels(){return PENDING.size();}
     public static int tracked(){return TRACKED.size();}
     public static void reset(){TRACKED.clear();PENDING.clear();DEMANDED.clear();world=null;}
     private static void ensureWorld(){
         var current=Minecraft.getInstance().level;
+        if(current!=null && CACHE_POLICY.release(WallGunConfig.cacheDecorativeGuns(),current!=world))releaseCaches();
         if(current==world)return;
         reset();world=current;WallBatches.switchWorld(current);
+    }
+    private static void releaseCaches(){
+        WallBatches.clear();GunMeshes.clear();
+        if(net.neoforged.fml.ModList.get().isLoaded("create"))CreateMovingGuns.clear();
+        WallGuns.LOG.info("Wall gun cache released: connection retention disabled");
     }
     public static void request(WallGunEntity gun){
         ensureWorld();
